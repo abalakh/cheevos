@@ -210,6 +210,21 @@ and PyUI's core UI modules don't hard-code `/mnt/SDCARD`. So the runner needs no
   `pyui-tested-commit`.
 - CI has no `dev/media-host`, so badges, icons and avatars in CI screens are placeholders.
 
+## Releases
+`make package` builds `dist/App/Cheevos/` and `dist/Cheevos-<version>.zip`, which extracts to
+the SD card root. To publish a release:
+
+1. Set the version in `pyproject.toml` and `src/cheevos/__init__.py` (a test checks that they
+   match). Use PEP 440: `0.1.0b1` for a pre-release, `0.1.0` for a release. Run `uv lock`, since
+   CI installs with `--locked`, then `make check`.
+2. Commit, tag `v<version>` and push both: `git tag v0.1.0b1 && git push origin master v0.1.0b1`.
+3. Once the checks pass, CI's `release` job publishes a GitHub release with the zip. Versions
+   with `a`, `b`, `rc` or `dev` in them are marked as pre-releases. A tag that doesn't match
+   the version fails the job.
+
+GitHub adds its own "Source code" archives to every release; they can't be removed. Testers
+need only the `Cheevos-<version>.zip`.
+
 ## Publishing the wiki
 The pages in `docs/` are written for the GitHub wiki, which is a separate repository
 (`<repo>.wiki.git`). Copy the folder's contents, `images/` included, into a clone of it and

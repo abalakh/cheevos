@@ -14,7 +14,7 @@ tools in [TESTING.md](../TESTING.md).
    - [ ] Publish the wiki: copy `docs/` into the `<repo>.wiki.git` repository.
    - [ ] Fixtures: `tests/fixtures/ra/` holds a real account's recorded responses. Re-record
          them with a public account, or scrub the username, before the repo goes public.
-   - [ ] `make package` → `Cheevos-<version>.zip` that extracts to the SD card root, and a CI
+   - [x] `make package` → `Cheevos-<version>.zip` that extracts to the SD card root, and a CI
          release workflow triggered by tags.
    - [ ] Testing on other devices (A30, Flip, Brick, Smart Pro, RG XX) at their resolutions.
          Cheevos shows up on every device; testers just install the release. Add each device

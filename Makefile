@@ -61,7 +61,7 @@ screens: ## Headless PNGs of the walk-through into build/screens/<WxH>/
 doc-screens: ## Render the wiki screenshots into docs/images (showcase drill)
 	$(RUN) python scripts/doc_screens.py
 
-package: ## Build the device package into dist/App/Cheevos
+package: ## Build the device package: dist/App/Cheevos and dist/Cheevos-<version>.zip
 	$(RUN) python scripts/build_package.py
 
 deploy: package ## Copy the package to the device (DEVICE_HOST=<ip> or DEVICE_SSH=...)
