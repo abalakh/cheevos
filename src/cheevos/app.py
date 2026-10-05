@@ -29,7 +29,7 @@ from cheevos.core.sync.session import Credentials, make_client, open_sync_deps
 from cheevos.platform.paths import Paths
 from cheevos.ui.context import AppContext
 from cheevos.ui.media import MediaResolver
-from cheevos.ui.pyui import generated, primitives, status_bar, views
+from cheevos.ui.pyui import generated, primitives, status_bar, visible_images
 from cheevos.ui.screens.home import Home
 from cheevos.ui.screens.setup import change_key, ensure_credentials, untested_device_note
 from cheevos.ui.screens.status import SyncBar
@@ -207,7 +207,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         settings=settings,
         data=data,
         media_cache=media_cache,
-        media=MediaResolver(media_cache, icons, fetcher, views.image_demand),
+        media=MediaResolver(media_cache, icons, fetcher, visible_images.image_demand),
         sync=sync,
         proxy=ProxyReader(paths),
         screenshots=ScreenshotIndex(screenshot_directory(paths)),
@@ -220,7 +220,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         ctx.start_sync()
     logger.info("UI ready after %.2fs", time.monotonic() - started_at)
     generated.use_scratch(paths.scaled_scratch)
-    views.track_images(lambda: ctx.media.version, ctx.media.new_window)
+    visible_images.track_images(lambda: ctx.media.version, ctx.media.new_window)
     bar = SyncBar(ctx, _icons_dir(bar=True), lambda: change_key(ctx))
     try:
         with status_bar.installed(bar.status, bar.press_start):

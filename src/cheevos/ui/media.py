@@ -15,7 +15,7 @@ from typing import Protocol
 
 from cheevos.core.models import Achievement, UserProfile
 from cheevos.core.storage.media_cache import MediaCache, avatar_key, badge_key, icon_key
-from cheevos.ui.pyui.views import ImageDemand
+from cheevos.ui.pyui.visible_images import ImageDemand
 
 
 class ImageFetcher(Protocol):

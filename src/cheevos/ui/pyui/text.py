@@ -9,11 +9,14 @@ from __future__ import annotations
 
 import ctypes
 import functools
+import logging
 import re
 import unicodedata
 from enum import Enum
 
 # Emoji and pictographs: theme fonts have no glyphs for them (they render as boxes).
+logger = logging.getLogger(__name__)
+
 _NO_GLYPH = re.compile("[\U0001f000-\U0001faff\u2600-\u27bf\ufe0f\u200d\u2b50\u2b55\u231a-\u23ff]")
 # Typographic characters we use, with ASCII stand-ins for theme fonts that lack them
 # (e.g. the Pico-8 theme's pixel font has neither "·" nor "…").
@@ -30,8 +33,10 @@ _ASCII_FALLBACKS = {
 _BMP_MAX = 0xFFFF  # TTF_GlyphIsProvided (pre-2.0.18) only takes 16-bit code points
 # Width estimates ignore kerning; keep a little slack so fitted text never touches neighbours.
 _FIT_MARGIN = 0.97
-# Share of the screen width the top-bar title may use; the clock and battery take the rest.
+# Share of the screen width the top-bar title may use if PyUI's top bar can't be measured.
 _TITLE_WIDTH_SHARE = 0.44
+_TOP_BAR_PAD = 10  # PyUI's spacing in the top bar (TopBar.render_top_bar_menu_not_skipped)
+_title_rooms: dict[int, int] = {}  # screen width -> room for the title
 
 
 class Text(Enum):
@@ -178,7 +183,7 @@ def _ellipsis(role: Text) -> str:
 
 
 def fit_title(value: str) -> str:
-    """Shorten a top-bar title with an ellipsis so it clears the clock and battery icons.
+    """Shorten a top-bar title with an ellipsis so it clears the clock and the status icons.
 
     Args:
         value: Desired title.
@@ -188,8 +193,60 @@ def fit_title(value: str) -> str:
     """
     from devices.device import Device
 
-    limit = int(Device.get_device().screen_width() * _TITLE_WIDTH_SHARE)
-    return fit_text(value, Text.HEADING, limit)
+    width = int(Device.get_device().screen_width())
+    if width not in _title_rooms:  # screens draw a title every frame; measure once
+        try:
+            _title_rooms[width] = _title_room(width)
+        except Exception:  # an unusual theme or device: a share of the screen
+            logger.exception("Could not measure the top bar; the title gets a fixed share")
+            _title_rooms[width] = int(width * _TITLE_WIDTH_SHARE)
+    return fit_text(value, Text.HEADING, _title_rooms[width])
+
+
+def _title_room(width: int) -> int:
+    """Return the width the centred top-bar title has between the clock and the icons.
+
+    Mirrors PyUI's ``TopBar.render_top_bar_menu_not_skipped``: the clock starts at the theme's
+    offset on the left; the battery percentage, battery and Wi-Fi icons stack leftwards from
+    20 px off the right edge, 10 px apart. They have fixed pixel widths, so they take a bigger
+    share of a narrow screen. The clock is measured with zeros (its widest digits here), and
+    the Wi-Fi icon counts whether or not Wi-Fi is on, so the room never changes mid-session.
+    A Bluetooth icon (only while a device is connected) isn't counted.
+
+    Args:
+        width: Screen width.
+
+    Returns:
+        Width in pixels.
+    """
+    from devices.device import Device
+    from devices.wifi.wifi_status import WifiStatus
+    from display.display import Display
+    from display.font_purpose import FontPurpose
+    from themes.theme import Theme
+
+    def text(value: str) -> int:
+        """Width of top-bar status text."""
+        return int(Display.get_text_dimensions(FontPurpose.BATTERY_PERCENT, value)[0])
+
+    def image(path: object) -> int:
+        """Width of a top-bar icon plus its spacing (0 for none)."""
+        return int(Display.get_image_dimensions(path)[0]) + _TOP_BAR_PAD if path else 0
+
+    device = Device.get_device()
+    left = 0
+    if Theme.show_clock():
+        clock = re.sub(r"\d", "0", Display.top_bar.get_current_time_hhmm())
+        left = int(Theme.get_top_bar_initial_x_offset()) + text(clock)
+    right = width - _TOP_BAR_PAD * 2
+    if Theme.display_battery_percent():
+        right -= text("100") + _TOP_BAR_PAD
+    if Theme.display_battery_icon():
+        right -= image(Theme.get_battery_icon(device.get_charge_status(), 100))
+    if device.supports_wifi():
+        right -= image(Theme.get_wifi_icon(WifiStatus.GREAT))
+    centre = width // 2
+    return max(2 * (min(centre - left, right - centre) - _TOP_BAR_PAD), 0)
 
 
 def fit_text(value: str, role: Text, max_width: int) -> str:

@@ -82,10 +82,17 @@ of PyUI's views, without patching PyUI.
   a Mac. It also extracted hundreds of images through the 4 MB scratch LRU, which evicted files
   whose paths PyUI had already cached; loading those failed, and PyUI blacklisted them for the
   session. `choose()` always passes a tile size.
+- **Grid shape** (`views.grid_shape`): PyUI's `GridView` splits the screen into the `cols`×`rows`
+  we pass. Tiles and columns scale like the theme's list rows (155 px columns at 640x480, a
+  quarter narrower allowed). Rows are as tall as `GridView._render_cell` needs: the image moved
+  by `gridMultiRowImageYOffset`, then a caption one line up from the row's bottom, moved by
+  `multiRowGridTextYOffset`. SPRUCE's 480x800 config moves both, so a fixed row height put
+  captions on the badges there. Result: 4x2 on 4:3 and 3:2 screens, 5x2 at 1280x720, 4x3
+  (badges) at 720x720, 3x3 at 480x800.
 - **Grid tiles cache their image path:** `GridOrListEntry` drops its searchers after one call.
-  `views._Images` re-arms the visible tiles' searchers when `MediaResolver.version` changes,
+  `visible_images.VisibleImages` re-arms the visible tiles' searchers when `MediaResolver.version` changes,
   so lazily downloaded icons appear. List rows use `icon_searcher`, which PyUI calls every frame.
-- **Downloads follow the visible rows:** `views._Images` wraps each list's and grid's `_render`.
+- **Downloads follow the visible rows:** `visible_images.VisibleImages` wraps each list's and grid's `_render`.
   When the window (`current_top/bottom`, `current_left/right`) moves, it drops the downloads
   still waiting, asks the visible rows again (front of the queue) and queues one more screenful
   in the scroll direction (`ImageDemand.NEXT`, back of the queue). Sizes come from the view, so
@@ -145,6 +152,19 @@ of PyUI's views, without patching PyUI.
   screens can show hints.
 
 ## Themes
+- **Size and DPI:** nothing in Spruce or PyUI knows a panel's DPI or physical size. PyUI draws at
+  the device's logical resolution: the panel's own, except the Miniloong Pocket 1 (960x720
+  scaled 1.5x to a denser panel). Themes do the sizing: SPRUCE ships `config_<WxH>.json` and
+  `skin_<WxH>/` per resolution, scaled from the 640x480 design by `min(width/640, height/480)`
+  (PyUI's `Theme._default_multiplier`). List rows are 18.8% of the height on every landscape
+  screen, so each shows 5 rows, just sharper; 720x720 shows 7 and 480x800 (drawn at 640x480
+  size) 9. Follow the theme rather than the pixel count: size things from its measurements
+  (row height, fonts, offsets), and add items only where the screen has room left, never by
+  shrinking them, or a sharper small screen gets unreadable.
+- **Top-bar title:** PyUI centres it between the clock (left) and the battery and Wi-Fi icons
+  (stacked from the right edge). Those have fixed pixel widths, so a fixed share of the screen
+  ran into the clock at 480x800. `text.fit_title` measures them once (`_title_room`, mirroring
+  `TopBar.render_top_bar_menu_not_skipped`) and falls back to 44% of the width.
 - **Bottom bar:** every theme tested (SPRUCE, MINIMAL, ART_BOOK_NEXT, Pico-8) keeps PyUI's bottom
   bar on (a 60 px strip at 640×480). SPRUCE hides the A/B hints with 640 px transparent icons,
   so the sync status is centred; MINIMAL, ART_BOOK_NEXT and Pico-8 show "A Okay / B Back", so it
