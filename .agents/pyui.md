@@ -27,7 +27,13 @@ of PyUI's views, without patching PyUI.
 - **Custom screens** (profile, achievement card, full-screen screenshot) are drawn with PyUI's
   `Display` primitives and `Theme` colours and fonts (`primitives.py`), so they still follow the
   theme.
-- **Keyboard**: `display/on_screen_keyboard.OnScreenKeyboard`.
+- **Keyboard**: `display/on_screen_keyboard.OnScreenKeyboard`. Its text field is the theme's
+  list highlight (`bg-list-l`, 640x90 in SPRUCE) drawn a sixteenth of the screen width tall at
+  its natural aspect: 44% of the width, so a 32-character key ran past it. While the keyboard
+  is open, `ask_text` swaps `Theme.keyboard_entry_bg` for a 16:1 swatch in the field's colour,
+  which scales to the full width (every tested theme's highlight is a flat colour). Its
+  background (`bg-grid-s`) is transparent in SPRUCE and missing in the other tested themes, so
+  the bottom bar drawn by `Display.clear` stays visible and carries the keyboard's hints.
 - The bridge exposes typed functions. Screens never touch PyUI objects directly.
 - **Typing:** PyUI has no type hints and its ABCs confuse ty (`get_input(timeout)` declared
   without `self`, `pass` bodies inferring `None` returns). `pyproject.toml` treats PyUI as `Any`
@@ -125,7 +131,9 @@ of PyUI's views, without patching PyUI.
   `present()`, after the content. The hook (`status_bar.py`) skips frames where PyUI shows its
   own bar text, and frames under a popup (`Display.bg_canvas` set): the frozen backdrop already
   holds the status, and redrawing changed text over it would smear on translucent bars (SPRUCE,
-  Pico-8).
+  Pico-8). `status_bar.hidden()` (the keyboard) drops the status and the Start action but keeps
+  hints. `app.run` installs the bar before setup too (no status, Start does nothing), so setup
+  screens can show hints.
 
 ## Themes
 - **Bottom bar:** every theme tested (SPRUCE, MINIMAL, ART_BOOK_NEXT, Pico-8) keeps PyUI's bottom

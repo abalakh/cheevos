@@ -239,6 +239,11 @@ KEY_CHECKING = "Checking the key with RetroAchievements…"
 KEY_REJECTED = "RetroAchievements rejected this key. Check it and try again."
 KEY_UNVERIFIED = "Couldn't reach RetroAchievements; the key is saved and will be checked later."
 KEY_FILE_MISSING = "No key found in {path} yet."
+# On-screen keyboard hints (A types the highlighted key)
+HINT_DONE = "Done"
+HINT_DELETE = "Delete"
+HINT_SHIFT = "Shift"
+HINT_CAPS = "Caps"
 EXIT = "Exit"
 UNTESTED_TITLE = "Untested device"
 UNTESTED_TEXT = "Cheevos hasn't been tested on this device ({device}) yet."
@@ -249,6 +254,7 @@ UNTESTED_REPORT = (
 
 # --- generic ----------------------------------------------------------------------------------
 LOADING = "Loading…"
+HINT_OK = "OK"
 JUST_NOW = "just now"
 MINUTES_AGO = "{count} min ago"
 HOURS_AGO = "{count} h ago"

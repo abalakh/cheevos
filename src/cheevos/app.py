@@ -181,14 +181,17 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
     paths = env.paths
     icons = _icons_dir()
     validate = _validator(env)
-    credentials = ensure_credentials(paths, validate, lambda name: icons / f"{name}.png")
-    if credentials is None:
-        return
-    settings = load_settings(paths.settings_file)
-    if env.device and env.device not in TESTED_DEVICES and settings.untested_note != env.device:
-        untested_device_note(env.device, paths.log_file.relative_to(paths.sdcard))
-        settings = dataclasses.replace(settings, untested_note=env.device)
-        save_settings(paths.settings_file, settings)
+    # Nothing to sync before setup ends, but its screens need the bar for their hints.
+    with status_bar.installed(lambda _detailed: None, lambda: None):
+        credentials = ensure_credentials(paths, validate, lambda name: icons / f"{name}.png")
+        if credentials is None:
+            return
+        settings = load_settings(paths.settings_file)
+        device = env.device
+        if device and device not in TESTED_DEVICES and settings.untested_note != device:
+            untested_device_note(device, paths.log_file.relative_to(paths.sdcard))
+            settings = dataclasses.replace(settings, untested_note=device)
+            save_settings(paths.settings_file, settings)
     ctx_ref: list[AppContext] = []
     try:
         data = DataCache.open(paths.data_db, credentials.username)

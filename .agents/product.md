@@ -180,7 +180,13 @@ on the highlighted item, Start is free in lists, Select switches the view.
 
 Screen-specific buttons are hinted in the bottom bar ("[Y] Filter", "[SELECT] Details",
 "[A] Full screen"); when space runs out, later hints go first. Themes ship X, Y and START badges;
-missing ones (A, Select) are generated in the style of the theme's START badge.
+missing ones (A, Select) are generated in the style of the theme's START badge. Message pages
+hint "[A] OK", and setup screens get hints too: the bar is installed before setup starts, with
+no sync status and Start doing nothing.
+
+**On-screen keyboard** (PyUI's, for the Web API key): A types the highlighted key, B deletes
+(cancels when empty), Start submits, L1 is shift, R1 caps lock. PyUI's keyboard draws no hints,
+so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom bar.
 
 ## Visual style (a "gaming app" feel)
 - **Themed throughout**: fonts, colours, backgrounds and top bar come from the active Spruce

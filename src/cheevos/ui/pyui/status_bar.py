@@ -133,7 +133,7 @@ class _Bar:
         from display.render_mode import RenderMode
         from themes.theme import Theme
 
-        status = self.source(self.detailed)
+        status = None if self.hidden else self.source(self.detailed)
         hints = [(Button.START, status.action)] if status and status.action else []
         hints += self.hints
         if status is None and not hints:
@@ -193,9 +193,9 @@ def _wrap_render(bar: _Bar, original: Callable[..., Any]) -> Callable[..., Any]:
         """Let PyUI draw the bar, then add the status unless the bar is busy or covered."""
         result = original(*args, **kwargs)
         text = args[0] if args else kwargs.get("bottom_bar_text")
-        # Skip when PyUI shows its own bar text, while a popup's frozen backdrop (which
-        # already holds the status) is on screen, or while the status is hidden.
-        if text is None and Display.bg_canvas is None and not bar.hidden:
+        # Skip when PyUI shows its own bar text, or while a popup's frozen backdrop (which
+        # already holds the status) is on screen.
+        if text is None and Display.bg_canvas is None:
             height = int(Display.bottom_bar.get_bottom_bar_height())
             if height > 0:
                 try:
@@ -291,7 +291,9 @@ def hints(shown: Sequence[Hint]) -> Iterator[None]:
 
 @contextlib.contextmanager
 def hidden() -> Iterator[None]:
-    """Hide the status during the block (e.g. the on-screen keyboard, where Start submits).
+    """Hide the status and the Start action during the block; hints still show.
+
+    For the on-screen keyboard, where Start submits the text.
 
     Yields:
         Nothing.

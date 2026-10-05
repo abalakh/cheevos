@@ -6,13 +6,14 @@ full-screen screenshots). Colours and fonts always come from the active theme.
 
 from __future__ import annotations
 
+import contextlib
 import math
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from cheevos.ui.pyui import status_bar
+from cheevos.ui.pyui import generated, status_bar
 from cheevos.ui.pyui.buttons import Button
 from cheevos.ui.pyui.text import (
     Text,
@@ -430,7 +431,13 @@ def wait_for(buttons: set[Button]) -> Button | None:
     return None
 
 
-def ask_text(title: str, initial: str = "", *, secret: bool = False) -> str | None:
+def ask_text(
+    title: str,
+    initial: str = "",
+    *,
+    secret: bool = False,
+    hints: Sequence[status_bar.Hint] = (),
+) -> str | None:
     """Ask for text with PyUI's on-screen keyboard.
 
     Args:
@@ -438,6 +445,7 @@ def ask_text(title: str, initial: str = "", *, secret: bool = False) -> str | No
         initial: Text to start with.
         secret: The text is a secret (the API key). PyUI logs any text it fails to draw, which
             happens when memory runs low, so its log is muted while the keyboard is open.
+        hints: Button hints for the bottom bar (PyUI's keyboard shows none).
 
     Returns:
         The entered text, or ``None`` if the user cancelled.
@@ -449,8 +457,39 @@ def ask_text(title: str, initial: str = "", *, secret: bool = False) -> str | No
     was_disabled = pyui_log.disabled
     pyui_log.disabled = was_disabled or secret
     try:
-        with status_bar.hidden():  # Start submits the text here
+        # Start submits the text here, so the status and its Start action step aside.
+        with status_bar.hidden(), status_bar.hints(hints), _full_width_entry():
             result = OnScreenKeyboard().get_input(title, initial)
     finally:
         pyui_log.disabled = was_disabled
     return None if result is None else str(result)
+
+
+@contextlib.contextmanager
+def _full_width_entry() -> Iterator[None]:
+    """Stretch the keyboard's text field across the screen while the keyboard is open.
+
+    PyUI draws the field with the theme's list highlight (640x90 in SPRUCE at 640x480), a
+    sixteenth of the screen width tall at its natural aspect, so the field covers only 44% of
+    the width and a 32-character key runs past it. A swatch in the field's colour, 16:1 like
+    that height, scales to the full width. Every tested theme's highlight is a flat colour.
+
+    Yields:
+        Nothing.
+    """
+    from display.display import Display
+    from themes.theme import Theme
+
+    original = vars(Theme).get("keyboard_entry_bg")
+    image = Theme.keyboard_entry_bg()
+    if original is None or not image:
+        yield
+        return
+    page_image = Display.bg_path or Theme.background()
+    page = generated.average_color(str(page_image)) if page_image else (0, 0, 0)
+    field = str(generated.swatch(generated.average_color(str(image), page), 255))
+    Theme.keyboard_entry_bg = staticmethod(lambda: field)
+    try:
+        yield
+    finally:
+        Theme.keyboard_entry_bg = original

@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from cheevos.ui import strings
 from cheevos.ui.pyui import primitives as ui
 from cheevos.ui.pyui.primitives import Align, Button, Text
 from cheevos.ui.pyui.views import Layout, MenuItem, choose
@@ -20,7 +21,7 @@ def message(title: str, paragraphs: Sequence[str]) -> None:
         paragraphs: Text blocks, separated by a blank gap.
     """
     while True:
-        area = ui.begin(title)
+        area = ui.begin(title, hints=[(Button.A, strings.HINT_OK)])
         y = area.y + PADDING * 2
         for paragraph in paragraphs:
             for line in ui.wrap(paragraph, Text.BODY, area.width - PADDING * 4):

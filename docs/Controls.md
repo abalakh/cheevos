@@ -20,3 +20,16 @@ current screen, for example **[Y] Filter [SELECT] Details** on the games list.
 
 The sync status sits in the bottom bar too. Home and Settings always show it ("Synced 5 min
 ago"). Other screens show it only while a sync runs and for a few seconds after it ends.
+
+## On-screen keyboard
+The keyboard appears when you type your Web API key (see [Setup](Setup)). It's Spruce's own
+keyboard:
+
+| Button | What it does |
+|---|---|
+| D-pad | Move between keys |
+| A | Type the highlighted key (↵ finishes, ← deletes, ⇪ and ↑ switch case) |
+| B | Delete the last character. With nothing typed: cancel. |
+| Start | Done |
+| L1 | Shift: the next letter is a capital |
+| R1 | Caps lock |

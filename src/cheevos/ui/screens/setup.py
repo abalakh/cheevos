@@ -15,11 +15,20 @@ from cheevos.core.sync.session import Credentials
 from cheevos.platform.paths import Paths
 from cheevos.ui import strings
 from cheevos.ui.pyui import primitives as ui
+from cheevos.ui.pyui.primitives import Button
 from cheevos.ui.pyui.views import MenuItem, choose
 from cheevos.ui.screens.common import busy, message
 
 # (username, key) -> True (accepted), False (rejected), None (couldn't reach RA).
 KeyValidator = Callable[[str, str], bool | None]
+
+# PyUI's keyboard: A types the highlighted key, and these do the rest.
+KEYBOARD_HINTS = (
+    (Button.START, strings.HINT_DONE),
+    (Button.B, strings.HINT_DELETE),
+    (Button.L1, strings.HINT_SHIFT),
+    (Button.R1, strings.HINT_CAPS),
+)
 
 
 def untested_device_note(device: str, log: Path) -> None:
@@ -114,7 +123,7 @@ def enter_key(paths: Paths, username: str, validate: KeyValidator) -> str | None
     Returns:
         The saved key, or ``None`` if cancelled, malformed or rejected.
     """
-    entered = ui.ask_text(strings.KEY_PROMPT, secret=True)
+    entered = ui.ask_text(strings.KEY_PROMPT, secret=True, hints=KEYBOARD_HINTS)
     if entered is None:
         return None
     key = entered.strip()
