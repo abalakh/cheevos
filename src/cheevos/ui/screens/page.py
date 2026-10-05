@@ -14,7 +14,6 @@ from cheevos.ui.pyui.primitives import Button
 from cheevos.ui.screens.common import PADDING
 
 SCROLLBAR = 3  # scroll thumb width
-PAGE_SHARE = 4  # L1/R1 move by a quarter of the rows
 
 
 @dataclass(frozen=True, slots=True)
@@ -64,20 +63,46 @@ def clamp(first: int, rows: Sequence[Row], area: ui.Area) -> int:
     return max(min(first, last_first([row.height for row in rows], area.height)), 0)
 
 
-def scroll(first: int, pressed: Button | None, rows: Sequence[Row] | None) -> int:
-    """Move the scroll position for a button press (up/down: a row, L1/R1: a page).
+def scroll(first: int, pressed: Button | None, rows: Sequence[Row] | None, room: int) -> int:
+    """Move the scroll position for a button press (up/down: a row, L1/R1: a screenful).
+
+    L1/R1 keep one row in view, like PyUI's lists: R1 brings the last visible row to the top,
+    L1 the first visible row to the bottom. How many rows that is depends on the screen.
 
     Args:
         first: Current first visible row.
         pressed: The button, or ``None``.
-        rows: All rows (for the page size), or ``None`` while they're being rebuilt.
+        rows: All rows (for their heights), or ``None`` while they're being rebuilt.
+        room: Page height in pixels.
 
     Returns:
         The new first row (not yet clamped to the end; :func:`clamp` does that).
     """
-    page = max(len(rows or []) // PAGE_SHARE, 1)
-    step = {Button.UP: -1, Button.DOWN: 1, Button.L1: -page, Button.R1: page}
-    return max(first + step.get(pressed, 0) if pressed else first, 0)
+    heights = [row.height for row in rows or []]
+    if pressed is Button.R1:
+        return first + max(_fitting(heights[first:], room) - 1, 1)
+    if pressed is Button.L1:
+        return max(first - max(_fitting(heights[first::-1], room) - 1, 1), 0)
+    step = {Button.UP: -1, Button.DOWN: 1}.get(pressed, 0) if pressed else 0
+    return max(first + step, 0)
+
+
+def _fitting(heights: Sequence[int], room: int) -> int:
+    """Return how many rows, from the first given, fit in ``room`` (at least one).
+
+    Args:
+        heights: Row heights, in the order they would be stacked.
+        room: Page height in pixels.
+
+    Returns:
+        The number of rows.
+    """
+    used = 0
+    for count, height in enumerate(heights):
+        used += height
+        if used > room:
+            return max(count, 1)
+    return max(len(heights), 1)
 
 
 def draw(rows: Sequence[Row], first: int, area: ui.Area) -> None:

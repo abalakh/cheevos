@@ -207,7 +207,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         settings=settings,
         data=data,
         media_cache=media_cache,
-        media=MediaResolver(media_cache, icons, fetcher),
+        media=MediaResolver(media_cache, icons, fetcher, views.image_demand),
         sync=sync,
         proxy=ProxyReader(paths),
         screenshots=ScreenshotIndex(screenshot_directory(paths)),
@@ -220,7 +220,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         ctx.start_sync()
     logger.info("UI ready after %.2fs", time.monotonic() - started_at)
     generated.use_scratch(paths.scaled_scratch)
-    views.track_images(lambda: ctx.media.version)
+    views.track_images(lambda: ctx.media.version, ctx.media.new_window)
     bar = SyncBar(ctx, _icons_dir(bar=True), lambda: change_key(ctx))
     try:
         with status_bar.installed(bar.status, bar.press_start):

@@ -107,6 +107,10 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
 - **UI thread**: PyUI and SDL only.
 - **Sync thread**: network and DB writes.
 - **Image worker**: one thread fetching images needed on screen (`LazyMediaFetcher`), with its
-  own cache connection.
+  own cache connection. Not a FIFO: an image for the screen goes ahead of everything waiting
+  (in draw order), asking again moves a waiting image up, the next page's images wait at the
+  back, and when the visible rows change the UI drops whatever is still waiting
+  (`MediaResolver.new_window`). So a jump to the end of a long list waits for its own screen
+  only ([pyui.md](pyui.md), "Downloads follow the visible rows").
 - **SQLite**: one connection per thread. Writes happen only on the sync thread, in short
   transactions. The UI never waits on the network.

@@ -1,17 +1,21 @@
 """Image paths for screens: cached RA images when available, pixel-icon fallbacks otherwise.
 
 Screens ask on every render (PyUI's ``icon_searcher`` runs per frame), so a miss is memoized
-until the background fetcher stores something new; until then a missing image costs a set
-lookup, not a database query.
+until the background fetcher stores something new or the rows on screen change; until then a
+missing image costs a set lookup, not a database query. How a miss is requested depends on
+what the views are drawing (``ImageDemand``): on screen, the next page, or rows PyUI only
+measures.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
 
 from cheevos.core.models import Achievement, UserProfile
 from cheevos.core.storage.media_cache import MediaCache, avatar_key, badge_key, icon_key
+from cheevos.ui.pyui.views import ImageDemand
 
 
 class ImageFetcher(Protocol):
@@ -22,8 +26,12 @@ class ImageFetcher(Protocol):
         """Changes whenever a newly downloaded image becomes available."""
         ...
 
-    def request(self, key: str, media_path: str) -> None:
+    def request(self, key: str, media_path: str, *, later: bool = False) -> None:
         """Ask for ``media_path`` to be downloaded into the cache under ``key``."""
+        ...
+
+    def drop_waiting(self) -> None:
+        """Forget every request not started yet."""
         ...
 
 
@@ -35,15 +43,22 @@ class MediaResolver:
         icons_dir: Directory of bundled pixel icons used as fallbacks.
         fetcher: Background downloader for missing images (a ``LazyMediaFetcher``), or ``None``
             (offline / no key).
+        demand: What the views are drawing when they ask (``views.image_demand``).
     """
 
     def __init__(
-        self, media: MediaCache, icons_dir: Path, fetcher: ImageFetcher | None = None
+        self,
+        media: MediaCache,
+        icons_dir: Path,
+        fetcher: ImageFetcher | None = None,
+        demand: Callable[[], ImageDemand] = lambda: ImageDemand.SHOWN,
     ) -> None:
         self._media = media
         self._icons = icons_dir
         self._fetcher = fetcher
-        self._missing: set[str] = set()
+        self._demand = demand
+        self._asked: set[str] = set()  # missing, requested for the screen
+        self._asked_later: set[str] = set()  # missing, requested for the next page
         self._seen_version = self.version
 
     @property
@@ -51,10 +66,19 @@ class MediaResolver:
         """The fetcher's version (0 without a fetcher); changes when new images arrive."""
         return self._fetcher.version if self._fetcher is not None else 0
 
+    def new_window(self) -> None:
+        """Drop downloads still waiting: the rows they were for are no longer on screen."""
+        self._asked.clear()
+        self._asked_later.clear()
+        if self._fetcher is not None:
+            self._fetcher.drop_waiting()
+
     def resolve(self, key: str, media_path: str | None, fallback: str) -> Path:
         """Return the cached image for ``key``, or a fallback icon while it is unavailable.
 
-        On a miss the image is requested from the background fetcher (once per miss memo).
+        A miss on screen is requested ahead of everything waiting, a miss on the next page
+        after it, and a miss in rows PyUI only measures not at all (it is asked for again when
+        the row is drawn).
 
         Args:
             key: Image cache key.
@@ -66,16 +90,25 @@ class MediaResolver:
         """
         version = self.version
         if version != self._seen_version:
-            self._missing.clear()
+            self._asked.clear()
+            self._asked_later.clear()
             self._seen_version = version
-        if key not in self._missing:
-            path = self._media.path_for(key)
-            if path is not None:
-                return path
-            self._missing.add(key)
+        missing = self._icons / f"{fallback}.png"
+        if key in self._asked:
+            return missing
+        path = self._media.path_for(key)
+        if path is not None:
+            return path
+        demand = self._demand()
+        if demand is ImageDemand.MEASURED:
+            return missing
+        later = demand is ImageDemand.NEXT
+        asked = self._asked_later if later else self._asked
+        if key not in asked:
+            asked.add(key)
             if self._fetcher is not None and media_path:
-                self._fetcher.request(key, media_path)
-        return self._icons / f"{fallback}.png"
+                self._fetcher.request(key, media_path, later=later)
+        return missing
 
     def badge(self, achievement: Achievement, *, unlocked: bool | None = None) -> Path:
         """Return the badge matching the unlock state (colour, or RA's ``_lock`` variant).

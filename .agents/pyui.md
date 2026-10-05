@@ -70,7 +70,11 @@ of PyUI's views, without patching PyUI.
   (`Display.lock_current_image`) until `view_finished()` is called. Forget it and every later
   screen is drawn over the frozen frame. `views.choose()` always calls it.
 - **Lazy icons:** `icon_searcher` is called on every render, which is good for lazy images.
-  `image_path_searcher` is cached after the first call. Grids ask
+  `image_path_searcher` is cached after the first call. But `ViewCreator.create_view` also calls
+  every row's `get_icon()` for an `ICON_AND_DESC` list (to pick the selection background), so
+  opening a 138-row list used to queue all 138 badge downloads, top to bottom, and a jump to the
+  end waited for all of them. `choose()` marks that scan `ImageDemand.MEASURED`: the resolver
+  returns what's cached and downloads nothing. Grids ask
   `image_path_selected_searcher` for the highlighted tile; leave it unset and the selected
   tile has no image.
 - **Grids need an image size:** without `grid_resized_width/height`, `GridView.__init__` resolves
@@ -79,8 +83,13 @@ of PyUI's views, without patching PyUI.
   whose paths PyUI had already cached; loading those failed, and PyUI blacklisted them for the
   session. `choose()` always passes a tile size.
 - **Grid tiles cache their image path:** `GridOrListEntry` drops its searchers after one call.
-  `views._TileImages` re-arms the visible tiles' searchers when `MediaResolver.version` changes,
+  `views._Images` re-arms the visible tiles' searchers when `MediaResolver.version` changes,
   so lazily downloaded icons appear. List rows use `icon_searcher`, which PyUI calls every frame.
+- **Downloads follow the visible rows:** `views._Images` wraps each list's and grid's `_render`.
+  When the window (`current_top/bottom`, `current_left/right`) moves, it drops the downloads
+  still waiting, asks the visible rows again (front of the queue) and queues one more screenful
+  in the scroll direction (`ImageDemand.NEXT`, back of the queue). Sizes come from the view, so
+  they scale with the screen (5 rows at 640x480, 9 at 480x800).
 - **Grid overlays:** `GridView._render` ends with `present()`, so anything drawn after it is
   lost. Wrap the per-tile `_render_cell` instead (`grid_frames.py`); PyUI calls it with keyword
   arguments (`visible_index=`, `imageTextPair=`).

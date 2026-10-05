@@ -3,15 +3,31 @@ import pytest
 from cheevos.core.models import Achievement, UserProfile
 from cheevos.core.storage.media_cache import MediaCache, avatar_key, badge_key, icon_key
 from cheevos.ui.media import MediaResolver
+from cheevos.ui.pyui.views import ImageDemand
 
 
 class FakeFetcher:
     def __init__(self):
         self.version = 0
-        self.requests = []
+        self.requests = []  # for the screen
+        self.later = []  # for the next page
+        self.drops = 0
 
-    def request(self, key, media_path):
-        self.requests.append((key, media_path))
+    def request(self, key, media_path, *, later=False):
+        (self.later if later else self.requests).append((key, media_path))
+
+    def drop_waiting(self):
+        self.drops += 1
+
+
+class Demand:
+    """What the views are drawing, switchable by the test."""
+
+    def __init__(self):
+        self.now = ImageDemand.SHOWN
+
+    def __call__(self):
+        return self.now
 
 
 def achievement(*, unlocked):
@@ -123,3 +139,39 @@ def test_avatar(media, icons):
 
 def test_without_fetcher_version_is_zero(media, icons):
     assert MediaResolver(media, icons).version == 0
+
+
+ICON = (icon_key(519), "/Images/070805.png")
+
+
+def test_rows_pyui_only_measures_are_neither_fetched_nor_memoized(media, icons):
+    fetcher, demand = FakeFetcher(), Demand()
+    resolver = MediaResolver(media, icons, fetcher, demand)
+    demand.now = ImageDemand.MEASURED  # PyUI building the list: every row asks
+    assert resolver.game_icon(519, ICON[1]) == icons / "gamepad.png"
+    assert (fetcher.requests, fetcher.later) == ([], [])
+    demand.now = ImageDemand.SHOWN  # the row is drawn
+    resolver.game_icon(519, ICON[1])
+    assert fetcher.requests == [ICON]
+
+
+def test_next_page_waits_until_it_is_on_screen(media, icons):
+    fetcher, demand = FakeFetcher(), Demand()
+    resolver = MediaResolver(media, icons, fetcher, demand)
+    demand.now = ImageDemand.NEXT
+    resolver.game_icon(519, ICON[1])
+    resolver.game_icon(519, ICON[1])
+    assert (fetcher.requests, fetcher.later) == ([], [ICON])
+    demand.now = ImageDemand.SHOWN  # scrolled into view: asked again, for the screen
+    resolver.game_icon(519, ICON[1])
+    assert fetcher.requests == [ICON]
+
+
+def test_a_new_window_drops_waiting_downloads_and_asks_again(media, icons):
+    fetcher = FakeFetcher()
+    resolver = MediaResolver(media, icons, fetcher)
+    resolver.game_icon(519, ICON[1])
+    resolver.new_window()
+    resolver.game_icon(519, ICON[1])
+    assert fetcher.drops == 1
+    assert fetcher.requests == [ICON, ICON]

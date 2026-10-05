@@ -18,7 +18,10 @@ def wait_until(predicate, timeout=5.0):
 
 
 class FakeClient:
-    """Media downloader: returns bytes, raises configured errors, can block on a gate."""
+    """Media downloader: returns bytes, raises configured errors, can block on a gate.
+
+    With ``stepping`` on, every download waits for one :meth:`step`.
+    """
 
     def __init__(self):
         self.calls = []
@@ -26,12 +29,20 @@ class FakeClient:
         self.gated = set()
         self.gate = threading.Event()
         self.lock = threading.Lock()
+        self.stepping = False
+        self.steps = threading.Semaphore(0)
+
+    def step(self, count=1):
+        for _ in range(count):
+            self.steps.release()
 
     def media(self, path):
         with self.lock:
             self.calls.append(path)
         if path in self.gated:
             self.gate.wait(5)
+        if self.stepping:
+            self.steps.acquire(timeout=5)
         error = self.errors.get(path)
         if error is not None:
             raise error
@@ -70,6 +81,8 @@ def harness(tmp_path):
     h = Harness(tmp_path)
     yield h
     h.client.gate.set()
+    h.client.stepping = False
+    h.client.step(10)
     h.fetcher.close()
 
 
@@ -128,7 +141,7 @@ def test_network_error_backs_off_and_drops_the_queue(harness):
     assert harness.stored("badge/1")
 
 
-def test_full_queue_drops_requests_which_can_be_repeated(tmp_path):
+def test_full_queue_makes_room_for_the_screen_not_for_prefetch(tmp_path):
     harness = Harness(tmp_path, max_queue=2)
     try:
         harness.client.gated.add("/a.png")
@@ -136,15 +149,63 @@ def test_full_queue_drops_requests_which_can_be_repeated(tmp_path):
         wait_until(lambda: harness.client.calls == ["/a.png"])
         for key in ("b", "c", "d"):
             harness.fetcher.request(key, f"/{key}.png")
-        assert harness.fetcher.pending() == 3  # a in flight, b and c queued, d dropped
+        harness.fetcher.request("e", "/e.png", later=True)  # full: ignored
+        assert harness.fetcher.pending() == 3  # a in flight; b and d waiting (c made room)
         harness.client.gate.set()
         wait_until(lambda: harness.fetcher.version == 3)
-        assert harness.client.calls == ["/a.png", "/b.png", "/c.png"]
-        harness.fetcher.request("d", "/d.png")
+        assert harness.client.calls == ["/a.png", "/b.png", "/d.png"]
+        harness.fetcher.request("c", "/c.png")  # dropped requests can be repeated
         wait_until(lambda: harness.fetcher.version == 4)
     finally:
         harness.client.gate.set()
         harness.fetcher.close()
+
+
+def test_the_screen_goes_first_and_prefetch_last(harness):
+    harness.client.stepping = True
+    harness.fetcher.request("a", "/a.png")
+    wait_until(lambda: harness.client.calls == ["/a.png"])
+    harness.fetcher.request("b", "/b.png")  # the screen: b, c, in order
+    harness.fetcher.request("c", "/c.png")
+    harness.fetcher.request("p", "/p.png", later=True)  # next page
+    harness.client.step()  # a done; b starts
+    wait_until(lambda: harness.client.calls == ["/a.png", "/b.png"])
+    harness.fetcher.request("d", "/d.png")  # scrolled: d and e go ahead of c
+    harness.fetcher.request("e", "/e.png")
+    harness.fetcher.request("c", "/c.png", later=True)  # waiting already: stays put
+    harness.client.step(5)
+    wait_until(lambda: harness.fetcher.version == 6)
+    assert harness.client.calls == ["/a.png", "/b.png", "/d.png", "/e.png", "/c.png", "/p.png"]
+
+
+def test_asking_again_moves_a_waiting_image_up(harness):
+    harness.client.stepping = True
+    harness.fetcher.request("a", "/a.png")
+    wait_until(lambda: harness.client.calls == ["/a.png"])
+    for key in ("b", "c", "d"):
+        harness.fetcher.request(key, f"/{key}.png")
+    harness.client.step()  # a done; b starts
+    wait_until(lambda: len(harness.client.calls) == 2)
+    harness.fetcher.request("d", "/d.png")  # back on screen: ahead of c
+    harness.client.step(3)
+    wait_until(lambda: harness.fetcher.version == 4)
+    assert harness.client.calls == ["/a.png", "/b.png", "/d.png", "/c.png"]
+
+
+def test_dropping_waiting_requests_keeps_the_download_in_flight(harness):
+    harness.client.stepping = True
+    harness.fetcher.request("a", "/a.png")
+    wait_until(lambda: harness.client.calls == ["/a.png"])
+    harness.fetcher.request("b", "/b.png")
+    harness.fetcher.request("c", "/c.png", later=True)
+    harness.fetcher.drop_waiting()
+    assert harness.fetcher.pending() == 1
+    harness.client.step()
+    wait_until(lambda: harness.fetcher.version == 1)
+    harness.fetcher.request("b", "/b.png")  # wanted again
+    harness.client.step()
+    wait_until(lambda: harness.fetcher.version == 2)
+    assert harness.client.calls == ["/a.png", "/b.png"]
 
 
 def test_close_releases_the_session_and_ignores_later_requests(harness):

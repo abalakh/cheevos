@@ -441,4 +441,4 @@ def show_profile(ctx: AppContext) -> None:
             return
         if pressed is Button.X and not more:
             recent, more, rows = _recent(ctx, profile), True, None
-        first = page.scroll(first, pressed, rows)
+        first = page.scroll(first, pressed, rows, area.height)

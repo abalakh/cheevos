@@ -4,15 +4,18 @@ Badges outside the sync's badge scope (or with scope "None") and anything a sync
 reached yet are requested here when a screen first needs them. A single daemon worker
 downloads them one at a time over its own keep-alive connection and stores them in the image
 cache; the UI notices through :attr:`LazyMediaFetcher.version` and re-renders.
+
+What's on screen goes first: a request jumps ahead of everything waiting, and the next page's
+images (``later``) wait behind it. When the screen moves on, the UI drops what's still waiting.
 """
 
 from __future__ import annotations
 
 import logging
-import queue
 import sqlite3
 import threading
 import time
+from collections import deque
 from collections.abc import Callable
 from typing import Protocol
 
@@ -50,7 +53,8 @@ class LazyMediaFetcher:
         open_session: Creates the client and image cache; called once, on the worker thread.
         clock: Monotonic clock used for the offline backoff.
         offline_backoff: Seconds to ignore requests after a network failure.
-        max_queue: Maximum queued requests; extra requests are dropped (and can be re-requested).
+        max_queue: Maximum waiting requests. When full, a request for the screen drops the last
+            one waiting, and a ``later`` one is ignored (either can be requested again).
     """
 
     def __init__(
@@ -64,9 +68,12 @@ class LazyMediaFetcher:
         self._open_session = open_session
         self._clock = clock
         self._offline_backoff = offline_backoff
-        self._queue: queue.Queue[tuple[str, str]] = queue.Queue(maxsize=max_queue)
+        self._max_queue = max_queue
         self._lock = threading.Lock()
-        self._known: set[str] = set()  # queued, in flight, or stored
+        self._waiting: deque[str] = deque()  # next to download first
+        self._paths: dict[str, str] = {}  # waiting key -> media-host path
+        self._urgent = 0  # waiting keys up front, requested since the worker last took one
+        self._stored: set[str] = set()  # downloaded this session
         self._failed: set[str] = set()  # permanently unavailable this session
         self._in_flight: str | None = None
         self._version = 0
@@ -83,32 +90,62 @@ class LazyMediaFetcher:
             return self._version
 
     def pending(self) -> int:
-        """Return the number of queued plus in-flight requests."""
+        """Return the number of waiting plus in-flight requests."""
         with self._lock:
-            return self._queue.qsize() + (1 if self._in_flight is not None else 0)
+            return len(self._waiting) + (1 if self._in_flight is not None else 0)
 
-    def request(self, key: str, media_path: str) -> None:
+    def request(self, key: str, media_path: str, *, later: bool = False) -> None:
         """Ask for an image to be downloaded and cached (non-blocking, thread-safe).
 
-        Ignored when the key is already queued, in flight, stored or known to be missing on
-        RA; during the offline backoff; after :meth:`close`; or when the queue is full.
+        An image for the screen goes ahead of everything waiting, after the others requested
+        since the worker last took one, so one screen's rows keep their order. Asking again for
+        a waiting image moves it up the same way. A ``later`` image (the next page) waits at
+        the back and moves nothing.
+
+        Ignored when the key is in flight, stored or known to be missing on RA; during the
+        offline backoff; after :meth:`close`; or, for ``later``, when the queue is full.
 
         Args:
             key: Image cache key.
             media_path: Path on the media host, e.g. ``"/Badge/198102.png"``.
+            later: Prefetch: wanted soon, but not on screen yet.
         """
         with self._lock:
             if self._disabled or self._stop.is_set() or self._in_backoff():
                 return
-            if key in self._known or key in self._failed:
+            if key == self._in_flight or key in self._stored or key in self._failed:
                 return
-            try:
-                self._queue.put_nowait((key, media_path))
-            except queue.Full:
-                return
-            self._known.add(key)
+            if later:
+                if key in self._paths or len(self._waiting) >= self._max_queue:
+                    return
+                self._waiting.append(key)
+            else:
+                self._jump_queue(key)
+            self._paths[key] = media_path
             self._ensure_worker()
         self._wake.set()
+
+    def drop_waiting(self) -> None:
+        """Forget every request not started yet (the screen moved on; thread-safe)."""
+        with self._lock:
+            self._drain()
+
+    def _jump_queue(self, key: str) -> None:
+        """Put ``key`` ahead of everything waiting except this burst's earlier keys (lock held).
+
+        Args:
+            key: Image cache key, possibly waiting already.
+        """
+        if key in self._paths:
+            position = self._waiting.index(key)
+            if position < self._urgent:
+                return  # already up front
+            del self._waiting[position]
+        elif len(self._waiting) >= self._max_queue:
+            del self._paths[self._waiting.pop()]
+            self._urgent = min(self._urgent, len(self._waiting))
+        self._waiting.insert(self._urgent, key)
+        self._urgent += 1
 
     def close(self, timeout: float = 2.0) -> None:
         """Stop the worker and release its session.
@@ -164,15 +201,15 @@ class LazyMediaFetcher:
         """Pop the next request and mark it in flight in one step (so ``pending`` never dips).
 
         Returns:
-            ``(key, media path)``, or ``None`` when the queue is empty.
+            ``(key, media path)``, or ``None`` when nothing is waiting.
         """
         with self._lock:
-            try:
-                item = self._queue.get_nowait()
-            except queue.Empty:
+            if not self._waiting:
                 return None
-            self._in_flight = item[0]
-            return item
+            key = self._waiting.popleft()
+            self._urgent = 0  # what's requested from now on goes ahead of the rest
+            self._in_flight = key
+            return key, self._paths.pop(key)
 
     def _open(self) -> MediaSession | None:
         """Open the session; disable the fetcher if that is impossible.
@@ -206,35 +243,29 @@ class LazyMediaFetcher:
         except CheevosError as exc:
             logger.warning("Image %s unavailable: %s", key, exc)
             with self._lock:
-                self._known.discard(key)
                 self._failed.add(key)
         except sqlite3.Error:
-            logger.exception("Could not store image %s", key)
-            with self._lock:
-                self._known.discard(key)  # may be retried later
+            logger.exception("Could not store image %s", key)  # may be requested again
         else:
             with self._lock:
+                self._stored.add(key)
                 self._version += 1
         finally:
             with self._lock:
                 self._in_flight = None
 
     def _enter_backoff(self, key: str) -> None:
-        """Pause requests after a network failure and drop everything queued.
+        """Pause requests after a network failure and drop everything waiting.
 
         Args:
             key: The in-flight key that failed; it may be requested again after the backoff.
         """
         with self._lock:
             self._backoff_until = self._clock() + self._offline_backoff
-            self._known.discard(key)
             self._drain()
 
     def _drain(self) -> None:
-        """Empty the queue, forgetting the dropped keys so they can be re-requested (lock held)."""
-        while True:
-            try:
-                dropped, _ = self._queue.get_nowait()
-            except queue.Empty:
-                return
-            self._known.discard(dropped)
+        """Drop every waiting request; each may be requested again (lock held)."""
+        self._waiting.clear()
+        self._paths.clear()
+        self._urgent = 0
