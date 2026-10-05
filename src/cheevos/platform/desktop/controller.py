@@ -96,6 +96,11 @@ class DesktopControllerInterface(ControllerInterface):
         self._held_button: int | None = None
         self.init_controller()
 
+    @property
+    def unplayed(self) -> list[Step]:
+        """Script steps not consumed yet, e.g. because the app exited before reaching them."""
+        return list(self._script)
+
     def init_controller(self) -> None:
         """Open the first connected SDL game controller, if any."""
         sdl2.SDL_InitSubSystem(sdl2.SDL_INIT_GAMECONTROLLER)

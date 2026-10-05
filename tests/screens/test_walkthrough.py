@@ -77,6 +77,13 @@ def test_full_walkthrough(tmp_path):
     assert_shots(tmp_path, names)
 
 
+def test_unlock_screenshot(tmp_path):
+    # Real screenshots (dev/sdcard) are git-ignored; without them the fixture card has stand-ins.
+    run_app(tmp_path, "down,a,down,a,down,a,shot:achievement,a,shot:screenshot")
+    shots = tmp_path / "shots" / "640x480"
+    assert (shots / "achievement.png").read_bytes() != (shots / "screenshot.png").read_bytes()
+
+
 @pytest.mark.parametrize(
     ("scenario", "script", "shots"),
     [

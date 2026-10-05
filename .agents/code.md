@@ -199,8 +199,7 @@ Tooling gotchas:
 
 ## Tests
 - **Layout**: `tests/unit/` mirrors `src/cheevos/core/`, `tests/screens/` holds headless render
-  tests, and `tests/fixtures/` holds recorded RA JSON, proxy outputs, sample screenshots and a
-  sample `spruce-config.json`.
+  tests, and `tests/fixtures/` holds recorded RA JSON (`ra/`, and `ra-empty/` for a new account).
 - **No network in tests.** An autouse fixture makes `socket.socket` raise. HTTP goes through
   `FixtureTransport`.
 - **Fixtures**: recorded with `scripts/record_fixtures.py`, which strips `y=` before saving. A
@@ -209,9 +208,11 @@ Tooling gotchas:
   `time.sleep` in tests.
 - **Sync engine tests** cover interrupted runs resuming, fingerprint planning, 429 back-off, an
   expired key mid-sync, and badge-scope selection.
-- **Screen tests** render the app headless at 640×480, 752×560 and 1280×720 into
-  `build/screens/` and walk through the drills. Review the images by eye. They are not
-  pixel-golden gated, because font rendering differs between SDL builds.
+- **Screen tests** render the app headless at 640×480, 752×560 and 1280×720 and walk through
+  the drills; `make screens` writes the standard walk-through to `build/screens/`. Review the
+  images by eye. They are not pixel-golden gated, because font rendering differs between SDL
+  builds. Fixture mode must not depend on git-ignored `dev/` data to navigate: CI lacks it, and
+  a press that does nothing there shifts every later step.
 
 How to run all of this: [TESTING.md](../TESTING.md).
 

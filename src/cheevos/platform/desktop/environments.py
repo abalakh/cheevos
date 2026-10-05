@@ -1,8 +1,9 @@
 """Desktop data modes: recorded fixtures (default, offline, deterministic) or the live API.
 
-Fixture mode prepares a throwaway SD card (username in a RetroArch config, a dummy key),
-syncs the recorded responses into its caches before the UI starts, and serves lazily
-requested images from ``dev/media-host`` when ``scripts/fetch_dev_media.py`` has filled it.
+Fixture mode prepares a throwaway SD card (username in a RetroArch config, a dummy key, unlock
+screenshots), syncs the recorded responses into its caches before the UI starts, and serves
+lazily requested images from ``dev/media-host`` when ``scripts/fetch_dev_media.py`` has
+filled it.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ from cheevos.core.sync.progress import ProgressTracker
 from cheevos.core.sync.session import Credentials, open_sync_deps
 from cheevos.platform.desktop.simulate import prepare_card, simulation
 from cheevos.platform.paths import Paths
+from cheevos.ui.pyui.generated import encode_png
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +31,8 @@ FIXTURES = REPO / "tests" / "fixtures" / "ra"
 MEDIA_HOST_MIRROR = REPO / "dev" / "media-host"
 BORROWED_AWARDS = REPO / "dev" / "fixtures" / "awards"  # the ``awards`` drill's recording
 REAL_SCREENSHOTS = REPO / "dev" / "sdcard" / "Saves" / "screenshots"
+# Final Fantasy Tactics Advance's two unlocks, which the walk-throughs open.
+STAND_IN_SCREENSHOTS = (177850, 177851)
 FIXTURE_USER = "Balah"
 DUMMY_KEY = "0" * 32
 
@@ -51,14 +55,39 @@ def _fixture_transport() -> FixtureTransport:
     return FixtureTransport(FIXTURES, media_dir=media)
 
 
+def _write_stand_in_screenshots(directory: Path) -> None:
+    """Give the walk-throughs' achievements a made-up unlock screenshot.
+
+    Without one, A on the achievement card does nothing, so a script that opens the screenshot
+    drifts from the screens. ``dev/sdcard`` is git-ignored, so CI has no real screenshots.
+
+    Args:
+        directory: The fake card's screenshot directory.
+    """
+    width, height = 240, 160  # a GBA frame, like the real ones
+    rgba = bytes(
+        channel
+        for y in range(height)
+        for x in range(width)
+        for channel in (40 + x * 120 // width, 70 + y * 120 // height, 150, 255)
+    )
+    png = encode_png(width, height, rgba)
+    directory.mkdir(parents=True, exist_ok=True)
+    for achievement_id in STAND_IN_SCREENSHOTS:
+        (directory / f"Stand-in-cheevo-{achievement_id}.png").write_bytes(png)
+
+
 def _prepare_fixture_card(paths: Paths) -> None:
-    """Give the fake card a username, a key and (if available) real screenshots.
+    """Give the fake card a username, a key and screenshots (real ones if available).
 
     Args:
         paths: Fake card paths.
     """
     paths.retroarch_config.parent.mkdir(parents=True, exist_ok=True)
-    screenshots = REAL_SCREENSHOTS if REAL_SCREENSHOTS.is_dir() else paths.default_screenshot_dir
+    screenshots = REAL_SCREENSHOTS
+    if not screenshots.is_dir():
+        screenshots = paths.default_screenshot_dir
+        _write_stand_in_screenshots(screenshots)
     paths.retroarch_config.write_text(
         f'cheevos_username = "{FIXTURE_USER}"\nscreenshot_directory = "{screenshots}"\n',
         encoding="utf-8",

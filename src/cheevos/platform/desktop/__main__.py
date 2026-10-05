@@ -24,7 +24,7 @@ import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
-from cheevos.platform.desktop.script import ScriptError, Step, parse_script
+from cheevos.platform.desktop.script import Capture, ScriptError, Step, parse_script
 
 logger = logging.getLogger(__name__)
 
@@ -250,6 +250,15 @@ def run(options: RunnerOptions) -> int:
         app.run(started_at=started_at, env=env)
     except SystemExit as exc:  # DesktopQuit / ScriptFinished end the run normally
         return int(exc.code or 0)
+    if unplayed := controller.unplayed:
+        # Usually a B too many: the script drifted from the screens and left the app early.
+        captures = [step.name for step in unplayed if isinstance(step, Capture)]
+        logger.error(
+            "The app exited with %d script steps left; captures not taken: %s",
+            len(unplayed),
+            ", ".join(captures) or "none",
+        )
+        return 1
     return 0
 
 

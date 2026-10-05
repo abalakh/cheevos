@@ -59,6 +59,10 @@ works too.
 **Real badges and icons in fixture mode:** run `uv run python scripts/fetch_dev_media.py` once.
 It mirrors the images the fixtures mention into `dev/media-host`.
 
+**Unlock screenshots in fixture mode** come from `dev/sdcard/Saves/screenshots` if it exists.
+Otherwise the fake card gets a generated stand-in for Final Fantasy Tactics Advance's two unlocks,
+so scripts that open a screenshot work the same everywhere, CI included.
+
 **Other themes:** copy theme folders from a device's `Themes/` into `dev/themes/`, then:
 
 ```sh
@@ -112,7 +116,9 @@ Script tokens: `up down left right a b x y l1 r1 l2 r2 start select`, `shot:<nam
 things that take time, like a sync).
 
 - `make screens` renders the standard walk-through at 640×480, 752×560 and 1280×720 into
-  `build/screens/`. CI uploads them for review.
+  `build/screens/`. The weekly PyUI drift job uploads them.
+- A run fails if the app exits before the script ends. That usually means the script drifted
+  from the screens, e.g. a B too many after a press that did nothing.
 - `make doc-screens` renders the wiki's screenshots (`docs/images/`) from the `showcase`
   drill. Themes found in `dev/themes/` (MINIMAL, Pico-8) are included.
 
@@ -196,10 +202,13 @@ and PyUI's core UI modules don't hard-code `/mnt/SDCARD`. So the runner needs no
 
 ## CI
 - **CI** (`.github/workflows/ci.yml`): on every push and pull request, checks out PyUI at
-  `pyui-tested-commit`, then runs lint, type check and tests, and uploads `make screens`.
-- **PyUI drift** (`.github/workflows/pyui-drift.yml`): weekly, the same tests against SpruceOS's
-  latest `Development` branch, as an early warning when PyUI changes. After re-verifying against
-  a newer SpruceOS, bump `pyui-tested-commit`.
+  `pyui-tested-commit`, then runs lint, type check and tests. When a test fails, it uploads the
+  screen tests' captures (`screen-test-captures`).
+- **PyUI drift** (`.github/workflows/pyui-drift.yml`): weekly, the same tests and `make screens`
+  against SpruceOS's latest `Development` branch, as an early warning when PyUI changes. It
+  uploads the screens either way. After re-verifying against a newer SpruceOS, bump
+  `pyui-tested-commit`.
+- CI has no `dev/media-host`, so badges, icons and avatars in CI screens are placeholders.
 
 ## Publishing the wiki
 The pages in `docs/` are written for the GitHub wiki, which is a separate repository

@@ -25,7 +25,11 @@ jobs:
             App/PyUI
             Themes/SPRUCE
 
-      - uses: astral-sh/setup-uv@v6
+      # setup-uv has no major tags since v8, so pin the release. Keep uv on the minor that
+      # pyproject's uv_build bound allows, so CI builds the way contributors do.
+      - uses: astral-sh/setup-uv@v10.2.0
+        with:
+          version: "0.10.x"
 
       - name: Install
         run: uv sync --locked
@@ -37,12 +41,15 @@ jobs:
         run: make typecheck
 
       - name: Test
-        run: make test
+        run: mkdir -p build && make test  # pytest won't create a --basetemp's parent
+        env:
+          PYTEST_ADDOPTS: --basetemp=build/pytest  # keep the screen tests' captures
 
-      - name: Render screens
-        run: make screens
-
-      - uses: actions/upload-artifact@v4
+      # The screens a failing screen test rendered, to see what went wrong.
+      - uses: actions/upload-artifact@v7
+        if: failure()
         with:
-          name: screens
-          path: build/screens/
+          name: screen-test-captures
+          path: |
+            build/pytest/**/shots/**/*.png
+          if-no-files-found: ignore
