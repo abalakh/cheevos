@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Read the pinned SpruceOS commit
+        id: pin
+        run: echo "commit=$(grep -E '^pyui-tested-commit' pyproject.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+
+      # PyUI and the default theme, for the bridge, the desktop shim and headless screen tests.
+      - name: Check out PyUI at the pinned commit
+        uses: actions/checkout@v5
+        with:
+          repository: spruceUI/spruceOS
+          ref: ${{ steps.pin.outputs.commit }}
+          path: .spruceos
+          sparse-checkout: |
+            App/PyUI
+            Themes/SPRUCE
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install
+        run: uv sync --locked
+
+      - name: Lint
+        run: make lint
+
+      - name: Type check
+        run: make typecheck
+
+      - name: Test
+        run: make test
+
+      - name: Render screens
+        run: make screens
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screens
+          path: build/screens/

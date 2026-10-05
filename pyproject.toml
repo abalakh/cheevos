@@ -1,0 +1,104 @@
+[project]
+name = "cheevos"
+version = "0.1.0.dev0"
+description = "On-device RetroAchievements hub for SpruceOS"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Andrii Balakhtar" }]
+requires-python = ">=3.10,<3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "ruff",
+  "ty",
+  "pytest",
+  "pytest-cov",
+  "shellcheck-py",
+  # Desktop runner only. PySDL2 is pinned to the version Spruce ships on devices.
+  "pysdl2==0.9.17",
+  "pysdl2-dll",
+]
+
+[build-system]
+requires = ["uv_build>=0.10,<0.11"]
+build-backend = "uv_build"
+
+[tool.cheevos]
+# Spruce commit (branch Development) the PyUI bridge and desktop shim were last verified against.
+pyui-tested-commit = "bd10c229891f6afcdf1a427fafe329545174d282"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests", "scripts"]
+extend-exclude = [".spruceos", "build", "dist", "dev"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W", "F", "I", "N", "D", "UP", "B", "A", "C4", "SIM", "RET", "PIE", "PT", "PTH",
+  "ANN", "T20", "ERA", "PL", "RUF", "C90", "S", "BLE", "LOG", "G", "TRY", "FBT", "DTZ",
+]
+ignore = [
+  "D107",    # __init__ is documented in the class docstring
+  "TRY003",  # long messages in exceptions are fine
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 6
+max-branches = 12
+max-statements = 50
+max-returns = 6
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "S101", "S603", "ANN", "PLR2004", "PLR0913", "FBT"]
+# CLI scripts report to the terminal.
+"scripts/**" = ["T20"]
+# PyUI is importable only after bootstrap.add_pyui_to_path(), so these import it lazily.
+"src/cheevos/ui/pyui/**" = ["PLC0415"]
+"src/cheevos/platform/desktop/__main__.py" = ["PLC0415"]
+
+[tool.ty.environment]
+python-version = "3.10"
+extra-paths = ["scripts"]
+
+[tool.ty.analysis]
+# PyUI is untyped and only importable at runtime (on the device, or from a SpruceOS checkout
+# for the desktop shim). Treat it as an opaque dependency: everything from it is Any, and the
+# bridge is responsible for exposing typed values.
+replace-imports-with-any = [
+  "apps", "apps.**", "audio", "audio.**", "controller", "controller.**", "devices", "devices.**",
+  "display", "display.**", "games", "games.**", "menus", "menus.**", "themes", "themes.**",
+  "utils", "utils.**", "views", "views.**", "mainui", "option_select_ui",
+]
+allowed-unresolved-imports = [
+  "apps.**", "audio.**", "controller.**", "devices.**", "display.**", "games.**", "menus.**",
+  "themes.**", "utils.**", "views.**", "mainui", "option_select_ui",
+]
+
+[tool.ty.src]
+exclude = [".spruceos", "build", "dist", "dev"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]
+addopts = ["-ra", "--strict-markers"]
+markers = [
+  "allow_network: test may open internet sockets (default: blocked)",
+  "screens: renders PyUI headless; needs a SpruceOS checkout",
+]
+
+[tool.coverage.run]
+source = ["cheevos"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

@@ -1,0 +1,135 @@
+{
+  "username": "Balah",
+  "recorded_at": 1791125136,
+  "requests": [
+    {
+      "file": "user_profile.json",
+      "method": "API_GetUserProfile",
+      "params": {}
+    },
+    {
+      "file": "user_summary.json",
+      "method": "API_GetUserSummary",
+      "params": {
+        "g": 5,
+        "a": 10
+      }
+    },
+    {
+      "file": "completion_progress.json",
+      "method": "API_GetUserCompletionProgress",
+      "params": {
+        "c": 500,
+        "o": 0
+      }
+    },
+    {
+      "file": "user_awards.json",
+      "method": "API_GetUserAwards",
+      "params": {}
+    },
+    {
+      "file": "recently_played.json",
+      "method": "API_GetUserRecentlyPlayedGames",
+      "params": {
+        "c": 50
+      }
+    },
+    {
+      "file": "game_2.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 2,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_355.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 355,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_519.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 519,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_554.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 554,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_788.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 788,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_1446.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 1446,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_1454.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 1454,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_1487.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 1487,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_1836.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 1836,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_3830.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 3830,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_4239.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 4239,
+        "a": 1
+      }
+    },
+    {
+      "file": "game_4958.json",
+      "method": "API_GetGameInfoAndUserProgress",
+      "params": {
+        "g": 4958,
+        "a": 1
+      }
+    }
+  ]
+}

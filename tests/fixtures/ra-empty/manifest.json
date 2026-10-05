@@ -1,0 +1,7 @@
+{"username": "Newcomer", "recorded_at": 0, "requests": [
+  {"file": "user_profile.json", "method": "API_GetUserProfile", "params": {}},
+  {"file": "user_summary.json", "method": "API_GetUserSummary", "params": {"g": 5, "a": 10}},
+  {"file": "completion_progress.json", "method": "API_GetUserCompletionProgress", "params": {"c": 500, "o": 0}},
+  {"file": "user_awards.json", "method": "API_GetUserAwards", "params": {}},
+  {"file": "recently_played.json", "method": "API_GetUserRecentlyPlayedGames", "params": {"c": 50}}
+]}

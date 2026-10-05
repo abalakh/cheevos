@@ -1,0 +1,23 @@
+# PyUI and the SPRUCE theme, fetched by scripts/fetch_pyui.sh — never part of this repo
+.spruceos/
+
+# Build and dev outputs
+build/
+dist/
+dev/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Local secrets
+apikey.txt
+
+# OS
+.DS_Store

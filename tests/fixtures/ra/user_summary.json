@@ -1,0 +1,199 @@
+{
+  "User": "Balah",
+  "MemberSince": "2020-06-02 20:44:06",
+  "LastActivity": {
+    "ID": 0,
+    "timestamp": null,
+    "lastupdate": null,
+    "activitytype": null,
+    "User": "Balah",
+    "data": null,
+    "data2": null
+  },
+  "RichPresenceMsg": "Strategizing in Chapter 0 | [Main Menu] | Normal | 💬0/335",
+  "RichPresenceMsgDate": "2026-10-04 12:10:00",
+  "LastGameID": 554,
+  "ContribCount": 0,
+  "ContribYield": 0,
+  "TotalPoints": 7,
+  "TotalSoftcorePoints": 24,
+  "TotalTruePoints": 7,
+  "Permissions": 1,
+  "Untracked": 0,
+  "ID": 132789,
+  "UserWallActive": 1,
+  "Motto": "",
+  "Rank": null,
+  "RecentlyPlayedCount": 5,
+  "RecentlyPlayed": [
+    {
+      "GameID": 554,
+      "ConsoleID": 5,
+      "ConsoleName": "Game Boy Advance",
+      "Title": "Fire Emblem: The Blazing Blade",
+      "ImageIcon": "/Images/042758.png",
+      "ImageTitle": "/Images/033779.png",
+      "ImageIngame": "/Images/005927.png",
+      "ImageBoxArt": "/Images/089241.png",
+      "LastPlayed": "2026-10-04 12:10:00",
+      "AchievementsTotal": 87
+    },
+    {
+      "GameID": 519,
+      "ConsoleID": 5,
+      "ConsoleName": "Game Boy Advance",
+      "Title": "Final Fantasy Tactics Advance",
+      "ImageIcon": "/Images/070805.png",
+      "ImageTitle": "/Images/002838.png",
+      "ImageIngame": "/Images/002980.png",
+      "ImageBoxArt": "/Images/014472.png",
+      "LastPlayed": "2026-09-02 11:59:07",
+      "AchievementsTotal": 138
+    },
+    {
+      "GameID": 4958,
+      "ConsoleID": 18,
+      "ConsoleName": "Nintendo DS",
+      "Title": "Final Fantasy Tactics A2: Grimoire of the Rift",
+      "ImageIcon": "/Images/070806.png",
+      "ImageTitle": "/Images/140694.png",
+      "ImageIngame": "/Images/140695.png",
+      "ImageBoxArt": "/Images/030588.png",
+      "LastPlayed": "2026-08-21 18:40:38",
+      "AchievementsTotal": 185
+    },
+    {
+      "GameID": 3830,
+      "ConsoleID": 12,
+      "ConsoleName": "PlayStation",
+      "Title": "Descent",
+      "ImageIcon": "/Images/112888.png",
+      "ImageTitle": "/Images/092904.png",
+      "ImageIngame": "/Images/092905.png",
+      "ImageBoxArt": "/Images/084400.png",
+      "LastPlayed": "2026-08-09 20:35:37",
+      "AchievementsTotal": 106
+    },
+    {
+      "GameID": 1836,
+      "ConsoleID": 7,
+      "ConsoleName": "NES/Famicom",
+      "Title": "Might and Magic: Secret of the Inner Sanctum",
+      "ImageIcon": "/Images/049124.png",
+      "ImageTitle": "/Images/012764.png",
+      "ImageIngame": "/Images/012768.png",
+      "ImageBoxArt": "/Images/012769.png",
+      "LastPlayed": "2026-08-08 17:37:19",
+      "AchievementsTotal": 55
+    }
+  ],
+  "Awarded": {
+    "554": {
+      "NumPossibleAchievements": 87,
+      "PossibleScore": 730,
+      "NumAchieved": 0,
+      "ScoreAchieved": 0,
+      "NumAchievedHardcore": 0,
+      "ScoreAchievedHardcore": 0
+    },
+    "519": {
+      "NumPossibleAchievements": 138,
+      "PossibleScore": 786,
+      "NumAchieved": 2,
+      "ScoreAchieved": 3,
+      "NumAchievedHardcore": 2,
+      "ScoreAchievedHardcore": 3
+    },
+    "4958": {
+      "NumPossibleAchievements": 185,
+      "PossibleScore": 1580,
+      "NumAchieved": 0,
+      "ScoreAchieved": 0,
+      "NumAchievedHardcore": 0,
+      "ScoreAchievedHardcore": 0
+    },
+    "3830": {
+      "NumPossibleAchievements": 106,
+      "PossibleScore": 735,
+      "NumAchieved": 1,
+      "ScoreAchieved": 0,
+      "NumAchievedHardcore": 1,
+      "ScoreAchievedHardcore": 0
+    },
+    "1836": {
+      "NumPossibleAchievements": 55,
+      "PossibleScore": 414,
+      "NumAchieved": 0,
+      "ScoreAchieved": 0,
+      "NumAchievedHardcore": 0,
+      "ScoreAchievedHardcore": 0
+    }
+  },
+  "RecentAchievements": {
+    "519": {
+      "177851": {
+        "ID": 177851,
+        "GameID": 519,
+        "GameTitle": "Final Fantasy Tactics Advance",
+        "Title": "Spice Trader",
+        "Description": "Complete Mission 001 - Herb Picking",
+        "Points": 2,
+        "Type": "progression",
+        "BadgeName": "198103",
+        "IsAwarded": "1",
+        "DateAwarded": "2026-08-22 11:42:13",
+        "HardcoreAchieved": 1
+      },
+      "177850": {
+        "ID": 177850,
+        "GameID": 519,
+        "GameTitle": "Final Fantasy Tactics Advance",
+        "Title": "Welcome to Ivalice!",
+        "Description": "Become acquainted with Ivalice",
+        "Points": 1,
+        "Type": "progression",
+        "BadgeName": "198102",
+        "IsAwarded": "1",
+        "DateAwarded": "2026-08-21 17:02:50",
+        "HardcoreAchieved": 1
+      }
+    },
+    "3830": {
+      "527418": {
+        "ID": 527418,
+        "GameID": 3830,
+        "GameTitle": "Descent",
+        "Title": "Mission Briefing: Save Permissions",
+        "Description": "Each chapter must be done in a single session. Use the password menu or load into a previous level to resume progress",
+        "Points": 0,
+        "Type": null,
+        "BadgeName": "598268",
+        "IsAwarded": "1",
+        "DateAwarded": "2026-08-09 20:34:05",
+        "HardcoreAchieved": 1
+      }
+    }
+  },
+  "LastGame": {
+    "ID": 554,
+    "Title": "Fire Emblem: The Blazing Blade",
+    "ConsoleID": 5,
+    "ConsoleName": "Game Boy Advance",
+    "ForumTopicID": 678,
+    "Flags": 0,
+    "ImageIcon": "/Images/042758.png",
+    "ImageTitle": "/Images/033779.png",
+    "ImageIngame": "/Images/005927.png",
+    "ImageBoxArt": "/Images/089241.png",
+    "Publisher": "Nintendo",
+    "Developer": "Intelligent Systems",
+    "Genre": "Tactical RPG",
+    "Released": "2003-04-25",
+    "ReleasedAtGranularity": "day",
+    "IsFinal": 0
+  },
+  "ULID": "01E9VCDSJA9PV2VPB2VPAR757C",
+  "UserPic": "/UserPic/Balah.png",
+  "TotalRanked": 166966,
+  "Status": "Offline"
+}

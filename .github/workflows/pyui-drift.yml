@@ -1,0 +1,41 @@
+# Weekly early warning: does the bridge still work against SpruceOS's latest Development branch?
+# A failure here means PyUI changed in a way we must adapt to before the next Spruce release.
+name: PyUI drift
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Check out PyUI at the latest Development
+        uses: actions/checkout@v5
+        with:
+          repository: spruceUI/spruceOS
+          ref: Development
+          path: .spruceos
+          sparse-checkout: |
+            App/PyUI
+            Themes/SPRUCE
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install
+        run: uv sync --locked
+
+      - name: Record the tested commit
+        run: git -C .spruceos rev-parse HEAD | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Test against latest PyUI
+        run: make test screens
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screens-latest-pyui
+          path: build/screens/

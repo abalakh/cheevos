@@ -1,0 +1,97 @@
+{
+  "Count": 7,
+  "Total": 7,
+  "Results": [
+    {
+      "GameID": 519,
+      "Title": "Final Fantasy Tactics Advance",
+      "ImageIcon": "/Images/070805.png",
+      "ConsoleID": 5,
+      "ConsoleName": "Game Boy Advance",
+      "MaxPossible": 138,
+      "NumAwarded": 2,
+      "NumAwardedHardcore": 2,
+      "MostRecentAwardedDate": "2026-08-22T11:42:13+00:00",
+      "HighestAwardKind": null,
+      "HighestAwardDate": null
+    },
+    {
+      "GameID": 3830,
+      "Title": "Descent",
+      "ImageIcon": "/Images/112888.png",
+      "ConsoleID": 12,
+      "ConsoleName": "PlayStation",
+      "MaxPossible": 106,
+      "NumAwarded": 1,
+      "NumAwardedHardcore": 1,
+      "MostRecentAwardedDate": "2026-08-09T20:34:05+00:00",
+      "HighestAwardKind": null,
+      "HighestAwardDate": null
+    },
+    {
+      "GameID": 788,
+      "Title": "Pokémon LeafGreen Version",
+      "ImageIcon": "/Images/104330.png",
+      "ConsoleID": 5,
+      "ConsoleName": "Game Boy Advance",
+      "MaxPossible": 128,
+      "NumAwarded": 1,
+      "NumAwardedHardcore": 0,
+      "MostRecentAwardedDate": "2024-02-08T21:36:30+00:00",
+      "HighestAwardKind": null,
+      "HighestAwardDate": null
+    },
+    {
+      "GameID": 355,
+      "Title": "The Legend of Zelda: A Link to the Past",
+      "ImageIcon": "/Images/059119.png",
+      "ConsoleID": 3,
+      "ConsoleName": "SNES/Super Famicom",
+      "MaxPossible": 109,
+      "NumAwarded": 6,
+      "NumAwardedHardcore": 0,
+      "MostRecentAwardedDate": "2023-07-16T20:37:43+00:00",
+      "HighestAwardKind": null,
+      "HighestAwardDate": null
+    },
+    {
+      "GameID": 4239,
+      "Title": "DUNE: The Battle for Arrakis",
+      "ImageIcon": "/Images/062625.png",
+      "ConsoleID": 1,
+      "ConsoleName": "Genesis/Mega Drive",
+      "MaxPossible": 51,
+      "NumAwarded": 1,
+      "NumAwardedHardcore": 1,
+      "MostRecentAwardedDate": "2020-06-06T09:46:16+00:00",
+      "HighestAwardKind": null,
+      "HighestAwardDate": null
+    },
+    {
+      "GameID": 1446,
+      "Title": "Super Mario Bros.",
+      "ImageIcon": "/Images/126543.png",
+      "ConsoleID": 7,
+      "ConsoleName": "NES/Famicom",
+      "MaxPossible": 76,
+      "NumAwarded": 2,
+      "NumAwardedHardcore": 2,
+      "MostRecentAwardedDate": "2020-06-05T18:31:43+00:00",
+      "HighestAwardKind": null,
+      "HighestAwardDate": null
+    },
+    {
+      "GameID": 1454,
+      "Title": "The Legend of Zelda",
+      "ImageIcon": "/Images/059053.png",
+      "ConsoleID": 7,
+      "ConsoleName": "NES/Famicom",
+      "MaxPossible": 69,
+      "NumAwarded": 1,
+      "NumAwardedHardcore": 1,
+      "MostRecentAwardedDate": "2020-06-02T20:56:27+00:00",
+      "HighestAwardKind": null,
+      "HighestAwardDate": null
+    }
+  ]
+}
