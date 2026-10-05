@@ -198,7 +198,9 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
 - **Menu and status icons**: pixelarticons (MIT), recoloured to the theme accent and
   pre-rendered at exact 2× and 3× of their 24 px grid (48 px up to 752 px wide screens, 72 px
   above), so pixels stay sharp. Every row gets an icon; a missing image falls back to a pixel
-  icon, so columns stay aligned.
+  icon, so columns stay aligned. A badge not downloaded yet shows a gold trophy if unlocked and
+  a grey lock (`lock-muted`, rendered in SPRUCE's muted text colour) if locked, so the state
+  reads at a glance, as RA greys out locked badges.
 - **App icon**: an original trophy outline in the SPRUCE theme's app-icon style (4 px rounded
   stroke, 10 px padding, `#D7B45F`), from `assets/icons/cheevos.svg`, rendered at 105 px by
   `scripts/render_icons.py` and shipped as `cheevos.png`. Themes can override it with

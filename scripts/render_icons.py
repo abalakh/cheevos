@@ -4,7 +4,8 @@
   largest size SpruceOS themes use (105 px at 1280x720) so PyUI only ever scales it down.
 - ``assets/pixelarticons/<name>.svg`` -> ``src/cheevos/res/icons/<size>/<name>.png``: list
   icons, recoloured to the theme accent and rendered at exact multiples of their 24 px grid
-  (24, 48 and 72 px) so every pixel edge stays sharp.
+  (24, 48 and 72 px) so every pixel edge stays sharp. A few also get a muted variant
+  (:data:`MUTED_ICONS`).
 
 Usage: ``uv run python scripts/render_icons.py``
 """
@@ -32,6 +33,10 @@ PIXEL_GRID = 24
 # 24 px: bottom-bar status; 48 px: lists on 640-752 px wide screens; 72 px: lists above.
 PIXEL_SCALES = (1, 2, 3)
 ACCENT = "#D7B45F"  # SPRUCE theme accent (sampled from its app icons)
+MUTED = "#7C6F64"  # SPRUCE's muted text (locked rows), like RA's grey locked badges
+# Extra renderings in the muted colour: source name -> output name. The grey lock stands in for
+# a locked achievement's badge until it's downloaded (the gold trophy for an unlocked one).
+MUTED_ICONS = {"lock": "lock-muted"}
 
 
 class RenderError(RuntimeError):
@@ -86,11 +91,16 @@ def render_pixel_icons() -> int:
     """
     count = 0
     for source in sorted(PIXEL_SOURCE_DIR.glob("*.svg")):
-        svg = source.read_text(encoding="utf-8").replace("currentColor", ACCENT)
-        for scale in PIXEL_SCALES:
-            size = PIXEL_GRID * scale
-            render_svg(svg, size, PIXEL_OUTPUT_DIR / str(size) / f"{source.stem}.png")
-            count += 1
+        text = source.read_text(encoding="utf-8")
+        outputs = [(source.stem, ACCENT)]
+        if source.stem in MUTED_ICONS:
+            outputs.append((MUTED_ICONS[source.stem], MUTED))
+        for name, color in outputs:
+            svg = text.replace("currentColor", color)
+            for scale in PIXEL_SCALES:
+                size = PIXEL_GRID * scale
+                render_svg(svg, size, PIXEL_OUTPUT_DIR / str(size) / f"{name}.png")
+                count += 1
     return count
 
 

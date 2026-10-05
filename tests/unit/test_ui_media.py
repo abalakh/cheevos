@@ -87,7 +87,7 @@ def test_missing_image_falls_back_and_is_requested_once(media, icons):
     fetcher = FakeFetcher()
     resolver = MediaResolver(media, icons, fetcher)
     for _ in range(3):
-        assert resolver.badge(achievement(unlocked=False)) == icons / "lock.png"
+        assert resolver.badge(achievement(unlocked=False)) == icons / "lock-muted.png"
     assert fetcher.requests == [(badge_key("198103", locked=True), "/Badge/198103_lock.png")]
 
 

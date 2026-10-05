@@ -119,7 +119,8 @@ class MediaResolver:
                 RAOfflineProxy's queue (unlocked on the device, not yet on RA).
 
         Returns:
-            The badge, or a trophy/lock icon while it is unavailable.
+            The badge, or while it is unavailable a gold trophy (unlocked) or a grey lock
+            (locked, like RA's grey locked badges).
         """
         locked = not (achievement.unlocked if unlocked is None else unlocked)
         name = achievement.badge_name
@@ -127,7 +128,7 @@ class MediaResolver:
         return self.resolve(
             badge_key(name, locked=locked),
             f"/Badge/{name}{suffix}.png",
-            "lock" if locked else "trophy",
+            "lock-muted" if locked else "trophy",
         )
 
     def game_icon(self, game_id: int, image_icon: str) -> Path:
