@@ -6,7 +6,8 @@
 | "Cheevos couldn't start" | Something went wrong before the first screen. The log named in the message has the details; please report it on the project's GitHub page. |
 | "Untested device" on first start | Cheevos hasn't been tried on your device yet. It should still work; if something looks wrong, report it with the log. You'll see this only once. |
 | "Sign in to RetroAchievements first" | Sign in in **Spruce Settings → RetroAchievements** (or in RetroArch), then start Cheevos again. |
-| "API key rejected · check Settings" | The Web API key is wrong or was reset on the site. Copy it again from retroachievements.org (**Settings → Keys**) and enter it in **Settings → Web API key**. |
+| "API key rejected" | The Web API key is wrong or was reset on the site. Copy it again from retroachievements.org (**Settings → Keys**), press **Start** and type it. |
+| "apikey.txt doesn't hold a Web API key" | The file needs just the key: 32 letters and digits on the first line, nothing else. Press **A** to type it instead. |
 | "Clock not set · connect to Wi-Fi" | The device doesn't know the time yet, and secure connections need it. Turn on Wi-Fi, wait a moment, and press **Start**. |
 | "Offline · showing saved data" | No connection. Everything synced before is still there. Press **Start** to retry. |
 | "RetroAchievements unavailable" | The site is busy or down. Cheevos uses your saved data; try again later. |

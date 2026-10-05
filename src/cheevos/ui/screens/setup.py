@@ -1,7 +1,8 @@
-"""First-run setup: find the username, get the Web API key (keyboard or file), validate it."""
+"""First-run setup: find the username, get the Web API key (file or keyboard), validate it."""
 
 from __future__ import annotations
 
+import dataclasses
 from collections.abc import Callable
 from pathlib import Path
 
@@ -14,10 +15,10 @@ from cheevos.core.credentials import (
 from cheevos.core.sync.session import Credentials
 from cheevos.platform.paths import Paths
 from cheevos.ui import strings
+from cheevos.ui.context import AppContext
 from cheevos.ui.pyui import primitives as ui
 from cheevos.ui.pyui.primitives import Button
-from cheevos.ui.pyui.views import MenuItem, choose
-from cheevos.ui.screens.common import busy, message
+from cheevos.ui.screens.common import busy, message, prompt
 
 # (username, key) -> True (accepted), False (rejected), None (couldn't reach RA).
 KeyValidator = Callable[[str, str], bool | None]
@@ -44,15 +45,15 @@ def untested_device_note(device: str, log: Path) -> None:
     )
 
 
-def ensure_credentials(
-    paths: Paths, validate: KeyValidator, icons: Callable[[str], Path]
-) -> Credentials | None:
-    """Return the account to use, asking for the API key if there is none yet.
+def ensure_credentials(paths: Paths, validate: KeyValidator) -> Credentials | None:
+    """Return the account to use, asking for the API key if the key file has none.
+
+    A key in the file is trusted as long as it has a key's shape; if RA rejects it, the first
+    sync says so and Start offers to enter a new one.
 
     Args:
         paths: Device paths.
         validate: Checks a key with RA.
-        icons: Returns a pixel icon path by name.
 
     Returns:
         Credentials, or ``None`` if setup cannot finish (no username, or the user exited).
@@ -62,51 +63,46 @@ def ensure_credentials(
         message(strings.SETUP, [strings.NO_USERNAME])
         return None
     key = read_api_key(paths)
-    if key:
+    if key and looks_like_api_key(key):
         return Credentials(username, key)
-    key = _ask_for_key(paths, username, validate, icons)
+    file = paths.api_key_file.relative_to(paths.sdcard)
+    problem = strings.KEY_FILE_INVALID.format(path=file) if key else strings.KEY_NEEDED
+    key = ask_for_key(paths, username, validate, problem)
     return Credentials(username, key) if key else None
 
 
-def _ask_for_key(
-    paths: Paths, username: str, validate: KeyValidator, icons: Callable[[str], Path]
-) -> str | None:
-    """Offer keyboard entry, the key file, or exit until a key is available.
+def ask_for_key(paths: Paths, username: str, validate: KeyValidator, problem: str) -> str | None:
+    """Explain what's needed until a key is typed (A) or the user leaves (B).
 
     Args:
         paths: Device paths.
         username: RA username.
         validate: Checks a key with RA.
-        icons: Returns a pixel icon path by name.
+        problem: First paragraph: no key yet, or the file doesn't hold one.
 
     Returns:
         The key, or ``None`` if the user exited.
     """
-    hint = strings.KEY_FILE_HINT.format(path=paths.api_key_file.relative_to(paths.sdcard))
-    items = [
-        MenuItem(strings.KEY_ENTER, strings.KEY_ENTER_HINT, icons("sliders"), key="enter"),
-        MenuItem(strings.KEY_FILE, hint, icons("info-box"), key="file"),
-        MenuItem(
-            strings.KEY_CHECK_AGAIN, strings.KEY_CHECK_AGAIN_HINT, icons("reload"), key="check"
-        ),
-        MenuItem(strings.EXIT, "", icons("lock"), key="exit"),
-    ]
-    message(strings.SETUP, [strings.KEY_NEEDED, strings.KEY_WHERE])
-    while True:
-        choice = choose(strings.SETUP, items)
-        if choice is None or choice.item.key == "exit":
-            return None
-        if choice.item.key == "enter":
-            key = enter_key(paths, username, validate)
-        elif choice.item.key == "check":
-            key = read_api_key(paths)
-            if not key:
-                message(strings.SETUP, [strings.KEY_FILE_MISSING.format(path=paths.api_key_file)])
-        else:
-            message(strings.KEY_FILE, [hint])
-            key = None
+    file = paths.api_key_file.relative_to(paths.sdcard)
+    paragraphs = [problem, strings.KEY_WHERE, strings.KEY_HOW.format(path=file)]
+    hints = [(Button.A, strings.ENTER_KEY), (Button.B, strings.EXIT)]
+    while prompt(strings.SETUP, paragraphs, hints) is Button.A:
+        key = enter_key(paths, username, validate)
         if key:
             return key
+    return None
+
+
+def change_key(ctx: AppContext) -> None:
+    """Type a new key (Settings, or Start after RA rejected the key) and sync with it.
+
+    Args:
+        ctx: App context.
+    """
+    entered = enter_key(ctx.paths, ctx.credentials.username, ctx.validate_key)
+    if entered:
+        ctx.credentials = dataclasses.replace(ctx.credentials, api_key=entered)
+        ctx.start_sync()
 
 
 def enter_key(paths: Paths, username: str, validate: KeyValidator) -> str | None:

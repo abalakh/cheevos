@@ -8,6 +8,7 @@ from pathlib import Path
 from cheevos.ui import strings
 from cheevos.ui.pyui import primitives as ui
 from cheevos.ui.pyui.primitives import Align, Button, Text
+from cheevos.ui.pyui.status_bar import Hint
 from cheevos.ui.pyui.views import Layout, MenuItem, choose
 
 PADDING = 16
@@ -20,8 +21,22 @@ def message(title: str, paragraphs: Sequence[str]) -> None:
         title: Top-bar text.
         paragraphs: Text blocks, separated by a blank gap.
     """
+    prompt(title, paragraphs, [(Button.A, strings.HINT_OK)])
+
+
+def prompt(title: str, paragraphs: Sequence[str], hints: Sequence[Hint]) -> Button:
+    """Show wrapped, centred paragraphs until A or B is pressed, and say which.
+
+    Args:
+        title: Top-bar text.
+        paragraphs: Text blocks, separated by a blank gap.
+        hints: What A and B do here.
+
+    Returns:
+        ``Button.A`` or ``Button.B``.
+    """
     while True:
-        area = ui.begin(title, hints=[(Button.A, strings.HINT_OK)])
+        area = ui.begin(title, hints=hints)
         y = area.y + PADDING * 2
         for paragraph in paragraphs:
             for line in ui.wrap(paragraph, Text.BODY, area.width - PADDING * 4):
@@ -29,8 +44,9 @@ def message(title: str, paragraphs: Sequence[str]) -> None:
                 y += ui.line_height(Text.BODY)
             y += PADDING
         ui.end()
-        if ui.wait_for({Button.A, Button.B}):
-            return
+        pressed = ui.wait_for({Button.A, Button.B})
+        if pressed is not None:
+            return pressed
 
 
 def busy(title: str, text: str) -> None:

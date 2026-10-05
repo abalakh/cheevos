@@ -2,14 +2,18 @@ import json
 import logging
 import sys
 import types
+from typing import Any, cast
 
 import pytest
 
 from cheevos.app import AppEnvironment, _validator
 from cheevos.core.ra_client import Response
+from cheevos.core.sync.session import Credentials
 from cheevos.platform.paths import Paths
+from cheevos.ui import strings
 from cheevos.ui.pyui import generated, primitives, status_bar
 from cheevos.ui.pyui.buttons import Button
+from cheevos.ui.screens import setup
 
 KEY = "A" * 32
 
@@ -129,3 +133,68 @@ def test_keyboard_shows_its_hints_instead_of_the_sync_status(monkeypatch):
     assert primitives.ask_text("Key", hints=hints) == "x"
     assert seen == [(hints, 1, False)]  # Start submits the text, it doesn't sync
     assert (bar.hints, bar.hidden) == (((Button.Y, "Filter"),), 0)
+
+
+@pytest.fixture
+def no_key_yet(tmp_path, monkeypatch):
+    """A card with a username; records what the key screen was asked to say."""
+    paths = Paths(sdcard=tmp_path, platform="MiyooMini")
+    monkeypatch.setattr(setup, "read_username", lambda paths: "Balah")
+    asked: list[str] = []
+
+    def ask_for_key(paths, username, validate, problem):
+        asked.append(problem)
+
+    monkeypatch.setattr(setup, "ask_for_key", ask_for_key)
+    return paths, asked
+
+
+def test_a_key_in_the_file_skips_setup(no_key_yet):
+    paths, asked = no_key_yet
+    paths.api_key_file.parent.mkdir(parents=True)
+    paths.api_key_file.write_text(KEY + "\n")
+    assert setup.ensure_credentials(paths, lambda user, key: True) == Credentials("Balah", KEY)
+    assert asked == []
+
+
+@pytest.mark.parametrize(
+    ("content", "problem"),
+    [
+        (None, strings.KEY_NEEDED),
+        ("my key\n", "Saves/cheevos/apikey.txt doesn't hold a Web API key."),
+    ],
+)
+def test_setup_explains_a_missing_or_malformed_key_file(no_key_yet, content, problem):
+    paths, asked = no_key_yet
+    if content is not None:
+        paths.api_key_file.parent.mkdir(parents=True)
+        paths.api_key_file.write_text(content)
+    assert setup.ensure_credentials(paths, lambda user, key: True) is None
+    assert asked == [problem]
+
+
+def test_key_screen_repeats_until_a_key_is_entered_or_b(tmp_path, monkeypatch):
+    paths = Paths(sdcard=tmp_path, platform="MiyooMini")
+    presses = iter([Button.A, Button.A, Button.B])
+    entered = iter([None, KEY])  # cancelled or rejected, then accepted
+    monkeypatch.setattr(setup, "prompt", lambda title, paragraphs, hints: next(presses))
+    monkeypatch.setattr(setup, "enter_key", lambda paths, username, validate: next(entered))
+    assert setup.ask_for_key(paths, "Balah", lambda user, key: True, "problem") == KEY
+    assert next(presses) is Button.B  # never shown again
+    presses = iter([Button.B])
+    assert setup.ask_for_key(paths, "Balah", lambda user, key: True, "problem") is None
+
+
+@pytest.mark.parametrize(("entered", "starts"), [(KEY, 1), (None, 0)])
+def test_a_changed_key_is_used_and_synced_at_once(tmp_path, monkeypatch, entered, starts):
+    ctx = types.SimpleNamespace(
+        paths=Paths(sdcard=tmp_path, platform="MiyooMini"),
+        credentials=Credentials("Balah", "B" * 32),
+        validate_key=lambda user, key: True,
+        starts=0,
+    )
+    ctx.start_sync = lambda: setattr(ctx, "starts", ctx.starts + 1)
+    monkeypatch.setattr(setup, "enter_key", lambda paths, username, validate: entered)
+    setup.change_key(cast(Any, ctx))
+    assert ctx.credentials == Credentials("Balah", entered or "B" * 32)
+    assert ctx.starts == starts

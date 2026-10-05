@@ -1,5 +1,7 @@
 """Sync status for the bottom bar, and the Start action (sync, cancel, retry) on every screen.
 
+After RA rejected the key, retrying can't help, so Start offers to enter a new key instead.
+
 Every screen shows progress while a sync runs and the result for a few seconds after it ends.
 Home and settings (``choose(full_status=True)``) also show the last result with a Start hint
 when idle.
@@ -7,6 +9,7 @@ when idle.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 
 from cheevos.core.sync.engine import LAST_SYNC_KEY
@@ -51,11 +54,13 @@ class SyncBar:
     Args:
         ctx: App context.
         icons: Directory of icons sized for the bottom bar.
+        enter_key: Asks for a new key (and syncs with it); Start runs it after a rejection.
     """
 
-    def __init__(self, ctx: AppContext, icons: Path) -> None:
+    def __init__(self, ctx: AppContext, icons: Path, enter_key: Callable[[], None]) -> None:
         self._ctx = ctx
         self._icons = icons
+        self._enter_key = enter_key
         self._seen: SyncStatus | None = None
         self._last_sync: str | None = None
 
@@ -119,7 +124,8 @@ class SyncBar:
         """
         if state.phase is Phase.FAILED and state.failure is not None:
             text, icon = _FAILURES[state.failure]
-            return BarStatus(text, self._icon(icon), strings.SYNC_RETRY if detailed else "")
+            action = strings.ENTER_KEY if state.failure is Failure.AUTH else strings.SYNC_RETRY
+            return BarStatus(text, self._icon(icon), action if detailed else "")
         action = strings.SYNC if detailed else ""
         if state.phase is Phase.CANCELLED and fresh:
             return BarStatus(strings.SYNC_CANCELLED, self._icon("reload"), action)
@@ -129,8 +135,11 @@ class SyncBar:
         return BarStatus(strings.SYNC_DONE_AGO.format(ago=ago), self._icon("check"), action)
 
     def press_start(self) -> None:
-        """Start a sync, or cancel the running one."""
-        if self._ctx.sync.status().running:
+        """Start a sync, cancel the running one, or ask for a new key after a rejection."""
+        state = self._ctx.sync.status()
+        if state.running:
             self._ctx.sync.cancel()
+        elif state.phase is Phase.FAILED and state.failure is Failure.AUTH:
+            self._enter_key()
         else:
             self._ctx.start_sync()

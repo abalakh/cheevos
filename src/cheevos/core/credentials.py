@@ -8,6 +8,7 @@ redaction straight away.
 
 from __future__ import annotations
 
+import codecs
 import json
 import logging
 import re
@@ -114,6 +115,9 @@ def read_username(paths: Paths) -> str | None:
 def read_api_key(paths: Paths) -> str | None:
     """Return the first non-empty line of ``apikey.txt``, stripped.
 
+    The file is often written in Windows Notepad, so its encodings are understood too: UTF-8
+    with a byte-order mark, and UTF-16 ("Unicode"). The key itself isn't checked here.
+
     Args:
         paths: Resolved paths.
 
@@ -121,9 +125,13 @@ def read_api_key(paths: Paths) -> str | None:
         The key, or ``None`` when the file is missing or blank.
     """
     try:
-        text = paths.api_key_file.read_text(encoding="utf-8", errors="replace")
+        data = paths.api_key_file.read_bytes()
     except OSError:
         return None
+    if data.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        text = data.decode("utf-16", errors="replace")
+    else:
+        text = data.decode("utf-8-sig", errors="replace")
     for line in text.splitlines():
         if line.strip():
             install_redaction(line.strip())

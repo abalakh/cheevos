@@ -15,13 +15,19 @@ Cheevos reads other software's files on the SD card and never writes them. It wr
   If both are empty, show: "Sign in to RetroAchievements in Spruce Settings or RetroArch
   first."
 - **Web API key**, in this order:
-  1. `Saves/cheevos/apikey.txt`. The first non-empty line is used, with whitespace stripped.
-  2. If the file is missing or the key is rejected, prompt with PyUI's `OnScreenKeyboard` and
-     save the result to the same file.
-- **Validation**: a single `API_GetUserProfile` call.
-  - On HTTP 401 or 403, or an error payload: "API key rejected". Offer: re-enter, or show where
-    to find it (retroachievements.org → Settings → Keys).
-  - On no network: if cached data exists, open it; otherwise show "Connect to Wi-Fi to set up".
+  1. `Saves/cheevos/apikey.txt`: the first non-empty line, with whitespace stripped. Windows
+     Notepad's encodings are read too (UTF-8 with a BOM, UTF-16 "Unicode"), since most users
+     will write the file there. Quotes or labels around the key are not: common mistakes only.
+  2. If the file is missing, or its line isn't 32 letters and digits, the setup screen says
+     so and offers two ways out: A types the key (PyUI's `OnScreenKeyboard`; saved to the same
+     file once accepted), B exits so the file can be fixed.
+- **Validation**: a single `API_GetUserProfile` call, for typed keys.
+  - On HTTP 401 or 403, or an error payload: "RetroAchievements rejected this key". Nothing is
+    saved; back to the setup screen (or Settings).
+  - On no network: the key is saved unchecked, and the next sync checks it.
+  - A key from the file isn't validated at start (that needs the network). If a sync rejects it,
+    the bottom bar shows "API key rejected" and Start opens the keyboard. A key entered there or
+    in Settings is used at once and synced.
 - The key is stored in plaintext, the same way Spruce stores the RA password, and is **never
   logged** ([retroachievements.md](retroachievements.md), "Secrets").
 

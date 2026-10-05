@@ -6,6 +6,7 @@ an account with no games. ``proxy`` adds an enabled RAOfflineProxy with queued u
 in both modes, mixed hardcore and casual) and a made-up account, to review progress bars and the
 awards wall, and to take the screenshots for the docs (``scripts/doc_screens.py``).
 ``untested`` pretends to run on a device Cheevos hasn't been tested on (its one-time note).
+``setup`` starts without a key file, on the first-run key screen.
 ``awards`` serves another account's recorded awards (``record_fixtures.py USER --awards-only``)
 to review a big awards wall; images the mirror lacks are fetched live from RA's media host.
 """
@@ -30,7 +31,17 @@ from cheevos.core.ra_client.transport import (
 )
 from cheevos.platform.paths import Paths
 
-SCENARIOS = ("offline", "clock", "auth", "empty", "proxy", "showcase", "awards", "untested")
+SCENARIOS = (
+    "offline",
+    "clock",
+    "auth",
+    "empty",
+    "proxy",
+    "showcase",
+    "awards",
+    "untested",
+    "setup",
+)
 NOT_FOUND = 404
 # Showcase progress per completion-progress game, in fixture order:
 # (hardcore share, casual-only share, AwardType, hardcore award?)
@@ -300,13 +311,15 @@ def simulation(
 
 
 def prepare_card(name: str | None, paths: Paths, fixtures: Path) -> None:
-    """Add scenario files to the fake SD card (only ``proxy`` needs any).
+    """Adjust the fake SD card for a scenario (``proxy`` adds files, ``setup`` drops the key).
 
     Args:
         name: Scenario name.
         paths: Fake card paths.
         fixtures: Fixture directory (for patch data).
     """
+    if name == "setup":
+        paths.api_key_file.unlink(missing_ok=True)
     if name != "proxy":
         return
     data = paths.proxy_data_dir

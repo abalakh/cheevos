@@ -17,15 +17,18 @@ password, and you can reset it on the site at any time.
 **Find your key:** sign in at [retroachievements.org](https://retroachievements.org), open
 **Settings**, and look for **Keys → Web API Key**. It's 32 letters and digits.
 
-**Give it to Cheevos**, in either of two ways. The setup screen offers both:
-- **Enter it now:** type it with the on-screen keyboard. Press Start to confirm.
-- **Put it in a file:** save the key as `Saves/cheevos/apikey.txt` on the SD card (one line),
-  then choose **Check again**. That's easier if you have the card in a computer anyway.
+**Give it to Cheevos**, in either of two ways:
+- **Type it:** on the first start, Cheevos asks for the key. Press **A** and type it with the
+  on-screen keyboard, then press **Start**. Cheevos checks the key with RetroAchievements. If
+  you're offline, it keeps the key and checks it on the next sync.
+- **Put it in a file:** with the SD card in a computer, save the key as
+  `Saves/cheevos/apikey.txt`: just the key, on one line. Notepad on Windows works fine. That's
+  easier than typing 32 characters, and Cheevos then starts without asking.
 
-Cheevos checks the key with RetroAchievements. If you're offline, it keeps the key and checks it
-on the next sync.
+If RetroAchievements rejects the key later (you reset it on the site, or the file has a typo),
+the bottom bar says **API key rejected**. Press **Start** to type the right one.
 
-To change the key later: **Settings → Web API key**.
+To change the key at any time: **Settings → Web API key**.
 
 ## Unlock screenshots (optional)
 RetroArch can save a screenshot every time you unlock an achievement, and Cheevos then shows it

@@ -43,6 +43,7 @@ class FakeContext:
     data: FakeData = field(default_factory=FakeData)
     now: float = NOW
     starts: int = 0
+    key_prompts: int = 0
 
     def clock(self) -> float:
         return self.now
@@ -53,7 +54,10 @@ class FakeContext:
 
 
 def make_bar(ctx: FakeContext) -> SyncBar:
-    return SyncBar(cast(Any, ctx), ICONS)
+    def enter_key() -> None:
+        ctx.key_prompts += 1
+
+    return SyncBar(cast(Any, ctx), ICONS, enter_key)
 
 
 def running(phase: Phase, *, done: int = 0, total: int = 0, current: str = "") -> SyncStatus:
@@ -117,18 +121,18 @@ def test_idle_status_reads_last_sync_time_once_per_change():
 
 
 @pytest.mark.parametrize(
-    ("failure", "text", "icon"),
+    ("failure", "text", "icon", "action"),
     [
-        (Failure.OFFLINE, "Offline · showing saved data", "cloud"),
-        (Failure.CLOCK, "Clock not set · connect to Wi-Fi", "clock"),
-        (Failure.AUTH, "API key rejected · check Settings", "lock"),
-        (Failure.RATE_LIMITED, "RetroAchievements unavailable", "cloud"),
+        (Failure.OFFLINE, "Offline · showing saved data", "cloud", "Retry"),
+        (Failure.CLOCK, "Clock not set · connect to Wi-Fi", "clock", "Retry"),
+        (Failure.AUTH, "API key rejected", "lock", "Enter key"),
+        (Failure.RATE_LIMITED, "RetroAchievements unavailable", "cloud", "Retry"),
     ],
 )
-def test_failure_offers_retry_on_detailed_screens(failure, text, icon):
+def test_failure_offers_a_way_out_on_detailed_screens(failure, text, icon, action):
     ctx = FakeContext(sync=FakeSync(finished(Phase.FAILED, NOW - 60, failure)))
     bar = make_bar(ctx)
-    assert bar.status(True) == BarStatus(text, ICONS / f"{icon}.png", "Retry")
+    assert bar.status(True) == BarStatus(text, ICONS / f"{icon}.png", action)
     assert bar.status(False) is None
 
 
@@ -151,6 +155,16 @@ def test_start_syncs_when_idle_and_cancels_when_running():
     ctx.sync.state = running(Phase.LIBRARY)
     bar.press_start()
     assert (ctx.starts, ctx.sync.cancels) == (1, 1)
+
+
+@pytest.mark.parametrize(
+    ("failure", "starts", "key_prompts"), [(Failure.AUTH, 0, 1), (Failure.NETWORK, 1, 0)]
+)
+def test_start_asks_for_a_new_key_only_after_a_rejection(failure, starts, key_prompts):
+    # Retrying with a key RA just rejected can't work.
+    ctx = FakeContext(sync=FakeSync(finished(Phase.FAILED, NOW - 60, failure)))
+    make_bar(ctx).press_start()
+    assert (ctx.starts, ctx.key_prompts) == (starts, key_prompts)
 
 
 def game(earned: int, hardcore: int, total: int = 40, award: AwardKind | None = None):

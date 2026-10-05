@@ -142,6 +142,22 @@ def test_api_key_first_non_empty_line(paths):
     assert read_api_key(paths) is None
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        f"{KEY}\r\n".encode(),  # Windows line ending
+        f"\ufeff{KEY}\r\n".encode(),  # Notepad's "UTF-8 with BOM"
+        f"{KEY}\r\n".encode("utf-16"),  # Notepad's "Unicode" (little-endian, with BOM)
+        f"{KEY}\r\n".encode("utf-16-be").join([b"\xfe\xff", b""]),  # "Unicode big endian"
+    ],
+    ids=["crlf", "utf-8-bom", "utf-16-le", "utf-16-be"],
+)
+def test_api_key_saved_by_windows_notepad(paths, data):
+    paths.api_key_file.parent.mkdir(parents=True)
+    paths.api_key_file.write_bytes(data)
+    assert read_api_key(paths) == KEY
+
+
 def test_saving_the_key_never_logs_it(paths, caplog):
     caplog.set_level("DEBUG")
     save_api_key(paths, KEY)

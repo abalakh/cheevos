@@ -171,7 +171,7 @@ on the highlighted item, Start is free in lists, Select switches the view.
 | D-pad | Move |
 | A | Open / confirm |
 | B | Back |
-| Start | Sync, or cancel the running sync, on every screen except popups and the keyboard |
+| Start | Sync, or cancel the running sync, on every screen except popups and the keyboard. After "API key rejected": enter a new key |
 | Y | Options popup: filter and sort (games); view, filter and sort (a game's achievements) |
 | X | Reveal a hidden (spoiler) description on the achievement card (per-item, like PyUI); "See more" on the profile |
 | Select | Games: progress bars ↔ details. A game's achievements: list ↔ grid (like PyUI's game lists) |
@@ -181,8 +181,8 @@ on the highlighted item, Start is free in lists, Select switches the view.
 Screen-specific buttons are hinted in the bottom bar ("[Y] Filter", "[SELECT] Details",
 "[A] Full screen"); when space runs out, later hints go first. Themes ship X, Y and START badges;
 missing ones (A, Select) are generated in the style of the theme's START badge. Message pages
-hint "[A] OK", and setup screens get hints too: the bar is installed before setup starts, with
-no sync status and Start doing nothing.
+hint "[A] OK", and the setup key screen "[A] Enter key [B] Exit": the bar is installed before
+setup starts, with no sync status and Start doing nothing.
 
 **On-screen keyboard** (PyUI's, for the Web API key): A types the highlighted key, B deletes
 (cancels when empty), Start submits, L1 is shift, R1 caps lock. PyUI's keyboard draws no hints,
@@ -213,9 +213,9 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
 | Situation | Behaviour |
 |---|---|
 | No Wi-Fi, cached data exists | Open normally. The bottom bar shows "Offline · showing saved data". Pending proxy unlocks still show. |
-| No Wi-Fi, no cache | Setup screen: "Connect to Wi-Fi to set up". |
+| No Wi-Fi, no cache | Open on empty lists. The bottom bar shows "Offline · showing saved data"; Start syncs once online. A key typed during setup is saved unchecked. |
 | Clock not synced | Skip sync and show a hint. Cached data still works. |
-| Key rejected mid-use | Stop sync and prompt to re-enter the key. Cache stays usable. |
+| Key rejected (file typo, or reset on the site) | Stop sync. The bottom bar shows "API key rejected" and Start opens the keyboard; a key RA accepts is saved and synced at once. Cache stays usable. |
 | Rate limited / RA down | Back off. The bottom bar shows "RetroAchievements unavailable". |
 | Power-off mid-sync | Resumes next run. Per-game commits mean the DB is never half-written for a game. |
 | Proxy missing or unreadable | Hide the Settings status row and pending markers. |

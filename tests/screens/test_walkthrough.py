@@ -87,7 +87,8 @@ def test_unlock_screenshot(tmp_path):
 @pytest.mark.parametrize(
     ("scenario", "script", "shots"),
     [
-        ("auth", "wait:24,shot:home", ["home"]),
+        ("auth", "wait:24,shot:home,start,shot:enter_key", ["home", "enter_key"]),
+        ("setup", "shot:welcome,a,shot:keyboard,b,b", ["welcome", "keyboard"]),
         ("empty", "shot:home,down,a,shot:games", ["home", "games"]),
         ("untested", "shot:note,a,shot:home", ["note", "home"]),
         (
@@ -108,6 +109,23 @@ def test_drills(tmp_path, scenario, script, shots):
     assert_shots(tmp_path, shots)
     if scenario == "auth":
         assert "API key rejected" in stderr
+
+
+# From the keyboard's top-left key, types 1234567890qwertyuiopasdfghjklzxc: a well-formed key.
+KEY_ROWS = (
+    ["down", "right", *["a", "right"] * 10],  # 1 to 0
+    ["down", *["left"] * 11, *["a", "right"] * 10],  # q to p
+    ["down", *["left"] * 9, *["a", "right"] * 9],  # a to l
+    ["down", *["left"] * 8, *["a", "right"] * 3],  # z to c
+)
+TYPE_A_KEY = ",".join(step for row in KEY_ROWS for step in row)
+
+
+def test_first_run_with_a_typed_key(tmp_path):
+    run_app(tmp_path, f"a,{TYPE_A_KEY},start,wait:6,shot:home", simulate="setup")
+    assert_shots(tmp_path, ["home"])
+    key_file = tmp_path / "sdcard-setup" / "Saves" / "cheevos" / "apikey.txt"
+    assert key_file.read_text() == "1234567890qwertyuiopasdfghjklzxc\n"
 
 
 def test_start_syncs_from_any_screen(tmp_path):

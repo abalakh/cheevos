@@ -12,7 +12,7 @@ from cheevos.ui import strings
 from cheevos.ui.context import AppContext
 from cheevos.ui.pyui.views import MenuItem, choose
 from cheevos.ui.screens.common import message, pick
-from cheevos.ui.screens.setup import enter_key
+from cheevos.ui.screens.setup import change_key
 
 
 def _on_off(value: bool) -> str:  # noqa: FBT001 — formats a flag
@@ -185,17 +185,6 @@ def _about() -> None:
     message(strings.ABOUT, lines)
 
 
-def _change_key(ctx: AppContext) -> None:
-    """Re-enter the Web API key; it takes effect from the next sync.
-
-    Args:
-        ctx: App context.
-    """
-    entered = enter_key(ctx.paths, ctx.credentials.username, ctx.validate_key)
-    if entered:
-        ctx.credentials = dataclasses.replace(ctx.credentials, api_key=entered)
-
-
 def show_settings(ctx: AppContext) -> None:
     """Show settings until B.
 
@@ -210,7 +199,7 @@ def show_settings(ctx: AppContext) -> None:
         "auto": lambda: _toggle(ctx, "auto_sync"),
         "sync": lambda: _sync(ctx, full=False),
         "full": lambda: _sync(ctx, full=True),
-        "key": lambda: _change_key(ctx),
+        "key": lambda: change_key(ctx),
         "clear": lambda: _clear_images(ctx),
         "about": _about,
     }

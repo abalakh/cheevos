@@ -31,7 +31,7 @@ from cheevos.ui.context import AppContext
 from cheevos.ui.media import MediaResolver
 from cheevos.ui.pyui import generated, primitives, status_bar, views
 from cheevos.ui.screens.home import Home
-from cheevos.ui.screens.setup import ensure_credentials, untested_device_note
+from cheevos.ui.screens.setup import change_key, ensure_credentials, untested_device_note
 from cheevos.ui.screens.status import SyncBar
 
 logger = logging.getLogger(__name__)
@@ -183,7 +183,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
     validate = _validator(env)
     # Nothing to sync before setup ends, but its screens need the bar for their hints.
     with status_bar.installed(lambda _detailed: None, lambda: None):
-        credentials = ensure_credentials(paths, validate, lambda name: icons / f"{name}.png")
+        credentials = ensure_credentials(paths, validate)
         if credentials is None:
             return
         settings = load_settings(paths.settings_file)
@@ -221,7 +221,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
     logger.info("UI ready after %.2fs", time.monotonic() - started_at)
     generated.use_scratch(paths.scaled_scratch)
     views.track_images(lambda: ctx.media.version)
-    bar = SyncBar(ctx, _icons_dir(bar=True))
+    bar = SyncBar(ctx, _icons_dir(bar=True), lambda: change_key(ctx))
     try:
         with status_bar.installed(bar.status, bar.press_start):
             Home(ctx).run()

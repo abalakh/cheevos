@@ -95,6 +95,7 @@ real. Each drill gets a fresh card.
 | `showcase` | Every kind of progress (mastered, completed, beaten in both modes, mixed hardcore and casual), awards, a month of recent unlocks and a made-up account. Used for the docs' screenshots. |
 | `awards` | A big account's awards wall, from a recording of that account's awards (below), with live images. Its games were never synced, so opening one says "not synced yet". |
 | `untested` | Runs as a device Cheevos hasn't been tested on: the one-time "untested device" note |
+| `setup` | First start without a key file: the key screen (A types the key, B exits) |
 
 The `awards` drill needs one recorded response:
 
