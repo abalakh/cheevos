@@ -59,6 +59,7 @@ class MediaResolver:
         self._demand = demand
         self._asked: set[str] = set()  # missing, requested for the screen
         self._asked_later: set[str] = set()  # missing, requested for the next page
+        self._fallbacks: dict[str, Path] = {}  # icon name -> path (asked for on every frame)
         self._seen_version = self.version
 
     @property
@@ -89,14 +90,18 @@ class MediaResolver:
         Returns:
             A file path PyUI can load.
         """
+        missing = self._fallbacks.get(fallback)
+        if missing is None:
+            missing = self._fallbacks[fallback] = self._icons / f"{fallback}.png"
+        demand = self._demand()
+        if demand is ImageDemand.MEASURED:  # every row of a new list: keep it cheap
+            return missing
         version = self.version
         if version != self._seen_version:
             self._asked.clear()
             self._asked_later.clear()
             self._seen_version = version
-        missing = self._icons / f"{fallback}.png"
-        demand = self._demand()
-        if demand is ImageDemand.MEASURED or key in self._asked:
+        if key in self._asked:
             return missing
         path = self._media.path_for(key)
         if path is not None:

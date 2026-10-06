@@ -264,14 +264,18 @@ def compose(label: str, style: Style, text: Lettering) -> tuple[int, bytes]:
     step = 1 / _SAMPLES
     out = bytearray(width * height * 4)
     for y in range(height):
+        middle_row = radius <= y and y + 1 <= height - radius
         for x in range(width):
-            hits = sum(
-                generated.inside_rounded(
-                    x + (sx + 0.5) * step, y + (sy + 0.5) * step, width, height, radius
+            if middle_row or (radius <= x and x + 1 <= width - radius):
+                hits = _SAMPLES**2  # no corner reaches this pixel: skip the slow supersampling
+            else:
+                hits = sum(
+                    generated.inside_rounded(
+                        x + (sx + 0.5) * step, y + (sy + 0.5) * step, width, height, radius
+                    )
+                    for sx in range(_SAMPLES)
+                    for sy in range(_SAMPLES)
                 )
-                for sx in range(_SAMPLES)
-                for sy in range(_SAMPLES)
-            )
             if not hits:
                 continue
             tx, ty = x - left, y - top

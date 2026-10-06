@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import time
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -17,11 +18,11 @@ from cheevos.ui.pyui.primitives import (
     Text,
     displayable,
     fit_text,
-    list_title_width,
     screen_size,
 )
 from cheevos.ui.pyui.row_bars import Progress
 from cheevos.ui.pyui.status_bar import Hint
+from cheevos.ui.pyui.text import ListRoom, list_room
 from cheevos.ui.pyui.title_bar import Title
 from cheevos.ui.pyui.visible_images import ImageDemand, VisibleImages, demanding
 
@@ -115,12 +116,13 @@ def _lazy(source: Callable[[], Path | None]) -> Callable[[object], str | None]:
     return search
 
 
-def _entry(item: MenuItem, *, fit: bool, caption: int = 0) -> Any:  # noqa: ANN401 — PyUI
+def _entry(item: MenuItem, *, room: ListRoom | None, caption: int = 0) -> Any:  # noqa: ANN401
     """Convert one item into a PyUI ``GridOrListEntry``.
 
     Args:
         item: Row or tile.
-        fit: Shorten the title so it never runs into the right-aligned value (lists).
+        room: A list row's room: the title is shortened so it never runs into the
+            right-aligned value (lists only).
         caption: Width a grid tile's caption must fit (PyUI doesn't shorten captions).
 
     Returns:
@@ -131,9 +133,9 @@ def _entry(item: MenuItem, *, fit: bool, caption: int = 0) -> Any:  # noqa: ANN4
     icon = item.icon
     static = str(icon) if isinstance(icon, Path) else None
     searcher = None if icon is None or isinstance(icon, Path) else _lazy(icon)
-    if fit:
-        title = fit_text(item.title, Text.TITLE, list_title_width(item.value))
-        description = fit_text(item.description, Text.BODY, list_title_width(""))
+    if room is not None:
+        title = fit_text(item.title, Text.TITLE, room.title(item.value))
+        description = fit_text(item.description, Text.BODY, room.full) if item.description else ""
     elif caption:
         title = fit_text(item.title, Text.GRID, caption)
         description = ""
@@ -168,11 +170,71 @@ def _entries(
     Returns:
         PyUI entries in the same order.
     """
+    room = list_room() if layout is Layout.LIST else None
     caption = 0
     if layout is Layout.GRID and columns:
         width, _ = screen_size()
         caption = width // columns - _CAPTION_MARGIN
-    return [_entry(item, fit=layout is Layout.LIST, caption=caption) for item in items]
+    return [_entry(item, room=room, caption=caption) for item in items]
+
+
+def _sample_row(entries: Sequence[Any]) -> Any:  # noqa: ANN401 — PyUI entry
+    """Make one entry as tall as the tallest of ``entries`` when PyUI measures it.
+
+    SDL_ttf sizes a line by its glyphs (in practice, the font's line height), so a title
+    holding every character of the measured titles, over a description holding every
+    character of their descriptions, is at least as tall as any row.
+
+    Args:
+        entries: A list's entries. PyUI measures those with a description.
+
+    Returns:
+        The sample entry.
+    """
+    from views.grid_or_list_entry import GridOrListEntry
+
+    described = [entry for entry in entries if entry.get_description() is not None]
+    if not described:
+        return GridOrListEntry(primary_text="")
+    titles = "".join(entry.get_primary_text() or "" for entry in described)
+    descriptions = "".join(entry.get_description() for entry in described)
+    return GridOrListEntry(
+        primary_text="".join(set(titles)), description="".join(set(descriptions))
+    )
+
+
+@contextlib.contextmanager
+def _one_sample_row() -> Iterator[None]:
+    """Let PyUI measure a new list's row height on one sample row instead of every row.
+
+    PyUI's ``_calculate_line_height`` sizes every row's title and description with SDL_ttf to
+    find the tallest: 0.66 s for 2,940 games on a Mini (.agents/pyui.md, "Row height").
+    Our rows share one layout, so a sample row measures the same (:func:`_sample_row`).
+    Lists that measure their icons too keep PyUI's way.
+
+    Yields:
+        Nothing.
+    """
+    from views.list_view import ListView
+
+    original = ListView._calculate_line_height
+
+    def calculate(view: Any, include_description_line: bool) -> Any:  # noqa: ANN401, FBT001
+        """Measure the sample row in place of the view's rows."""
+        if getattr(view, "use_icons_to_calculate_line_height", True):
+            return original(view, include_description_line)
+        rows = view.options
+        view.options = [_sample_row(rows)]
+        try:
+            return original(view, include_description_line)
+        finally:
+            view.options = rows
+
+    ListView._calculate_line_height = calculate
+    try:
+        yield
+    finally:
+        ListView._calculate_line_height = original
 
 
 def grid_shape(width: int, usable_height: int, column: float, row: float) -> tuple[int, int]:
@@ -263,94 +325,144 @@ def choose(  # noqa: PLR0913 — keyword-only presentation options
     Returns:
         The choice, or ``None`` when B is pressed.
     """
-    from controller.controller_inputs import ControllerInput
-    from views.view_creator import ViewCreator
-    from views.view_type import ViewType
-
-    accepted = [ControllerInput[button.value] for button in buttons] + [ControllerInput.B]
-    global_start = layout is not Layout.POPUP and Button.START not in buttons
-    if global_start:
-        accepted.append(ControllerInput.START)
-    started = time.monotonic()
-    columns, rows, size = _screen_grid(tile) if layout is Layout.GRID else (0, 0, None)
-    entries = _entries(items, layout, columns)
-    with demanding(ImageDemand.MEASURED):  # PyUI asks every row for its image here
-        view = ViewCreator.create_view(
-            view_type=ViewType[layout.value],
-            top_bar_text=title_bar.top_title(title),
-            options=entries,
-            selected_index=selected,
-            cols=columns or None,
-            rows=rows or None,
-            grid_resized_width=size,
-            grid_resized_height=size,
-        )
-    if layout is Layout.LIST and any(item.progress is not None for item in items):
-        row_bars.attach(view)
-    images = None if layout is Layout.POPUP else VisibleImages(view, entries, grid=columns > 0)
-    if layout is Layout.GRID and any(item.frame is not None for item in items):
-        grid_frames.attach(view)
-    elapsed_ms = (time.monotonic() - started) * 1000
-    if len(entries) > _SLOW_LIST_ROWS or elapsed_ms > _SLOW_LIST_MS:
-        logger.info("Prepared %d rows in %.0f ms", len(entries), elapsed_ms)
-    try:
-        with status_bar.detailed(full_status), status_bar.hints(hints):
-            loop = _Loop(on_tick, layout, columns, images, global_start=global_start)
-            return _select(view, accepted, loop)
-    finally:
-        # Popups freeze the frame underneath as their backdrop until told they're done;
-        # without this, every later screen is drawn over that frozen frame.
-        finished = getattr(view, "view_finished", None)
-        if finished is not None:
-            finished()
+    view = PreparedView(title, items, selected=selected, layout=layout, tile=tile)
+    return view.show(buttons=buttons, on_tick=on_tick, full_status=full_status, hints=hints)
 
 
-@dataclass(frozen=True, slots=True)
-class _Loop:
-    """How a selection loop treats ticks and Start.
+class PreparedView:
+    """A list or grid, prepared once and shown as often as needed (see :func:`choose`).
 
-    Attributes:
-        on_tick: Called on each input timeout; returned items replace the current ones.
-        layout: View layout (for converting refreshed items).
-        columns: Grid columns (for fitting refreshed captions).
-        images: Keeps image downloads on the visible rows (not for popups).
-        global_start: Start runs the global Start action instead of ending the loop.
-    """
-
-    on_tick: TickHandler | None
-    layout: Layout
-    columns: int
-    images: VisibleImages | None
-    global_start: bool
-
-
-def _select(view: Any, accepted: list[Any], loop: _Loop) -> Choice | None:  # noqa: ANN401
-    """Run PyUI's selection loop until a confirming button or B.
+    Preparing a big list is the slow part: 0.9 s for 2,940 games on a Mini, against 60 ms to
+    show it again. A screen that comes back to the same rows (the games list, back from a game)
+    keeps its view and shows it again, with the selection and scroll position it had. A popup
+    can be shown only once: its backdrop is the frame under it when it was prepared.
 
     Args:
-        view: PyUI view.
-        accepted: Controller inputs that end the loop (B included).
-        loop: Tick and Start handling.
-
-    Returns:
-        The choice, or ``None`` when B is pressed.
+        title: Top-bar text, or a :class:`Title` whose tail always shows (a game's count,
+            and its award dot).
+        items: Rows (list) or tiles (grid), in order. Must not be empty.
+        selected: Initially highlighted index.
+        layout: List with icons and descriptions, or image grid (shaped by :func:`grid_shape`).
+        tile: Grid image size at 640x480 (scaled like the theme). Without one, PyUI loads
+            every tile's image when the grid opens to find the tallest.
     """
-    from controller.controller_inputs import ControllerInput
 
-    while True:
-        selection = view.get_selection(accepted)
-        # PyUI returns a Selection with no input after a timeout or a cursor move.
-        if selection is None or selection.get_input() is None:
-            if loop.on_tick is not None and (updated := loop.on_tick()) is not None:
-                entries = _entries(updated, loop.layout, loop.columns)
-                view.set_options(entries)
-                if loop.images is not None:
-                    loop.images.reset(entries)
-            continue
-        if selection.get_input() == ControllerInput.B:
-            return None
-        if loop.global_start and selection.get_input() == ControllerInput.START:
-            status_bar.press_start()
-            continue
-        item = selection.get_selection().get_value()
-        return Choice(item, selection.get_index(), Button(selection.get_input().name))
+    def __init__(
+        self,
+        title: str | Title,
+        items: Sequence[MenuItem],
+        *,
+        selected: int = 0,
+        layout: Layout = Layout.LIST,
+        tile: int = BADGE_TILE,
+    ) -> None:
+        from views.view_creator import ViewCreator
+        from views.view_type import ViewType
+
+        started = time.monotonic()
+        self._title = title
+        self._layout = layout
+        columns, rows, size = _screen_grid(tile) if layout is Layout.GRID else (0, 0, None)
+        self._columns = columns
+        self._entries = _entries(items, layout, columns)
+        # PyUI asks every row for its image and measures every row's text here.
+        with demanding(ImageDemand.MEASURED), _one_sample_row():
+            self._view = ViewCreator.create_view(
+                view_type=ViewType[layout.value],
+                top_bar_text=title_bar.top_title(title),
+                options=self._entries,
+                selected_index=selected,
+                cols=columns or None,
+                rows=rows or None,
+                grid_resized_width=size,
+                grid_resized_height=size,
+            )
+        if layout is Layout.LIST and any(item.progress is not None for item in items):
+            row_bars.attach(self._view)
+        self._images = (
+            None
+            if layout is Layout.POPUP
+            else VisibleImages(self._view, self._entries, grid=columns > 0)
+        )
+        if layout is Layout.GRID and any(item.frame is not None for item in items):
+            grid_frames.attach(self._view)
+        self._shown = False
+        elapsed_ms = (time.monotonic() - started) * 1000
+        if len(self._entries) > _SLOW_LIST_ROWS or elapsed_ms > _SLOW_LIST_MS:
+            logger.info("Prepared %d rows in %.0f ms", len(self._entries), elapsed_ms)
+
+    def show(
+        self,
+        *,
+        buttons: frozenset[Button] = frozenset({Button.A}),
+        on_tick: TickHandler | None = None,
+        full_status: bool = False,
+        hints: Sequence[Hint] = (),
+    ) -> Choice | None:
+        """Show the view and wait for a choice (see :func:`choose`).
+
+        Args:
+            buttons: Buttons that confirm a choice (B always backs out).
+            on_tick: Called on each input timeout; returned items replace the current ones.
+            full_status: Show the detailed sync status in the bottom bar, not only progress.
+            hints: Button hints for the bottom bar.
+
+        Returns:
+            The choice, or ``None`` when B is pressed.
+        """
+        from controller.controller_inputs import ControllerInput
+
+        accepted = [ControllerInput[button.value] for button in buttons] + [ControllerInput.B]
+        global_start = self._layout is not Layout.POPUP and Button.START not in buttons
+        if global_start:
+            accepted.append(ControllerInput.START)
+        if self._shown:
+            # The top bar forgot this title's award dot when other screens drew theirs, and
+            # those screens moved the image downloads to their own rows.
+            self._view.top_bar_text = title_bar.top_title(self._title)
+            if self._images is not None:
+                self._images.resume()
+        self._shown = True
+        try:
+            with status_bar.detailed(full_status), status_bar.hints(hints):
+                return self._select(accepted, on_tick, global_start=global_start)
+        finally:
+            # Popups freeze the frame underneath as their backdrop until told they're done;
+            # without this, every later screen is drawn over that frozen frame.
+            finished = getattr(self._view, "view_finished", None)
+            if finished is not None:
+                finished()
+
+    def _select(
+        self, accepted: list[Any], on_tick: TickHandler | None, *, global_start: bool
+    ) -> Choice | None:
+        """Run PyUI's selection loop until a confirming button or B.
+
+        Args:
+            accepted: Controller inputs that end the loop (B included).
+            on_tick: Called on each input timeout; returned items replace the current ones.
+            global_start: Start runs the global Start action instead of ending the loop.
+
+        Returns:
+            The choice, or ``None`` when B is pressed.
+        """
+        from controller.controller_inputs import ControllerInput
+
+        view = self._view
+        while True:
+            selection = view.get_selection(accepted)
+            # PyUI returns a Selection with no input after a timeout or a cursor move.
+            if selection is None or selection.get_input() is None:
+                if on_tick is not None and (updated := on_tick()) is not None:
+                    self._entries = _entries(updated, self._layout, self._columns)
+                    view.set_options(self._entries)
+                    if self._images is not None:
+                        self._images.reset(self._entries)
+                continue
+            if selection.get_input() == ControllerInput.B:
+                return None
+            if global_start and selection.get_input() == ControllerInput.START:
+                status_bar.press_start()
+                continue
+            item = selection.get_selection().get_value()
+            return Choice(item, selection.get_index(), Button(selection.get_input().name))

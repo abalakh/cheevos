@@ -125,6 +125,13 @@ class VisibleImages:
         self._shown: range | None = None
         self._version = _hooks.version()
 
+    def resume(self) -> None:
+        """Ask for the visible rows' images again on the next frame (the view is shown again).
+
+        The screens shown in between moved the downloads to their own rows.
+        """
+        self._shown = None
+
     def _visible(self) -> range:
         """Return the indices on screen."""
         view, count = self._view, len(self._searchers)

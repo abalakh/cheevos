@@ -92,6 +92,19 @@ class DataCache:
         """Close the connection."""
         self._db.close()
 
+    def version(self) -> tuple[int, int]:
+        """Return a token that changes whenever the database changes, through any connection.
+
+        Reads no table, so a screen can check it on every visit to skip rebuilding from
+        unchanged data. Writes on other connections (the sync thread, the game worker) change
+        SQLite's ``data_version``; this connection's own writes change ``total_changes``.
+
+        Returns:
+            The token; compare it for equality only.
+        """
+        (data_version,) = self._db.execute("PRAGMA data_version").fetchone()
+        return int(data_version), self._db.total_changes
+
     # --- meta -------------------------------------------------------------------------------
 
     def get_meta(self, key: str) -> str | None:

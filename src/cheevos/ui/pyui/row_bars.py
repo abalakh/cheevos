@@ -200,10 +200,11 @@ def _layout(view: Any, entries: Sequence[Any]) -> _Layout:  # noqa: ANN401 — P
     right = int(Device.get_device().screen_width()) - padding
     if not Theme.get_use_text_for_line_height():
         # The value text is centred on the whole row, so it shares the bar's line.
-        values = (entry.get_value_text() or "" for entry in entries)
+        values = {entry.get_value_text() or "" for entry in entries}
         right -= max((text_width(value, Text.TITLE) for value in values), default=0) + _GAP
     shown = [progress for entry in entries if (progress := _progress(entry))]
-    label = max((text_width(progress.label, Text.BODY) for progress in shown), default=0)
+    labels = {progress.label for progress in shown}  # a few distinct percentages
+    label = max((text_width(text, Text.BODY) for text in labels), default=0)
     line = int(Display.get_text_dimensions(FontPurpose.DESCRIPTIVE_LIST_DESCRIPTION, "A")[1])
     dot = dot_size(line) if any(p.award for p in shown) else 0
     tail = (dot + _DOT_GAP if dot else 0) + label

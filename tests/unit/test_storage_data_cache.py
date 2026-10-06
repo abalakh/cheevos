@@ -197,6 +197,23 @@ def test_games_ordered_by_latest_activity_then_title(cache):
     assert cache.game(999) is None
 
 
+def test_version_changes_with_writes_through_any_connection(tmp_path):
+    ui = DataCache.open(tmp_path / "data.db", "Balah")
+    sync = DataCache.open(tmp_path / "data.db", "Balah")
+    try:
+        before = ui.version()
+        assert ui.games() == []
+        assert ui.version() == before  # reading changes nothing
+        sync.upsert_games([game()])
+        after_sync = ui.version()
+        assert after_sync != before
+        ui.set_meta("unlock_window", "x")  # the UI connection's own write
+        assert ui.version() != after_sync
+    finally:
+        sync.close()
+        ui.close()
+
+
 def test_upsert_keeps_last_played_and_detail_state(cache):
     progress = game(highest_award=AwardKind.BEATEN_HARDCORE, highest_award_at=1_700_000_000)
     cache.upsert_games([game(last_played_at=1_800_000_000)])

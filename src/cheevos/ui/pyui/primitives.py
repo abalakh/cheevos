@@ -21,7 +21,6 @@ from cheevos.ui.pyui.text import (
     fit_text,
     fit_title,
     font_purpose,
-    list_title_width,
     text_width,
 )
 
@@ -42,7 +41,6 @@ __all__ = [
     "fit_title",
     "image",
     "line_height",
-    "list_title_width",
     "screen_size",
     "sharp_scaled",
     "text",

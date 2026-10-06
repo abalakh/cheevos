@@ -23,7 +23,8 @@ of PyUI's views, without patching PyUI.
   use), so every Spruce device works without copying PyUI's device table. Importing `mainui`
   doesn't start PyUI.
 - **Standard views** (`ViewCreator.create_view`): lists (`ICON_AND_DESC`, `TEXT_AND_IMAGE`) and
-  grids (`GRID`), through `views.choose()`.
+  grids (`GRID`), through `views.choose()`, or a `views.PreparedView` that a screen keeps to
+  show again ("Showing a view again", below).
 - **Custom screens** (profile, achievement card, full-screen screenshot) are drawn with PyUI's
   `Display` primitives and `Theme` colours and fonts (`primitives.py`), so they still follow the
   theme.
@@ -68,13 +69,22 @@ of PyUI's views, without patching PyUI.
   progress).
 - **Popups:** a `POPUP` view freezes the current frame as its backdrop
   (`Display.lock_current_image`) until `view_finished()` is called. Forget it and every later
-  screen is drawn over the frozen frame. `views.choose()` always calls it.
+  screen is drawn over the frozen frame. `PreparedView.show()` (and so `choose()`) always calls
+  it.
+- **Showing a view again:** preparing a big list is the slow part (2,940 games: 0.9 s on a Mini),
+  so the games list keeps its `PreparedView` and shows it again, back from a game (60 ms). PyUI's
+  list keeps its selection and scroll position, and `view_finished()` does nothing for lists and
+  grids. Before each later show, the bridge sets the title again (the top bar forgets an award
+  dot once another title is drawn) and `VisibleImages.resume()` asks for the visible rows' images
+  again (the screens in between moved the downloads to their rows). A popup can be shown once:
+  its backdrop is released when it ends.
 - **Lazy icons:** `icon_searcher` is called on every render, which is good for lazy images.
   `image_path_searcher` is cached after the first call. But `ViewCreator.create_view` also calls
   every row's `get_icon()` for an `ICON_AND_DESC` list (to pick the selection background), so
   opening a 138-row list used to queue all 138 badge downloads, top to bottom, and a jump to the
-  end waited for all of them. `choose()` marks that scan `ImageDemand.MEASURED`: the resolver
-  returns the fallback icon without downloading or even looking in the cache. Returning cached
+  end waited for all of them. `PreparedView` marks that scan `ImageDemand.MEASURED`: the
+  resolver returns the fallback icon without downloading or even looking in the cache (first
+  thing, and from a dict: building a `Path` per row cost 0.2 s for 2,940 rows). Returning cached
   images extracted every row's icon: with 1,012 cached game icons that pushed ~20 MB through
   the 4 MB scratch LRU (851 evictions) and made the view 10× slower to build. Grids ask
   `image_path_selected_searcher` for the highlighted tile; leave it unset and the selected
@@ -83,7 +93,7 @@ of PyUI's views, without patching PyUI.
   and loads every tile's image to find the tallest. With 2,000 awards that took half a second on
   a Mac. It also extracted hundreds of images through the 4 MB scratch LRU, which evicted files
   whose paths PyUI had already cached; loading those failed, and PyUI blacklisted them for the
-  session. `choose()` always passes a tile size.
+  session. `PreparedView` always passes a tile size.
 - **Grid shape** (`views.grid_shape`): PyUI's `GridView` splits the screen into the `cols`×`rows`
   we pass. Tiles and columns scale like the theme's list rows (155 px columns at 640x480, a
   quarter narrower allowed). Rows are as tall as `GridView._render_cell` needs: the image moved
@@ -122,8 +132,15 @@ of PyUI's views, without patching PyUI.
   Error received on loading <text>"), which do happen when memory runs low. Don't put secrets
   on screen without muting its log (`ask_text(..., secret=True)`).
 - **Measurement cost:** measuring text with SDL_ttf for every row is very slow on a Mini
-  (1,000 rows took more than 15 s). Use cached glyph advances (`text.text_width`). PyUI's own
-  `_calculate_line_height` still measures every entry once, costing about 1 s per 1,000 rows.
+  (1,000 rows took more than 15 s). Use cached glyph advances (`text.text_width`): one dict per
+  font, summed with `sum(map(...))`. A cached call per character (`lru_cache`, an Enum's
+  `.value`) cost several times more. `displayable()` returns plain ASCII at once and looks up
+  any other character once per font: every description has a "·".
+- **Row height:** PyUI's own `_calculate_line_height` sizes every row's title and description
+  with SDL_ttf to find the tallest (0.66 s for 2,940 rows). `views._one_sample_row` has it
+  measure one sample row instead, holding every character the rows use; our rows share one
+  layout, so it comes out the same (checked in SPRUCE, MINIMAL, ART_BOOK_NEXT and Pico-8 at
+  640x480, 480x800 and 1280x720).
 - **Image measurement:** `Display.get_image_dimensions` loads the file every call. Cache widths.
 - **Fonts:** theme fonts vary. Pico-8 has no "·" or "…" and no accented letters, and no theme has
   emoji. Every string goes through `text.displayable(value, role)`, which checks glyphs with

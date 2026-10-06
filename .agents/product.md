@@ -64,6 +64,10 @@ Settings.
 - **Filters** (Y menu): All · On this device · In progress · Mastered or beaten · Not started.
 - **Sort** (Y menu): Recent activity (default, by `MostRecentAwardedDate`) · Title · Console ·
   Completion %.
+- **Coming back** from a game (or from a Y menu left unchanged) shows the list as it was, with
+  the same selection and scroll position, unless its games changed meanwhile (a sync). Then it
+  is rebuilt with the same game selected; so is a Select toggle. A new filter or sort starts at
+  the top. Over 1,000 games, "Loading…" shows while the list is built.
 - **On this device** is a best-effort match from existing Spruce data
   ([integration.md](integration.md), "On-device games"). Unmatched games are still listed under
   All.

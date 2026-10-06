@@ -141,6 +141,10 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
   one short transaction per game (the 5 s busy timeout covers the other's writes), plus small
   `meta` writes from the UI (the unlock window, stopping "Download every game"). The UI never
   waits on the network, except for "See more", behind a Loading page.
+- **Noticing changes:** `DataCache.version()` changes after any write to `data.db`: SQLite's
+  `PRAGMA data_version` for other connections, plus the UI connection's own `total_changes`.
+  It reads no table, so the games list checks it on every visit and reads the games again only
+  when it changed.
 - **Request pacing**: every thread that calls the Web API takes its slots from the app's one
   `Pacer`, so together they stay within a short burst, then 1 request/s
   ([retroachievements.md](retroachievements.md), "Politeness").

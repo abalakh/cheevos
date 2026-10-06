@@ -17,7 +17,8 @@ from pathlib import Path
 
 _SWATCH_SIZE = (256, 16)  # wide, so PyUI's ZOOM crop never rounds a source side to 0 px
 _SAMPLES = 4  # supersampling per axis for anti-aliased edges
-_AVERAGE_STRIDE = 7  # sample every 7th pixel when averaging a background (prime: no aliasing)
+_AVERAGE_STRIDE = 7  # sample at least every 7th pixel when averaging an image (prime: no aliasing)
+_AVERAGE_SAMPLES = 4096  # enough for an average; a 640x480 background took 0.4 s on a Mini
 
 RGB = tuple[int, int, int]
 
@@ -238,7 +239,7 @@ def average_pixels(pixels: bytes, under: RGB = (0, 0, 0)) -> RGB:
     """
     totals = [0.0, 0.0, 0.0]
     count = 0
-    for offset in range(0, len(pixels) - 3, 4 * _AVERAGE_STRIDE):
+    for offset in range(0, len(pixels) - 3, 4 * _stride(len(pixels) // 4)):
         alpha = pixels[offset + 3] / 255
         for channel in range(3):
             totals[channel] += pixels[offset + channel] * alpha + under[channel] * (1 - alpha)
@@ -247,6 +248,23 @@ def average_pixels(pixels: bytes, under: RGB = (0, 0, 0)) -> RGB:
         return under
     red, green, blue = (round(total / count) for total in totals)
     return red, green, blue
+
+
+def _stride(pixels: int) -> int:
+    """Return the prime step that samples at most ``_AVERAGE_SAMPLES`` of an image's pixels.
+
+    A prime step doesn't line up with stripes or rows of a regular pattern.
+
+    Args:
+        pixels: Number of pixels.
+
+    Returns:
+        The step, at least ``_AVERAGE_STRIDE``.
+    """
+    step = max(_AVERAGE_STRIDE, -(-pixels // _AVERAGE_SAMPLES))
+    while any(step % divisor == 0 for divisor in range(2, int(step**0.5) + 1)):
+        step += 1
+    return step
 
 
 @functools.lru_cache(maxsize=16)

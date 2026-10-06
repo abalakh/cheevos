@@ -185,6 +185,16 @@ def test_start_syncs_from_any_screen(tmp_path):
     assert stderr.count("Sync done") == 2
 
 
+def test_games_list_is_kept_while_its_games_are_unchanged(tmp_path):
+    # Back from a game, even after a sync stored the same games again, the list is shown as it
+    # was; a new sort rebuilds it.
+    script = "down,a,a,wait:2,b,a,start,wait:24,b,shot:games_kept,y,down,a,down,a,shot:sorted"
+    stderr = run_app(tmp_path, script)
+    assert_shots(tmp_path, ["games_kept", "sorted"])
+    assert stderr.count("Sync done") == 2
+    assert stderr.count("game rows in") == 2
+
+
 def test_award_dot_follows_its_title(tmp_path):
     # Descent, the showcase's fourth game, is mastered: a gold dot between title and count.
     script = "down,a,down,down,down,a,shot:game,y,shot:popup,b,a,shot:card,b,b,shot:games"

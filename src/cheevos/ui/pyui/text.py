@@ -12,6 +12,7 @@ import functools
 import logging
 import re
 import unicodedata
+from dataclasses import dataclass, field
 from enum import Enum
 
 # Emoji and pictographs: theme fonts have no glyphs for them (they render as boxes).
@@ -102,13 +103,42 @@ def displayable(value: str, role: Text = Text.BODY) -> str:
     Returns:
         Text safe to render.
     """
+    if value.isascii() and value.isprintable() and "  " not in value and value == value.strip():
+        return value  # most RA text: nothing to drop, swap or collapse (cheap for big lists)
     text = " ".join(_NO_GLYPH.sub("", value).split())
-    for char, fallback in _ASCII_FALLBACKS.items():
-        if char in text and not _has_glyph(role.value, char):
-            text = text.replace(char, fallback)
     if text.isascii():
         return text
-    return "".join(_plain(char) if not _has_glyph(role.value, char) else char for char in text)
+    glyphs = _glyphs.get(role)
+    if glyphs is None:
+        glyphs = _glyphs[role] = _Glyphs()
+    chars = set(text)
+    for char in chars - glyphs.checked:  # each character is looked up once per font
+        glyphs.checked.add(char)
+        if not char.isascii() and not _has_glyph(role.value, char):
+            glyphs.swaps[ord(char)] = _ASCII_FALLBACKS.get(char) or _plain(char)
+            glyphs.missing.add(char)
+    if chars.isdisjoint(glyphs.missing):
+        return text
+    return text.translate(glyphs.swaps)
+
+
+@dataclass(slots=True)
+class _Glyphs:
+    """The characters one theme font lacks, found as text comes by.
+
+    Attributes:
+        checked: Characters looked up so far.
+        missing: The ones the font can't draw.
+        swaps: What to draw instead (code point to text): an ASCII stand-in for typographic
+            characters, the base letter for accented ones.
+    """
+
+    checked: set[str] = field(default_factory=set)
+    missing: set[str] = field(default_factory=set)
+    swaps: dict[int, str] = field(default_factory=dict)
+
+
+_glyphs: dict[Text, _Glyphs] = {}
 
 
 @functools.lru_cache(maxsize=512)
@@ -125,13 +155,46 @@ def _plain(char: str) -> str:
     return base or char
 
 
-@functools.lru_cache(maxsize=8192)
-def _advance(purpose: str, char: str) -> int:
-    """Return how far one character advances the pen in the theme font for ``purpose``.
+class _Advances(dict[str, int]):
+    """How far each character advances the pen in one theme font, measured on first use.
 
-    Cached per font and character, so measuring long lists costs dictionary lookups instead
-    of an SDL_ttf call per string (on the Mini, per-string measurement of 1,000 rows took
-    longer than 15 s).
+    Measuring long lists costs a dictionary lookup per character instead of an SDL_ttf call
+    per string (on the Mini, per-string measurement of 1,000 rows took longer than 15 s).
+
+    Args:
+        purpose: ``FontPurpose`` member name.
+    """
+
+    def __init__(self, purpose: str) -> None:
+        super().__init__()
+        self._purpose = purpose
+
+    def __missing__(self, char: str) -> int:
+        """Measure a character the first time it is looked up."""
+        width = self[char] = _advance(self._purpose, char)
+        return width
+
+
+_advances: dict[Text, _Advances] = {}
+
+
+def _font_advances(role: Text) -> _Advances:
+    """Return the advance table of the theme font for ``role``.
+
+    Args:
+        role: Text role.
+
+    Returns:
+        Character to advance width.
+    """
+    found = _advances.get(role)
+    if found is None:
+        found = _advances[role] = _Advances(role.value)
+    return found
+
+
+def _advance(purpose: str, char: str) -> int:
+    """Measure how far one character advances the pen in the theme font for ``purpose``.
 
     Args:
         purpose: ``FontPurpose`` member name.
@@ -167,9 +230,10 @@ def text_width(value: str, role: Text) -> int:
     Returns:
         Width in pixels.
     """
-    return sum(_advance(role.value, char) for char in value)
+    return sum(map(_font_advances(role).__getitem__, value))
 
 
+@functools.lru_cache(maxsize=8)
 def _ellipsis(role: Text) -> str:
     """Return "…" if the font for ``role`` has it, else "...".
 
@@ -271,28 +335,54 @@ def fit_text(value: str, role: Text, max_width: int) -> str:
     """
     value = displayable(value, role)
     budget = int(max_width * _FIT_MARGIN)
-    if text_width(value, role) <= budget:
+    advances = _font_advances(role)
+    if sum(map(advances.__getitem__, value)) <= budget:
         return value
     ellipsis = _ellipsis(role)
-    remaining = budget - text_width(ellipsis, role)
+    remaining = budget - sum(map(advances.__getitem__, ellipsis))
     for index, char in enumerate(value):
-        remaining -= _advance(role.value, char)
+        remaining -= advances[char]
         if remaining < 0:
             return value[:index].rstrip() + ellipsis
     return value
 
 
-def list_title_width(value_text: str) -> int:
-    """Width left for a list row's title next to the icon column and a right-aligned value.
+@dataclass(frozen=True, slots=True)
+class ListRoom:
+    """Width a list row's text has, from the theme's layout (see :func:`list_room`).
+
+    Attributes:
+        full: Width without a right-aligned value (descriptions, titles without a value).
+        gap: Space between the title and the value.
+        least: Width a title keeps however wide the value is.
+    """
+
+    full: int
+    gap: int
+    least: int
+
+    def title(self, value_text: str) -> int:
+        """Return the width left for a title next to a right-aligned value.
+
+        Args:
+            value_text: The row's right-aligned value (may be empty).
+
+        Returns:
+            Maximum title width in pixels.
+        """
+        if not value_text:
+            return self.full
+        return max(self.full - text_width(value_text, Text.TITLE) - self.gap, self.least)
+
+
+def list_room() -> ListRoom:
+    """Measure the room for text in a list row; measure once per list, not once per row.
 
     Mirrors PyUI's descriptive list layout: the icon column is 12.5% of the row, the title
     starts a theme-defined offset after it, and the value is right-aligned with that offset.
 
-    Args:
-        value_text: The row's right-aligned value (may be empty).
-
     Returns:
-        Maximum title width in pixels.
+        The room.
     """
     from devices.device import Device
     from themes.theme import Theme
@@ -300,6 +390,5 @@ def list_title_width(value_text: str) -> int:
     screen = int(Device.get_device().screen_width())
     gap = int(Theme.get_descriptive_list_text_from_icon_offset())
     used = int(Theme.get_descriptive_list_icon_offset_x()) + screen // 8 + gap * 2
-    if value_text:
-        used += text_width(value_text, Text.TITLE) + gap
-    return max(screen - used, screen // 4)
+    least = screen // 4
+    return ListRoom(max(screen - used, least), gap, least)
