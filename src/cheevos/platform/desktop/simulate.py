@@ -3,8 +3,9 @@
 ``offline`` / ``clock`` / ``auth`` make the sync on open fail at that point. ``empty`` serves
 an account with no games. ``proxy`` adds an enabled RAOfflineProxy with queued unlocks.
 ``showcase`` gives the fixture games assorted progress and awards (mastered, completed, beaten
-in both modes, mixed hardcore and casual) and a made-up account, to review progress bars and the
-awards wall, and to take the screenshots for the docs (``scripts/doc_screens.py``).
+in both modes, mixed hardcore and casual), with achievement lists to match, and a made-up
+account, to review progress bars and the awards wall, and to take the screenshots for the docs
+(``scripts/doc_screens.py``).
 ``untested`` pretends to run on a device Cheevos hasn't been tested on (its one-time note).
 ``setup`` starts without a key file, on the first-run key screen.
 ``awards`` serves another account's recorded awards (``record_fixtures.py USER --awards-only``)
@@ -13,6 +14,7 @@ to review a big awards wall; images the mirror lacks are fetched live from RA's 
 
 from __future__ import annotations
 
+import calendar
 import dataclasses
 import json
 import sqlite3
@@ -66,6 +68,9 @@ _SHOWCASE_PLAYER = {
     "Rank": 12345,
     "TotalRanked": 166966,
 }
+# Unlocks the showcase invents to match its progress are dated before every recorded one, so
+# Recent unlocks still starts with the real unlocks (and their screenshots).
+_INVENTED_BEFORE = calendar.timegm((2020, 1, 1, 12, 0, 0))
 # Showcase unlocks for the last 30 days: (days ago, points, hardcore?)
 _SHOWCASE_UNLOCKS = (
     (0, 10, True),
@@ -137,6 +142,7 @@ class _Showcase:
     def __init__(self, base: Transport) -> None:
         self._base = base
         self._games: list[dict] = []
+        self._targets: dict[int, tuple[int, int]] = {}  # game ID -> (hardcore, all) unlocks
 
     def get(self, host: str, path: str, headers: dict[str, str]) -> Response:
         """Serve the recording, with progress, awards and recent unlocks rewritten."""
@@ -152,6 +158,8 @@ class _Showcase:
             body = self._progress(json.loads(response.body))
         elif "API_GetUserAwards" in path:
             body = self._awards()
+        elif "API_GetGameInfoAndUserProgress" in path:
+            body = self._game(json.loads(response.body))
         else:
             return response
         return dataclasses.replace(response, body=json.dumps(body).encode())
@@ -178,7 +186,43 @@ class _Showcase:
                 kind = "beaten-hardcore" if in_hardcore else "beaten-softcore"
             game["HighestAwardKind"] = kind
             game["HighestAwardDate"] = game["MostRecentAwardedDate"] if kind else None
+            self._targets[int(game["GameID"])] = (game["NumAwardedHardcore"], game["NumAwarded"])
         self._games = data["Results"]
+        return data
+
+    def _game(self, data: dict) -> dict:
+        """Unlock a game's achievements to match its showcase progress in the games list.
+
+        The real unlocks stay as recorded (more hardcore ones than the showcase wants become
+        casual). Invented ones are spread through the list, so a page mixes unlocked and locked
+        rows, with hardcore ones spread among them, and dated before every recorded unlock, so
+        Recent unlocks still starts with the real ones.
+
+        Args:
+            data: Recorded ``API_GetGameInfoAndUserProgress`` response.
+
+        Returns:
+            The rewritten response.
+        """
+        target = self._targets.get(int(data.get("ID") or 0))
+        if target is None:
+            return data
+        hardcore, unlocked = target
+        ordered = sorted(data["Achievements"].values(), key=lambda a: (a["DisplayOrder"], a["ID"]))
+        real = [a for a in ordered if a.get("DateEarned")]
+        invented = _spread([a for a in ordered if not a.get("DateEarned")], unlocked - len(real))
+        for index, achievement in enumerate(invented):
+            achievement["DateEarned"] = _ra_time(_INVENTED_BEFORE - (len(invented) - index) * 3_600)
+        real_hardcore = [a for a in real if a.get("DateEarnedHardcore")]
+        for achievement in real_hardcore[hardcore:]:
+            achievement["DateEarnedHardcore"] = None
+        for achievement in _spread(invented, hardcore - len(real_hardcore)):
+            achievement["DateEarnedHardcore"] = achievement["DateEarned"]
+        earned = sum(1 for a in ordered if a.get("DateEarned"))
+        earned_hardcore = sum(1 for a in ordered if a.get("DateEarnedHardcore"))
+        data["NumAwardedToUser"], data["NumAwardedToUserHardcore"] = earned, earned_hardcore
+        data["UserCompletion"] = f"{100 * earned / max(len(ordered), 1):.2f}%"
+        data["UserCompletionHardcore"] = f"{100 * earned_hardcore / max(len(ordered), 1):.2f}%"
         return data
 
     def _awards(self) -> dict:
@@ -213,6 +257,33 @@ class _Showcase:
             "BeatenSoftcoreAwardsCount": kinds.count(("Game Beaten", 0)),
             "VisibleUserAwards": rows,
         }
+
+
+def _spread(items: list[dict], count: int) -> list[dict]:
+    """Pick ``count`` items spread evenly through a list.
+
+    Args:
+        items: Items in order.
+        count: How many to pick (all of them if it's more than the list holds).
+
+    Returns:
+        The picked items, in order.
+    """
+    if count >= len(items):
+        return list(items)
+    return [items[(2 * i + 1) * len(items) // (2 * count)] for i in range(max(count, 0))]
+
+
+def _ra_time(seconds: int) -> str:
+    """Format epoch seconds the way RA does (UTC).
+
+    Args:
+        seconds: Epoch seconds.
+
+    Returns:
+        E.g. ``"2026-08-21 17:02:50"``.
+    """
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(seconds))
 
 
 def _recent_unlocks(end: int) -> list[dict]:

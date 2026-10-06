@@ -58,7 +58,7 @@ many you've unlocked, with the game's award dot if it has one.
 Press **Select** for a badge grid, and **Y** to filter (locked, unlocked, missable, progression
 and win) or sort (points, rarity, unlocked first, and more).
 
-![Achievement grid](images/game-grid.png)
+![Achievement grid of a mastered game](images/game-grid.png)
 
 ## An achievement
 The badge, title, points, type, when you unlocked it, how many players have it, and the
