@@ -444,3 +444,25 @@ def test_download_every_game_resumes_until_stopped(harness):
     harness.data.set_meta(FULL_SINCE_KEY, None)  # ...unless the user stops it
     harness.engine().run(SyncOptions())
     assert not any(harness.data.game_detail(game_id) for game_id in UNTOUCHED_OLD_GAMES)
+
+
+def test_a_game_opened_during_the_sync_is_not_fetched_twice(harness):
+    original = harness.client.game_detail
+    opened = {}
+
+    def game_detail(game_id):
+        detail = original(game_id)
+        if not opened:  # meanwhile, the user opens FFTA, and the game-loading worker gets it
+            ffta = harness.data.game(FFTA)
+            opened["detail"] = original(FFTA)
+            harness.data.save_game_detail(
+                opened["detail"], fingerprint=ffta.fingerprint, synced_at=NOW + 1
+            )
+        return detail
+
+    harness.client.game_detail = game_detail
+    status = harness.engine().run(SyncOptions())
+    assert status.phase is Phase.DONE
+    fetched = [params["g"] for method, params in harness.transport.calls if "GameInfo" in method]
+    assert fetched.count(str(FFTA)) == 1  # only the "worker's" request
+    assert status.details_fetched == len(FIRST_SYNC_GAMES) - 1

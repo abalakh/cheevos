@@ -81,7 +81,10 @@ GAME_SORTS = {
 }
 NO_GAMES = "No games match this filter."
 NO_DETAILS = "This game's achievements aren't downloaded yet."
-NO_DETAILS_HINT = "Settings → Download every game gets them for every game."
+NO_DETAILS_HINT = "To have every game's achievements offline: Settings → Download every game."
+LOADING_ACHIEVEMENTS = "Loading achievements…"
+LOAD_NETWORK = "Couldn't reach RetroAchievements · check the Wi-Fi."
+LOAD_ERROR = "Loading failed · see the log."
 
 # --- achievements -----------------------------------------------------------------------------
 TYPE_LABELS = {"progression": "Progression", "win_condition": "Win", "missable": "Missable"}

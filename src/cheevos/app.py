@@ -27,6 +27,7 @@ from cheevos.core.settings import load_settings
 from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.media_cache import MediaCache
 from cheevos.core.sync.background import BackgroundSync
+from cheevos.core.sync.detail_fetch import DetailFetcher, DetailSession
 from cheevos.core.sync.engine import SyncDeps
 from cheevos.core.sync.lazy_media import LazyMediaFetcher, MediaSession
 from cheevos.core.sync.session import Credentials, make_client, open_sync_deps
@@ -183,6 +184,41 @@ def _media_session(
     return open_session
 
 
+def _detail_session(
+    env: AppEnvironment, ctx_ref: list[AppContext], pacer: Pacer
+) -> Callable[[threading.Event], DetailSession]:
+    """Build the game-loading worker's session factory (runs on the worker's thread).
+
+    Reads the credentials each time, so a key entered after a rejection is used.
+
+    Args:
+        env: App environment.
+        ctx_ref: One-element list holding the context.
+        pacer: The app's shared request pacer.
+
+    Returns:
+        A factory taking the worker's stop event and returning ``(client, data cache, close)``.
+    """
+
+    def open_session(stop: threading.Event) -> DetailSession:
+        """Open a client (its waits end with ``stop``) and a data-cache connection."""
+        credentials = ctx_ref[0].credentials
+        transport = env.transport_factory()
+        client = make_client(env.paths, credentials, transport, pacer=pacer, cancel=stop)
+        data = DataCache.open(env.paths.data_db, credentials.username)
+
+        def close() -> None:
+            """Release the cache connection and the socket."""
+            data.close()
+            close_transport = getattr(transport, "close", None)
+            if close_transport is not None:
+                close_transport()
+
+        return client, data, close
+
+    return open_session
+
+
 def _sync_deps(
     env: AppEnvironment, ctx_ref: list[AppContext], pacer: Pacer
 ) -> Callable[[threading.Event], SyncDeps]:
@@ -235,6 +271,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         logger.exception("Could not open the caches")
         return
     fetcher = LazyMediaFetcher(_media_session(env, ctx_ref, pacer))
+    details = DetailFetcher(_detail_session(env, ctx_ref, pacer), clock_ok=env.clock_ok)
     sync = BackgroundSync(_sync_deps(env, ctx_ref, pacer), online=env.online, clock_ok=env.clock_ok)
     ctx = AppContext(
         paths=paths,
@@ -244,6 +281,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         media_cache=media_cache,
         media=MediaResolver(media_cache, icons, fetcher, visible_images.image_demand),
         sync=sync,
+        details=details,
         proxy=ProxyReader(paths),
         screenshots=ScreenshotIndex(screenshot_directory(paths)),
         icons=icons,
@@ -264,6 +302,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
     finally:
         sync.cancel()
         sync.join(_SHUTDOWN_TIMEOUT)
+        details.close()
         fetcher.close()
         data.close()
         media_cache.close()

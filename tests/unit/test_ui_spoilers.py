@@ -71,6 +71,7 @@ def context(queue, games=None):
         media_cache=none,
         media=none,
         sync=none,
+        details=none,
         proxy=cast(Any, FakeProxy(queue)),
         screenshots=none,
         icons=Path(),

@@ -146,6 +146,8 @@ def test_unlock_screenshot(tmp_path):
             "b,down,down,down,a,shot:awards",
             ["games", "profile", "profile_more", "profile_end", "awards"],
         ),
+        # Metroid, last in the games list, isn't in the working set: it loads when opened.
+        ("ondemand", "down,a,up,a,shot:loading,wait:30,shot:loaded", ["loading", "loaded"]),
     ],
 )
 def test_drills(tmp_path, scenario, script, shots):
@@ -153,6 +155,10 @@ def test_drills(tmp_path, scenario, script, shots):
     assert_shots(tmp_path, shots)
     if scenario == "auth":
         assert "API key rejected" in stderr
+    if scenario == "ondemand":
+        assert "Loaded game 1487 on request" in stderr
+        frames = tmp_path / "shots" / "640x480"
+        assert (frames / "loading.png").read_bytes() != (frames / "loaded.png").read_bytes()
 
 
 # From the keyboard's top-left key, types 1234567890qwertyuiopasdfghjklzxc: a well-formed key.

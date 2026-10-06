@@ -93,8 +93,9 @@ real. Each drill gets a fresh card.
 | `empty` | An account with no games |
 | `proxy` | RAOfflineProxy enabled, with unlocks waiting to sync (games list `+N`, Recent unlocks, the Settings row). Descent's has no `patch:` data, as after playing online with RetroArch 1.22. |
 | `showcase` | Every kind of progress (mastered, completed, beaten in both modes, mixed hardcore and casual), with achievement lists to match, awards, a month of recent unlocks and a made-up account. Used for the docs' screenshots. |
-| `awards` | A big account's awards wall, from a recording of that account's awards (below), with live images. Its games were never synced, so opening one says their achievements aren't downloaded yet. |
+| `awards` | A big account's awards wall, from a recording of that account's awards (below), with live images. Its games aren't in the fixtures, so opening one tries to load it and says "Loading failed". |
 | `setup` | First start without a key file: the key screen (A types the key, B exits) |
+| `ondemand` | Only the working set is downloaded, as after a first sync. Opening an older game (Metroid, last in the games list) loads it, slowed to 1.5 s to show the loading page. |
 
 The `awards` drill needs one recorded response:
 

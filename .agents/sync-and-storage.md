@@ -78,17 +78,20 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
 3. **Game list**: every page of `GetUserCompletionProgress`. Upsert the `games` rows. Compute a
    fingerprint per game: `(MaxPossible, NumAwarded, NumAwardedHardcore, MostRecentAwardedDate,
    HighestAwardKind)`.
-4. **Plan detail fetches.** A game's details take one request, about a second at RA's pace,
+4. **Awards**: `GetUserAwards`. One request, before the details, so the awards wall and the
+   home screen are complete as early as the games list.
+5. **Plan detail fetches.** A game's details take one request, about a second at RA's pace,
    so a sync doesn't fetch every game: 2,937 games would take ~51 min. It keeps a **working
    set**: games on this device (`local_games`) and games played or unlocked within the "Recent
-   games" window (30 days by default). Other games are fetched when opened. Planned:
+   games" window (30 days by default). Other games are fetched when opened (the game worker,
+   below). Planned:
    - never fetched, for a game in the working set;
    - the fingerprint changed, for any cached game;
    - the details are older than 30 days, for any cached game. At most 20 of these per sync,
      oldest first, so revised sets slowly converge;
    - every game, while "Download every game" is unfinished (`meta.full_resync_since`). It
      resumes in every later sync until a sync finishes, unless the user stops it in Settings.
-5. **Fetch details**: `GetGameInfoAndUserProgress` per planned game, committed **one game at a
+6. **Fetch details**: `GetGameInfoAndUserProgress` per planned game, committed **one game at a
    time**. An interrupted sync (power-off, sleep, app exit) resumes from the remaining plan on the
    next run.
    - Then **Recent unlocks coverage**: uncached games, newest last unlock first, until the
@@ -96,7 +99,6 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
      the next game's last unlock. Usually nothing: recent games are in the working set. A
      player with no activity lately gets their last few games.
    - The test account (2,937 games) has 60 games in a 30-day working set: about a minute.
-6. **Awards**: `GetUserAwards`.
 7. **Badges** (the "Badge downloads" setting):
    - On-device + recent: games in `local_games` plus games played or unlocked within the recent
      window.
@@ -128,8 +130,17 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
   back, and when the visible rows change the UI drops whatever is still waiting
   (`MediaResolver.new_window`). So a jump to the end of a long list waits for its own screen
   only ([pyui.md](pyui.md), "Downloads follow the visible rows").
-- **SQLite**: one connection per thread. Writes happen only on the sync thread, in short
-  transactions. The UI never waits on the network.
+- **Game worker**: one thread fetching the achievements of a game the user opens when they
+  aren't cached (`DetailFetcher`, `core/sync/detail_fetch.py`), with its own client and cache
+  connection. The latest request goes first. It checks the clock and RA's stored pause before
+  asking, stores a long pause for the sync to respect, and reopens its client after a key
+  rejection. The game screen shows "Loading achievements…" and polls it every input tick; B
+  backs out and the fetch still completes. A game it fetched after the sync planned the same
+  game isn't fetched again by the sync.
+- **SQLite**: one connection per thread. Writes happen on the sync thread and the game worker,
+  one short transaction per game (the 5 s busy timeout covers the other's writes), plus small
+  `meta` writes from the UI (the unlock window, stopping "Download every game"). The UI never
+  waits on the network, except for "See more", behind a Loading page.
 - **Request pacing**: every thread that calls the Web API takes its slots from the app's one
   `Pacer`, so together they stay at 1 request/s ([retroachievements.md](retroachievements.md),
   "Politeness").

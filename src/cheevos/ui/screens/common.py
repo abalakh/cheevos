@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
 from cheevos.ui import strings
@@ -59,6 +59,24 @@ def busy(title: str, text: str) -> None:
     area = ui.begin(title)
     ui.text(text, area.width // 2, area.y + area.height // 2, align=Align.MIDDLE_CENTER)
     ui.end()
+
+
+def wait_while(title: str, text: str, working: Callable[[], bool]) -> bool:
+    """Show a "working…" page until ``working()`` turns false, or the user presses B.
+
+    Args:
+        title: Top-bar text.
+        text: What is happening.
+        working: Polled on every input tick (~1/12 s).
+
+    Returns:
+        ``True`` once the work is over; ``False`` if B was pressed first.
+    """
+    while working():
+        busy(title, text)
+        if ui.wait_for({Button.B}) is Button.B:
+            return False
+    return True
 
 
 def pick(title: str, options: Mapping[str, str], current: str) -> str | None:

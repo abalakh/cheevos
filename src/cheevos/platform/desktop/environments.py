@@ -130,8 +130,10 @@ def fixture_environment(sd_root: Path) -> AppEnvironment:
             online=lambda: True,
             clock_ok=lambda _now: True,
         )
-        # Fixture mode shows everything: every game's details and badges, as if downloaded.
-        status = engine.run(SyncOptions(full=True, badge_scope=BadgeScope.ALL))
+        # Fixture mode shows everything (every game's details and badges, as if downloaded),
+        # unless the drill is about what a first sync leaves out.
+        options = SyncOptions(full=drill.download_all, badge_scope=BadgeScope.ALL)
+        status = engine.run(options)
         logger.info("Fixture pre-sync: %s", status.phase.value)
     finally:
         deps.close()

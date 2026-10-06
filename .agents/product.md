@@ -225,7 +225,7 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
 | RA down (5xx, timeouts) | Back off (3 tries). The bottom bar shows "RetroAchievements unavailable". |
 | RA asks us to slow down (HTTP 429) | Pauses of up to 10 s are waited out. A longer one stops the sync: the bottom bar shows "RetroAchievements asked to wait N min" with no Retry hint, and no sync asks RA again before then. Cached data stays usable. |
 | Power-off mid-sync | Resumes next run. Per-game commits mean the DB is never half-written for a game. |
-| A game whose achievements were never downloaded | Opening it says they aren't downloaded yet, and that Settings → Download every game gets them. |
+| A game whose achievements were never downloaded | Opening it loads them: "Loading achievements…" (B backs out; the fetch still completes), about a second on a Mini. Offline, or when RA fails, it says the achievements aren't downloaded yet and why (Wi-Fi, clock, key, RA's pause). |
 | Proxy missing or unreadable | Hide the Settings status row and pending markers. |
 | Theme lacks an asset we use | Fall back to our bundled icons (`cheevos/res/`) or generate it (button badges). |
 | The app can't start (PyUI import, bootstrap, any crash) | `launch.sh` sees the non-zero exit, appends stderr to the app log (errors before logging starts only reach stderr), and shows "Cheevos couldn't start" with the log's path through `App/PyUI/launch.sh -msgDisplay` (PyUI's launcher sets up every platform's display). Verified on the Mini. |

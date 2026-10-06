@@ -1,9 +1,9 @@
 """The sync engine: fetch from RA into the caches, incrementally and resumably.
 
 Phases: preflight (clock, rate limit, network) → profile → library (completion progress +
-recently played) → details (the working set's new games, changed and stale cached games, and
-the games behind the newest unlocks; one commit per game) → awards → media (avatar, game icons,
-badges for the configured scope). See .agents/sync-and-storage.md.
+recently played) → awards → details (the working set's new games, changed and stale cached
+games, and the games behind the newest unlocks; one commit per game) → media (avatar, game
+icons, badges for the configured scope). See .agents/sync-and-storage.md.
 
 An interrupted sync needs no explicit resume state: games whose details were not fetched keep
 their old fingerprint (or none), so the next plan picks up exactly the remaining ones.
@@ -135,6 +135,7 @@ class SyncEngine:
         self._clock = clock
         self._online = online
         self._clock_ok = clock_ok
+        self._details_since = 0  # when the details phase began (games fetched since are fresh)
 
     def run(self, options: SyncOptions) -> SyncStatus:
         """Run every phase; never raises for expected failures.
@@ -150,8 +151,8 @@ class SyncEngine:
             self._preflight()
             self._sync_profile()
             games = self._sync_library()
+            self._sync_awards()  # one request: the awards wall is complete before the details
             self._sync_details(games, options)
-            self._sync_awards()
             self._sync_media(games, options)
         except (SyncCancelledError, RequestCancelledError):
             logger.info("Sync cancelled")
@@ -279,6 +280,7 @@ class SyncEngine:
             refetch_before=int(pending_full) if pending_full else None,
         )
         by_id = {game.game_id: game for game in games}
+        self._details_since = now
         self._tracker.phase(Phase.DETAILS, total=len(plan))
         logger.info(
             "Detail plan: %d new, %d changed, %d stale",
@@ -317,6 +319,14 @@ class SyncEngine:
             game: The game, from the library.
         """
         self._check_cancel()
+        fingerprint, synced_at = self._deps.data.detail_state(game.game_id)
+        if (
+            synced_at is not None
+            and synced_at > self._details_since  # same second: may be an earlier sync's
+            and fingerprint == game.fingerprint
+        ):
+            self._tracker.advance()  # opened (and so fetched) after the plan was made
+            return
         self._tracker.working_on(game.title)
         detail = self._deps.client.game_detail(game.game_id)
         self._deps.data.save_game_detail(

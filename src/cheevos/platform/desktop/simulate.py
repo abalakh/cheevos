@@ -9,6 +9,8 @@ account, to review progress bars and the awards wall, and to take the screenshot
 ``setup`` starts without a key file, on the first-run key screen.
 ``awards`` serves another account's recorded awards (``record_fixtures.py USER --awards-only``)
 to review a big awards wall; images the mirror lacks are fetched live from RA's media host.
+``ondemand`` downloads only the working set, as a first sync does: opening an older game loads
+it on the spot, slowly enough to see the loading page.
 """
 
 from __future__ import annotations
@@ -41,8 +43,10 @@ SCENARIOS = (
     "showcase",
     "awards",
     "setup",
+    "ondemand",
 )
 NOT_FOUND = 404
+GAME_DELAY = 1.5  # seconds the ondemand drill takes to "fetch" a game
 # Showcase progress per completion-progress game, in fixture order:
 # (hardcore share, casual-only share, AwardType, hardcore award?)
 _SHOWCASE = (
@@ -112,6 +116,7 @@ class Simulation:
         transport: Factory for the transport, or ``None`` to keep the fixture one.
         auto_sync: Run a sync when the app opens (to show the failure).
         seeds_card: The transport serves different data, so the pre-sync uses it too.
+        download_all: The pre-sync downloads every game (else only the working set).
     """
 
     online: bool = True
@@ -119,6 +124,24 @@ class Simulation:
     transport: Callable[[], Transport] | None = None
     auto_sync: bool = False
     seeds_card: bool = False
+    download_all: bool = True
+
+
+class _SlowGames:
+    """Transport that takes :data:`GAME_DELAY` to answer a game's achievements.
+
+    Args:
+        base: The fixture transport.
+    """
+
+    def __init__(self, base: Transport) -> None:
+        self._base = base
+
+    def get(self, host: str, path: str, headers: dict[str, str]) -> Response:
+        """Serve the fixtures, slowly for a game's achievements."""
+        if "API_GetGameInfoAndUserProgress" in path:
+            time.sleep(GAME_DELAY)
+        return self._base.get(host, path, headers)
 
 
 class _Rejecting:
@@ -388,6 +411,7 @@ def simulation(
         "auth": Simulation(transport=_Rejecting, auto_sync=True),
         "empty": Simulation(transport=lambda: FixtureTransport(empty), seeds_card=True),
         "showcase": Simulation(transport=lambda: _Showcase(source()), seeds_card=True),
+        "ondemand": Simulation(transport=lambda: _SlowGames(source()), download_all=False),
     }
     if name == "awards":
         recorded = (awards or Path()) / "user_awards.json"

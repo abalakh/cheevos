@@ -13,7 +13,7 @@
 | "RetroAchievements asked to wait N min" | RetroAchievements limits how often an app may ask for data, and asked Cheevos to pause. Cheevos uses your saved data and syncs again once the time is up. Other tools using the same Web API key count towards the same limit. |
 | A pixel-art trophy (unlocked), grey lock (locked) or gamepad instead of a badge or game icon | The image isn't downloaded yet. It appears once you're online. To download more ahead of time, change **Badge downloads** in Settings. |
 | Something looks out of date | Press **Start**. If it's still wrong, use **Settings → Download every game**: it downloads every game's achievements again. |
-| "This game's achievements aren't downloaded yet" | Cheevos keeps the games you play; other games are downloaded on request. Use **Settings → Download every game**. |
+| "This game's achievements aren't downloaded yet" | Cheevos keeps the games you play and downloads others when you open them, which needs Wi-Fi. The message says what went wrong. To have every game offline, use **Settings → Download every game**. |
 | No screenshot on an achievement | RetroArch only saves one when **Automatic Screenshot** is on (see [Setup](Setup)), and only for unlocks after that. |
 
 ## Starting over

@@ -2,17 +2,20 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 
 from cheevos.core.models import Achievement, AchievementType, GameDetail
+from cheevos.core.sync.detail_fetch import FetchState, FetchStatus
+from cheevos.core.sync.progress import Failure
 from cheevos.ui import strings
 from cheevos.ui.context import AppContext
 from cheevos.ui.pyui.primitives import Button
 from cheevos.ui.pyui.title_bar import Title
 from cheevos.ui.pyui.views import Layout, MenuItem, choose
 from cheevos.ui.screens.achievement import show_achievement
-from cheevos.ui.screens.common import message, pick
+from cheevos.ui.screens.common import message, pick, wait_while
 from cheevos.ui.screens.rows import achievement_row, rarity
 
 _KEY_TYPES = (AchievementType.PROGRESSION, AchievementType.WIN_CONDITION)
@@ -71,12 +74,11 @@ def show_game(ctx: AppContext, game_id: int) -> None:
         game_id: RA game ID.
     """
     detail = ctx.data.game_detail(game_id)
-    game = ctx.data.game(game_id)
     if detail is None:
-        message(
-            game.title if game else strings.GAMES, [strings.NO_DETAILS, strings.NO_DETAILS_HINT]
-        )
-        return
+        detail = _load(ctx, game_id)
+        if detail is None:
+            return
+    game = ctx.data.game(game_id)
     pending = ctx.pending_awards()
     earned = sum(1 for a in detail.achievements if a.unlocked)
     count = f"{earned}/{len(detail.achievements)}"
@@ -120,6 +122,57 @@ def show_game(ctx: AppContext, game_id: int) -> None:
             players_hardcore=detail.num_players_hardcore,
             pending=pending.get(achievement.achievement_id),
         )
+
+
+def _load(ctx: AppContext, game_id: int) -> GameDetail | None:
+    """Fetch the achievements of a game that isn't cached, behind a loading page.
+
+    Args:
+        ctx: App context.
+        game_id: RA game ID.
+
+    Returns:
+        The game's details, or ``None`` if the user backed out (the fetch carries on, and its
+        result is kept) or it failed (after saying why).
+    """
+    game = ctx.data.game(game_id)
+    title = game.title if game else strings.GAMES
+
+    def loading() -> bool:
+        """Whether the game is still being fetched."""
+        status = ctx.details.status(game_id)
+        return status is not None and status.state is FetchState.WAITING
+
+    ctx.details.request(game_id)
+    if not wait_while(title, strings.LOADING_ACHIEVEMENTS, loading):
+        return None
+    detail = ctx.data.game_detail(game_id)
+    if detail is None:
+        message(title, _why_not(ctx.details.status(game_id), ctx.clock()))
+    return detail
+
+
+def _why_not(status: FetchStatus | None, now: float) -> list[str]:
+    """Explain why a game's achievements couldn't be loaded.
+
+    Args:
+        status: How the fetch ended.
+        now: Current time (for RA's pause).
+
+    Returns:
+        The paragraphs.
+    """
+    failure = status.failure if status is not None else None
+    if failure is Failure.NETWORK:
+        return [strings.NO_DETAILS, strings.LOAD_NETWORK, strings.NO_DETAILS_HINT]
+    if failure is Failure.CLOCK:
+        return [strings.NO_DETAILS, strings.SYNC_CLOCK]
+    if failure is Failure.AUTH:
+        return [strings.NO_DETAILS, strings.SYNC_AUTH]
+    if failure is Failure.RATE_LIMITED and status is not None and status.retry_at is not None:
+        minutes = max(math.ceil((status.retry_at - now) / 60), 1)
+        return [strings.NO_DETAILS, strings.SYNC_RATE_LIMITED.format(minutes=minutes)]
+    return [strings.NO_DETAILS, strings.LOAD_ERROR]
 
 
 def _row(ctx: AppContext, achievement: Achievement, detail: GameDetail, pending: dict) -> MenuItem:

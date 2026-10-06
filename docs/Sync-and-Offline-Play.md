@@ -18,10 +18,11 @@ Your games list, profile and awards are complete either way. You can browse whil
 sync is interrupted (you leave the app, the device sleeps, the battery runs out), the next one
 carries on where it stopped.
 
-**Other games:** to have every game's achievements on the card, for example before a trip
-without Wi-Fi, use **Settings → Download every game**. It takes about a second per game (close
-to an hour for 3,000 games), carries on in later syncs until it's done, and can be stopped from
-the same place.
+**Other games** are downloaded when you open them: "Loading achievements…" for a second or two,
+then they stay on the card. To have every game's achievements on the card, for example before a
+trip without Wi-Fi, use **Settings → Download every game**. It takes about a second per game
+(close to an hour for 3,000 games), carries on in later syncs until it's done, and can be stopped
+from the same place.
 
 **When it runs:** when you open Cheevos (unless you turn that off in Settings), and whenever you
 press **Start**. Press Start again to cancel.
@@ -31,8 +32,8 @@ Everything you've synced is available without Wi-Fi: games, achievements, badges
 profile and awards. The bottom bar says "Offline · showing saved data", and **Start** retries.
 
 Three things need a connection when you ask for them:
-- The achievements of a game you haven't played lately, that isn't on your SD card (unless you
-  used **Download every game**).
+- The achievements of a game you never opened, haven't played lately and that isn't on your
+  SD card (unless you used **Download every game**).
 - Badges and icons that weren't downloaded yet (they appear as soon as you're online and open a
   screen that needs them).
 - The profile's **See more** numbers (points in the last 7 and 30 days). The last values fetched

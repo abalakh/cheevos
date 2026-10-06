@@ -17,6 +17,7 @@ from cheevos.core.settings import Settings, save_settings
 from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.media_cache import MediaCache
 from cheevos.core.sync.background import BackgroundSync
+from cheevos.core.sync.detail_fetch import DetailFetcher
 from cheevos.core.sync.engine import FULL_SINCE_KEY, SyncOptions
 from cheevos.core.sync.session import Credentials
 from cheevos.platform.paths import Paths
@@ -37,6 +38,7 @@ class AppContext:
         media_cache: Image cache (UI-thread connection).
         media: Image resolver with lazy fetching.
         sync: Background sync runner.
+        details: Fetches the achievements of games the user opens, when not cached.
         proxy: RAOfflineProxy reader.
         screenshots: Unlock screenshot index.
         icons: Directory of pixel icons sized for this screen.
@@ -55,6 +57,7 @@ class AppContext:
     media_cache: MediaCache
     media: MediaResolver
     sync: BackgroundSync
+    details: DetailFetcher
     proxy: ProxyReader
     screenshots: ScreenshotIndex
     icons: Path
