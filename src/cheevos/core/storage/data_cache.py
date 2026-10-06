@@ -21,13 +21,14 @@ from cheevos.core.models import (
     Achievement,
     Award,
     AwardCounts,
+    AwardKind,
     GameDetail,
     GameProgress,
     Unlock,
     UnlockWindow,
     UserProfile,
 )
-from cheevos.core.storage.db import open_cache, reset_cache
+from cheevos.core.storage.db import open_cache, reset_cache, select_among
 from cheevos.core.storage.schema import (
     ACHIEVEMENT_COLUMNS,
     ACTIVITY_ORDER,
@@ -51,7 +52,6 @@ _USERNAME_KEY = "username"
 _AWARD_COUNTS_KEY = "award_counts"
 _UNLOCK_WINDOW_KEY = "unlock_window"
 FIRST_HARDCORE_UNLOCK_KEY = "first_hardcore_unlock_at"
-_QUERY_CHUNK = 500  # stay well below SQLite's bound-parameter limit
 
 
 class DataCache:
@@ -209,7 +209,8 @@ class DataCache:
             Game ID to title, for the games in the list.
         """
         query = "SELECT game_id, title FROM games WHERE"
-        return {row[0]: row[1] for row in self._among(query, set(game_ids), column="game_id")}
+        rows = select_among(self._db, query, set(game_ids), column="game_id")
+        return {row[0]: row[1] for row in rows}
 
     def game(self, game_id: int) -> GameProgress | None:
         """Return one game.
@@ -385,16 +386,22 @@ class DataCache:
             logger.warning("Stored award counts are unreadable; ignoring them")
             return None
 
-    def awards(self) -> tuple[AwardCounts | None, list[Award]]:
+    def awards(self, kind: AwardKind | None = None) -> tuple[AwardCounts | None, list[Award]]:
         """Return the award counters and awards, newest award first.
+
+        Args:
+            kind: Only awards of this kind. Reading 3,904 awards takes 0.27 s on a Miyoo
+                Mini+, so the profile reads only the ones its stats use.
 
         Returns:
             ``(counts, awards)``; counts is ``None`` if awards were never synced.
         """
         counts = self.award_counts()
+        where, params = ("WHERE kind = ? ", (kind.value,)) if kind else ("", ())
         rows = self._db.execute(
-            f"SELECT {AWARD_COLUMNS} FROM awards "  # noqa: S608
-            "ORDER BY COALESCE(awarded_at, 0) DESC, title COLLATE NOCASE"
+            f"SELECT {AWARD_COLUMNS} FROM awards {where}"  # noqa: S608 — only "?" marks
+            "ORDER BY COALESCE(awarded_at, 0) DESC, title COLLATE NOCASE",
+            params,
         ).fetchall()
         return counts, [award_from_row(row) for row in rows]
 
@@ -408,7 +415,8 @@ class DataCache:
             The unlocked ones.
         """
         query = "SELECT achievement_id FROM achievements WHERE unlocked_at IS NOT NULL AND"
-        return {row[0] for row in self._among(query, achievement_ids)}
+        rows = select_among(self._db, query, achievement_ids, column="achievement_id")
+        return {row[0] for row in rows}
 
     def achievement_games(self, achievement_ids: Iterable[int]) -> dict[int, int]:
         """Return the game of each of these achievements, for those in synced games.
@@ -420,29 +428,8 @@ class DataCache:
             Achievement ID to game ID.
         """
         query = "SELECT achievement_id, game_id FROM achievements WHERE"
-        return {row[0]: row[1] for row in self._among(query, achievement_ids)}
-
-    def _among(
-        self, query: str, ids: Iterable[int], *, column: str = "achievement_id"
-    ) -> list[sqlite3.Row]:
-        """Run a query for a list of IDs, a chunk at a time.
-
-        Args:
-            query: SQL ending in ``WHERE`` or ``AND``; ``<column> IN (...)`` is appended.
-            ids: Achievement IDs, or IDs for ``column``.
-            column: The column the IDs are for.
-
-        Returns:
-            The rows of every chunk.
-        """
-        ids = list(ids)
-        rows: list[sqlite3.Row] = []
-        for start in range(0, len(ids), _QUERY_CHUNK):
-            chunk = ids[start : start + _QUERY_CHUNK]
-            marks = ",".join("?" * len(chunk))
-            sql = f"{query} {column} IN ({marks})"  # values are bound, never interpolated
-            rows += self._db.execute(sql, chunk).fetchall()
-        return rows
+        rows = select_among(self._db, query, achievement_ids, column="achievement_id")
+        return {row[0]: row[1] for row in rows}
 
     # --- player statistics ------------------------------------------------------------------
 

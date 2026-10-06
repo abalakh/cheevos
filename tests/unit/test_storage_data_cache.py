@@ -371,6 +371,7 @@ def test_awards_round_trip(cache):
     assert stored_counts == counts
     assert cache.award_counts() == counts
     assert stored == awards
+    assert cache.awards(AwardKind.BEATEN_HARDCORE) == (counts, awards[1:])
     cache.save_awards(counts, awards[:1])  # replaces the whole set
     assert cache.awards()[1] == awards[:1]
 

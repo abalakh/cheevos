@@ -11,8 +11,9 @@ The page is a list of rows of known height (:mod:`page`).
 
 from __future__ import annotations
 
-from cheevos.core.models import UnlockWindow, UserProfile
+from cheevos.core.models import AwardKind, UnlockWindow, UserProfile
 from cheevos.core.stats import (
+    ConsoleProgress,
     PlayerStats,
     RecentPoints,
     console_progress,
@@ -136,11 +137,19 @@ class _Page:
         self._scale = ui.screen_size()[1] / REFERENCE_HEIGHT
         self._pair_height = ui.line_height(Text.BODY) + ui.line_height(Text.TITLE) + PADDING // 2
 
-    def rows(self, stats: PlayerStats, recent: RecentPoints | None, *, more: bool) -> list[Row]:
+    def rows(
+        self,
+        stats: PlayerStats,
+        consoles: list[ConsoleProgress],
+        recent: RecentPoints | None,
+        *,
+        more: bool,
+    ) -> list[Row]:
         """Lay out the page.
 
         Args:
             stats: Player stats.
+            consoles: Progress per console, the most recently played first.
             recent: Recent points (with "See more"; ``None`` if RA couldn't be reached).
             more: Include the "See more" stats and chart.
 
@@ -164,7 +173,7 @@ class _Page:
         rows += self._stats(stats)
         if more:
             rows += self._more(stats, recent)
-        rows += self._consoles(more=more)
+        rows += self._consoles(consoles, more=more)
         return rows
 
     def _header(self) -> Row:
@@ -340,16 +349,16 @@ class _Page:
 
         return Row(height, draw)
 
-    def _consoles(self, *, more: bool) -> list[Row]:
+    def _consoles(self, consoles: list[ConsoleProgress], *, more: bool) -> list[Row]:
         """Games played, beaten and mastered per console, with a total.
 
         Args:
+            consoles: Progress per console, the most recently played first.
             more: Show every console ("See more"), not just the most recently played ones.
 
         Returns:
             The rows.
         """
-        consoles = console_progress(self._ctx.data.games())
         if not consoles:
             return []
         rows = [
@@ -430,11 +439,13 @@ def show_profile(ctx: AppContext) -> None:
     if profile is None:
         message(strings.PROFILE, [strings.WAITING_FOR_SYNC])
         return
-    counts, awards = ctx.data.awards()
+    # Read once: 2,940 games take 0.27 s on a Miyoo Mini+, and the stats only use these awards.
+    counts, awards = ctx.data.awards(AwardKind.BEATEN_HARDCORE)
     games = ctx.data.games()
     stats = player_stats(
         profile, games, counts, awards, ctx.data.first_hardcore_unlock(), ctx.clock()
     )
+    consoles = console_progress(games)
     recent: RecentPoints | None = None
     more = False
     rows: list[Row] | None = None
@@ -443,7 +454,7 @@ def show_profile(ctx: AppContext) -> None:
         hints = [] if more else [(Button.X, strings.HINT_SEE_MORE)]
         area = ui.begin(strings.PROFILE, hints)
         if rows is None:
-            rows = _Page(ctx, profile, area).rows(stats, recent, more=more)
+            rows = _Page(ctx, profile, area).rows(stats, consoles, recent, more=more)
         first = page.clamp(first, rows, area)
         page.draw(rows, first, area)
         ui.end()

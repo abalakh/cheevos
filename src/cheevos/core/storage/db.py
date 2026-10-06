@@ -7,12 +7,14 @@ scratch. Callers then re-fill the cache from RA.
 
 Connections are plain ``sqlite3`` connections with the default ``check_same_thread=True``:
 use each one only on the thread that opened it, and open one per thread that needs the cache.
+:func:`select_among` runs a query for a long list of IDs on any of them.
 """
 
 from __future__ import annotations
 
 import logging
 import sqlite3
+from collections.abc import Iterable
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -20,6 +22,7 @@ logger = logging.getLogger(__name__)
 # Files SQLite may leave next to a database (rollback journal, WAL, shared memory).
 SIBLING_SUFFIXES = ("-journal", "-wal", "-shm")
 BUSY_TIMEOUT_SECONDS = 5.0
+QUERY_CHUNK = 500  # stay well below SQLite's bound-parameter limit
 
 
 def _connect(path: Path) -> sqlite3.Connection:
@@ -129,3 +132,27 @@ def open_cache(path: Path, *, schema_version: int, ddl: str) -> sqlite3.Connecti
     else:
         logger.info("Creating cache %s", path)
     return reset_cache(path, schema_version=schema_version, ddl=ddl)
+
+
+def select_among(
+    connection: sqlite3.Connection, query: str, ids: Iterable[object], *, column: str
+) -> list[sqlite3.Row]:
+    """Run a query for a list of IDs, a chunk at a time.
+
+    Args:
+        connection: Open connection.
+        query: SQL ending in ``WHERE`` or ``AND``; ``<column> IN (...)`` is appended.
+        ids: Values of ``column`` to select.
+        column: The column the IDs are for.
+
+    Returns:
+        The rows of every chunk.
+    """
+    ids = list(ids)
+    rows: list[sqlite3.Row] = []
+    for start in range(0, len(ids), QUERY_CHUNK):
+        chunk = ids[start : start + QUERY_CHUNK]
+        marks = ",".join("?" * len(chunk))
+        sql = f"{query} {column} IN ({marks})"  # values are bound, never interpolated
+        rows += connection.execute(sql, chunk).fetchall()
+    return rows

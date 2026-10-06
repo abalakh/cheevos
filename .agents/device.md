@@ -96,6 +96,7 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 | First sync | Home, games list and awards within ~15 s; recent games' achievements within ~2 min | 2,937 games (2026-10-06): list in 8 s (list and awards in 5.6 s with the burst, measured from a Mac); all data in ~68 s (a 58-game working set); 5,114 icons and badges 2.5 min more, in the background. Downloading every game would take ~51 min. |
 | Opening a game that isn't downloaded | ≤ 2 s | 1.8 s for 493 achievements during a sync (list on screen at 2.2 s) |
 | Big lists | — | Games list with 2,940 games (2026-10-07): 1.4 s to open (first time in a run), 0.9 s to re-sort, 1.1 s to switch to details, 60 ms back from a game (the list is kept while its games don't change). It used to take 3.7, 2.9 and 3.0 s. Back to home: 50 ms (was 0.56 s: home read every game and award to show two counts). Awards wall (2,125 tiles): 1.0 s to open. Row text uses cached glyph widths; measuring each title with SDL_ttf took over 15 s for 1,000 rows. |
+| Profile | ≤ 0.8 s | 2,940 games, 3,904 awards (2026-10-07): 0.79 s the first time in a run, 0.54 s after (was 1.18 and 0.91 s). Reading every game takes 0.27 s, and so does reading every award: a screen reads each at most once, and only the kinds it uses. |
 | Memory | Well within the Mini's 128 MB | 2,940 games: app RSS at most 54 MB, `MemAvailable` never below 33 MB, MMA never below 4.1 MB, no OOM. Images are extracted to a bounded RAM scratch. |
 
 The hardware: a Cortex-A7 at 1.2 GHz, 128 MB RAM, slow SD writes. Big lists and image-heavy

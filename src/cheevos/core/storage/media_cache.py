@@ -20,7 +20,7 @@ from collections import OrderedDict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
-from cheevos.core.storage.db import open_cache, reset_cache
+from cheevos.core.storage.db import open_cache, reset_cache, select_among
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,6 @@ CREATE TABLE media (
 """
 DEFAULT_SCRATCH_LIMIT = 4 * 1024 * 1024
 PAGE = 4096  # tmpfs stores files in whole pages: a 3 KB badge takes 4 KB of RAM
-_QUERY_CHUNK = 500  # stay well below SQLite's bound-parameter limit
 _UNSAFE_NAME_CHARS = re.compile(r"[^A-Za-z0-9._-]")
 _EXTENSION = ".png"
 
@@ -187,15 +186,8 @@ class MediaCache:
             Keys to download.
         """
         wanted = list(dict.fromkeys(keys))
-        found: set[str] = set()
-        for start in range(0, len(wanted), _QUERY_CHUNK):
-            chunk = wanted[start : start + _QUERY_CHUNK]
-            marks = ", ".join("?" * len(chunk))
-            rows = self._db.execute(
-                f"SELECT key FROM media WHERE key IN ({marks})",  # noqa: S608 — only "?" marks
-                chunk,
-            )
-            found.update(row[0] for row in rows)
+        rows = select_among(self._db, "SELECT key FROM media WHERE", wanted, column="key")
+        found = {row[0] for row in rows}
         return [key for key in wanted if key not in found]
 
     def put(self, key: str, data: bytes) -> None:

@@ -115,7 +115,7 @@ def player_stats(
         profile: Account summary (points).
         games: Library (completion progress plus recently played).
         counts: Award counters (hidden awards included).
-        awards: Visible awards.
+        awards: Visible awards (only beaten-hardcore ones count, so these are enough).
         first_hardcore_unlock: Earliest hardcore unlock, if known.
         now: Current time.
 
