@@ -17,7 +17,7 @@ look and counting rules come from the website's own source (RAWeb). The client l
   | `API_GetGameInfoAndUserProgress` (`g=&a=1`) | Achievement definitions, unlock dates, game stats |
   | `API_GetUserAwards` | Awards wall |
   | `API_GetUserRecentlyPlayedGames` (`c=50`) | The "recent" set for the badge scope |
-  | `API_GetAchievementsEarnedBetween` (`f=&t=`) | Points in the last 7/30 days; only on demand (profile "See more" and 30-day chart), 500 rows per page |
+  | `API_GetAchievementsEarnedBetween` (`f=&t=`) | Points in the last 7/30 days, and once the first hardcore unlock (from "member since"); only on demand (profile "See more" and 30-day chart), 500 rows per page |
 
 - **Media**: `https://media.retroachievements.org/Badge/<BadgeName>.png` and `_lock.png`,
   `https://media.retroachievements.org<ImageIcon>`, and

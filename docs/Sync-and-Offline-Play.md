@@ -5,25 +5,34 @@ Cheevos keeps a copy of your RetroAchievements data on the SD card and shows tha
 updates it:
 1. Your profile (points, rank, last played game).
 2. Your list of games with their progress.
-3. The achievements of every game that changed since the last sync: the details of a game you
-   haven't touched aren't fetched again. Games not refreshed for 30 days are checked a few at a
-   time, so changes RetroAchievements makes to old sets also arrive.
+3. The achievements of the games on your SD card and the games you played recently (see
+   **Recent games** in [Settings](Settings)), plus any game that changed since you last
+   downloaded it. Games not refreshed for 30 days are checked a few at a time, so changes
+   RetroAchievements makes to old sets also arrive.
 4. Your awards.
 5. Badges and game icons (see **Badge downloads** in [Settings](Settings)).
 
-**The first sync** fetches every game once: about a second per game, so a few minutes for a big
-library. Later syncs take seconds. You can browse while syncing. If a sync is interrupted (you
-leave the app, the device sleeps, the battery runs out), the next one carries on where it stopped.
+**The first sync** takes about a second per game it downloads: seconds for most libraries, and
+about a minute for one with thousands of games, because only the games you play are downloaded.
+Your games list, profile and awards are complete either way. You can browse while syncing. If a
+sync is interrupted (you leave the app, the device sleeps, the battery runs out), the next one
+carries on where it stopped.
+
+**Other games:** to have every game's achievements on the card, for example before a trip
+without Wi-Fi, use **Settings → Download every game**. It takes about a second per game (close
+to an hour for 3,000 games), carries on in later syncs until it's done, and can be stopped from
+the same place.
 
 **When it runs:** when you open Cheevos (unless you turn that off in Settings), and whenever you
-press **Start**. Press Start again to cancel. **Settings → Full re-sync** fetches every game
-again, in case something looks wrong.
+press **Start**. Press Start again to cancel.
 
 ## Offline
 Everything you've synced is available without Wi-Fi: games, achievements, badges, screenshots,
 profile and awards. The bottom bar says "Offline · showing saved data", and **Start** retries.
 
-Two things need a connection when you ask for them:
+Three things need a connection when you ask for them:
+- The achievements of a game you haven't played lately, that isn't on your SD card (unless you
+  used **Download every game**).
 - Badges and icons that weren't downloaded yet (they appear as soon as you're online and open a
   screen that needs them).
 - The profile's **See more** numbers (points in the last 7 and 30 days). The last values fetched
@@ -50,6 +59,6 @@ waiting and how many games it can run offline. Cheevos only reads the proxy's da
 sends, changes or deletes its queue: the proxy does that itself.
 
 ## Data usage
-A sync with no changes is a handful of small requests. The first sync downloads each game's
-achievement list once, plus badges and icons as set in **Badge downloads**. After that, only
-games that changed are downloaded again.
+A sync with no changes is a handful of small requests. The first sync downloads the achievement
+lists of the games you play, plus badges and icons as set in **Badge downloads**. After that,
+only games that changed are downloaded again.

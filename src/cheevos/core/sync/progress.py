@@ -110,6 +110,16 @@ class ProgressTracker:
                 self._status, phase=phase, done=0, total=total, current="", eta_seconds=None
             )
 
+    def add_total(self, count: int) -> None:
+        """Plan more items in the current phase (found while it runs).
+
+        Args:
+            count: Items to add.
+        """
+        with self._lock:
+            status = self._status
+            self._status = dataclasses.replace(status, total=status.total + count)
+
     def working_on(self, current: str) -> None:
         """Report the item being fetched.
 

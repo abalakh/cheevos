@@ -48,6 +48,7 @@ logger = logging.getLogger(__name__)
 _USERNAME_KEY = "username"
 _AWARD_COUNTS_KEY = "award_counts"
 _UNLOCK_WINDOW_KEY = "unlock_window"
+FIRST_HARDCORE_UNLOCK_KEY = "first_hardcore_unlock_at"
 _QUERY_CHUNK = 500  # stay well below SQLite's bound-parameter limit
 
 
@@ -296,6 +297,22 @@ class DataCache:
         ).fetchall()
         return [achievement_from_row(row) for row in rows]
 
+    def nth_newest_unlock(self, n: int) -> int | None:
+        """Return when the ``n``-th newest cached unlock happened (any mode).
+
+        Args:
+            n: Rank, 1 for the newest.
+
+        Returns:
+            The time, or ``None`` when fewer than ``n`` unlocks are cached.
+        """
+        row = self._db.execute(
+            "SELECT unlocked_at FROM achievements WHERE unlocked_at IS NOT NULL "
+            "ORDER BY unlocked_at DESC LIMIT 1 OFFSET ?",
+            (max(n - 1, 0),),
+        ).fetchone()
+        return None if row is None else row[0]
+
     # --- awards -----------------------------------------------------------------------------
 
     def save_awards(self, counts: AwardCounts, awards: list[Award]) -> None:
@@ -396,14 +413,28 @@ class DataCache:
 
     # --- player statistics ------------------------------------------------------------------
 
+    def save_first_hardcore_unlock(self, at: int) -> None:
+        """Store when the first hardcore unlock happened (fetched once, with "See more").
+
+        Args:
+            at: Its time.
+        """
+        self.set_meta(FIRST_HARDCORE_UNLOCK_KEY, str(at))
+
     def first_hardcore_unlock(self) -> int | None:
-        """Return the earliest hardcore unlock among synced games (for points per week).
+        """Return when the first hardcore unlock happened (for points per week).
+
+        The cache doesn't hold every game's achievements, so this comes from RA once (see
+        :meth:`save_first_hardcore_unlock`), not from the cached unlocks.
 
         Returns:
-            The time, or ``None`` before any hardcore unlock is synced.
+            The time, or ``None`` until it has been fetched.
         """
-        row = self._db.execute("SELECT MIN(earned_hc_at) FROM achievements").fetchone()
-        return row[0] if row else None
+        raw = self.get_meta(FIRST_HARDCORE_UNLOCK_KEY)
+        try:
+            return int(raw) if raw is not None else None
+        except ValueError:
+            return None
 
     def save_unlock_window(self, window: UnlockWindow) -> None:
         """Store the last fetched window of unlocks (points in the last 7/30 days).

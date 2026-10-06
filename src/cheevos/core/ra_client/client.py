@@ -242,6 +242,33 @@ class RaClient:
             since = page[-1].unlocked_at
         return unlocks
 
+    def first_unlock(self, since: int, end: int, *, hardcore: bool = True) -> int | None:
+        """Find the user's first unlock (``API_GetAchievementsEarnedBetween``).
+
+        RA lists unlocks oldest first, so the first row from the "member since" date is the
+        first unlock (one request spanning nine years took 1.9 s). A player who started in
+        casual may need more pages to reach a hardcore one.
+
+        Args:
+            since: Where to start looking (the registration time).
+            end: Where to stop (now).
+            hardcore: Look for the first hardcore unlock.
+
+        Returns:
+            Its time, or ``None`` when there is none within :data:`UNLOCK_PAGES` pages.
+        """
+        start = since
+        for _page in range(UNLOCK_PAGES):
+            data = self._api("API_GetAchievementsEarnedBetween", f=start, t=end)
+            page = parse.parse_unlocks(data)
+            for unlock in page:
+                if unlock.hardcore or not hardcore:
+                    return unlock.unlocked_at
+            if len(page) < UNLOCK_PAGE:
+                return None
+            start = page[-1].unlocked_at
+        return None
+
     def media(self, path: str) -> bytes:
         """Download a file from RA's media host (badges, game icons, avatars).
 

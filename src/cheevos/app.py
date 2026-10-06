@@ -13,18 +13,21 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TypeVar
 
 from cheevos.core.errors import AuthError, CheevosError
 from cheevos.core.models import Unlock
 from cheevos.core.net import clock_plausible, is_online
 from cheevos.core.proxy import ProxyReader
+from cheevos.core.ra_client.client import RaClient
 from cheevos.core.ra_client.pacer import API_INTERVAL, Pacer
 from cheevos.core.ra_client.transport import HttpTransport, Transport
 from cheevos.core.screenshots import ScreenshotIndex, screenshot_directory
 from cheevos.core.settings import load_settings
 from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.media_cache import MediaCache
-from cheevos.core.sync.engine import BackgroundSync, SyncDeps
+from cheevos.core.sync.background import BackgroundSync
+from cheevos.core.sync.engine import SyncDeps
 from cheevos.core.sync.lazy_media import LazyMediaFetcher, MediaSession
 from cheevos.core.sync.session import Credentials, make_client, open_sync_deps
 from cheevos.platform.paths import Paths
@@ -36,6 +39,7 @@ from cheevos.ui.screens.setup import change_key, ensure_credentials
 from cheevos.ui.screens.status import SyncBar
 
 logger = logging.getLogger(__name__)
+_T = TypeVar("_T")
 
 _RES = Path(__file__).resolve().parent / "res"
 _LARGE_SCREEN_WIDTH = 1000
@@ -108,33 +112,51 @@ def _validator(env: AppEnvironment, pacer: Pacer) -> Callable[[str, str], bool |
     return validate
 
 
-def _unlock_fetcher(
-    env: AppEnvironment, ctx_ref: list[AppContext], pacer: Pacer
-) -> Callable[[int, int], list[Unlock] | None]:
-    """Build the on-demand unlock fetch behind the profile's "See more".
+class _OnDemand:
+    """Blocking RA requests made when the user asks ("See more"), paced with everything else.
+
+    Each call returns ``None`` when offline, when the clock is unset or when RA fails.
 
     Args:
         env: App environment.
-        ctx_ref: One-element list holding the context.
+        ctx_ref: One-element list holding the context (for the current credentials).
         pacer: The app's shared request pacer.
-
-    Returns:
-        ``(start, end) -> unlocks``, or ``None`` when offline, the clock is unset or RA fails.
     """
 
-    def fetch(start: int, end: int) -> list[Unlock] | None:
-        """Fetch the user's unlocks between ``start`` and ``end`` (blocking)."""
+    def __init__(self, env: AppEnvironment, ctx_ref: list[AppContext], pacer: Pacer) -> None:
+        self._env = env
+        self._ctx_ref = ctx_ref
+        self._pacer = pacer
+
+    def unlocks(self, start: int, end: int) -> list[Unlock] | None:
+        """Fetch the user's unlocks between ``start`` and ``end``."""
+        return self._call("recent unlocks", lambda client: client.unlocks_between(start, end))
+
+    def first_unlock(self, since: int) -> int | None:
+        """Find the user's first hardcore unlock, looking from ``since`` (registration)."""
+        now = int(time.time())
+        return self._call("the first unlock", lambda client: client.first_unlock(since, now))
+
+    def _call(self, what: str, request: Callable[[RaClient], _T]) -> _T | None:
+        """Run ``request`` with a fresh client, or return ``None`` if that's impossible.
+
+        Args:
+            what: What is fetched, for the log.
+            request: The request.
+
+        Returns:
+            Its result, or ``None``.
+        """
+        env = self._env
         if not env.online() or not env.clock_ok(time.time()):
             return None
-        credentials = ctx_ref[0].credentials
-        client = make_client(env.paths, credentials, env.transport_factory(), pacer=pacer)
+        credentials = self._ctx_ref[0].credentials
+        client = make_client(env.paths, credentials, env.transport_factory(), pacer=self._pacer)
         try:
-            return client.unlocks_between(start, end)
+            return request(client)
         except CheevosError:
-            logger.warning("Could not fetch recent unlocks", exc_info=True)
+            logger.warning("Could not fetch %s", what, exc_info=True)
             return None
-
-    return fetch
 
 
 def _media_session(
@@ -205,6 +227,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
             return
         settings = load_settings(paths.settings_file)
     ctx_ref: list[AppContext] = []
+    on_demand = _OnDemand(env, ctx_ref, pacer)
     try:
         data = DataCache.open(paths.data_db, credentials.username)
         media_cache = MediaCache.open(paths.media_db, paths.media_scratch)
@@ -225,7 +248,8 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         screenshots=ScreenshotIndex(screenshot_directory(paths)),
         icons=icons,
         validate_key=validate,
-        fetch_unlocks=_unlock_fetcher(env, ctx_ref, pacer),
+        fetch_unlocks=on_demand.unlocks,
+        fetch_first_unlock=on_demand.first_unlock,
     )
     ctx_ref.append(ctx)
     if settings.auto_sync if env.auto_sync is None else env.auto_sync:

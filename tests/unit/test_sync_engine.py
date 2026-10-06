@@ -11,10 +11,11 @@ from cheevos.core.ra_client.transport import FixtureTransport, Response
 from cheevos.core.settings import BadgeScope
 from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.media_cache import MediaCache, avatar_key, badge_key, icon_key
+from cheevos.core.sync.background import BackgroundSync
 from cheevos.core.sync.engine import (
+    FULL_SINCE_KEY,
     LAST_SYNC_KEY,
     RATE_LIMITED_UNTIL_KEY,
-    BackgroundSync,
     SyncDeps,
     SyncEngine,
     SyncOptions,
@@ -24,6 +25,10 @@ from cheevos.core.sync.progress import Failure, Phase, ProgressTracker
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "ra"
 NOW = 1_791_158_400  # 2026-10-05 00:00 UTC
 FFTA = 519
+# A first sync with the defaults (30 days, FFTA on device): Fire Emblem (played yesterday) and
+# FFTA, then every game with unlocks (the account has fewer than 100, so all are "newest").
+FIRST_SYNC_GAMES = {554, FFTA, 3830, 788, 355, 4239, 1446, 1454}
+UNTOUCHED_OLD_GAMES = {4958, 1836, 2, 1487}  # no unlocks, not played lately, not on device
 
 
 def recorded_game_ids():
@@ -84,7 +89,9 @@ def harness(tmp_path):
 def test_first_sync_fills_the_caches(harness):
     status = harness.engine().run(SyncOptions())
     assert status.phase is Phase.DONE
-    assert status.details_fetched == len(recorded_game_ids())
+    assert status.details_fetched == len(FIRST_SYNC_GAMES)
+    assert all(harness.data.game_detail(game_id) for game_id in FIRST_SYNC_GAMES)
+    assert not any(harness.data.game_detail(game_id) for game_id in UNTOUCHED_OLD_GAMES)
     assert harness.data.load_profile().username == "Balah"
     assert len(harness.data.games()) == 12
     ffta = harness.data.game_detail(FFTA)
@@ -150,7 +157,7 @@ def test_cancel_mid_details_then_resume_fetches_only_the_rest(harness):
     harness.client.game_detail = original
     status = harness.engine().run(SyncOptions())
     assert status.phase is Phase.DONE
-    assert status.details_fetched == len(recorded_game_ids()) - 3
+    assert status.details_fetched == len(FIRST_SYNC_GAMES) - 3
 
 
 @pytest.mark.parametrize(
@@ -406,3 +413,34 @@ def test_background_sync_hands_each_run_its_cancel_event(tmp_path):
     sync.cancel()
     assert seen
     assert seen[0].is_set()
+
+
+def test_newest_unlocks_pull_in_only_the_games_that_hold_them(harness, monkeypatch):
+    monkeypatch.setattr("cheevos.core.sync.engine.RECENT_UNLOCK_COUNT", 2)
+    harness.on_device = set()
+    status = harness.engine().run(SyncOptions(recent_days=7))
+    # Working set: Fire Emblem only. FFTA's 2 unlocks are the newest; Descent's are older.
+    assert status.details_fetched == 2
+    assert harness.data.game_detail(FFTA) is not None
+    assert harness.data.game_detail(3830) is None
+    assert len(harness.data.recent_unlocks(2)) == 2
+
+
+def test_download_every_game_resumes_until_stopped(harness):
+    calls = {"details": 0}
+    original = harness.client.game_detail
+
+    def cancelling_game_detail(game_id):
+        calls["details"] += 1
+        if calls["details"] == 2:
+            harness.cancel.set()
+        return original(game_id)
+
+    harness.client.game_detail = cancelling_game_detail
+    assert harness.engine().run(SyncOptions(full=True)).phase is Phase.CANCELLED
+    harness.cancel.clear()
+    harness.client.game_detail = original
+    assert harness.data.get_meta(FULL_SINCE_KEY) is not None  # later syncs carry on...
+    harness.data.set_meta(FULL_SINCE_KEY, None)  # ...unless the user stops it
+    harness.engine().run(SyncOptions())
+    assert not any(harness.data.game_detail(game_id) for game_id in UNTOUCHED_OLD_GAMES)

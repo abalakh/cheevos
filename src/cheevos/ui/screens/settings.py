@@ -61,7 +61,7 @@ def _items(ctx: AppContext) -> list[MenuItem]:
         MenuItem(strings.AUTO_SYNC, "", ctx.icon("zap"), _on_off(settings.auto_sync), "auto"),
         *_proxy_rows(ctx),
         MenuItem(strings.SYNC_NOW, strings.SYNC_NOW_HINT, ctx.icon("reload"), key="sync"),
-        MenuItem(strings.FULL_RESYNC, strings.FULL_RESYNC_HINT, ctx.icon("download"), key="full"),
+        _download_all_row(ctx),
         MenuItem(
             strings.API_KEY, strings.API_KEY_SET.format(tail=tail), ctx.icon("info-box"), key="key"
         ),
@@ -73,6 +73,23 @@ def _items(ctx: AppContext) -> list[MenuItem]:
         ),
         MenuItem(strings.ABOUT, strings.ABOUT_HINT, ctx.icon("debug"), key="about"),
     ]
+
+
+def _download_all_row(ctx: AppContext) -> MenuItem:
+    """Offer "Download every game", or a way to stop one that hasn't finished.
+
+    Args:
+        ctx: App context.
+
+    Returns:
+        The row.
+    """
+    if ctx.full_download_pending():
+        hint = strings.DOWNLOAD_ALL_STOP_HINT
+        return MenuItem(strings.DOWNLOAD_ALL_STOP, hint, ctx.icon("download"), key="stop")
+    return MenuItem(
+        strings.DOWNLOAD_ALL, strings.DOWNLOAD_ALL_HINT, ctx.icon("download"), key="full"
+    )
 
 
 def _proxy_rows(ctx: AppContext) -> list[MenuItem]:
@@ -161,11 +178,21 @@ def _sync(ctx: AppContext, *, full: bool) -> None:
 
     Args:
         ctx: App context.
-        full: Full re-sync.
+        full: Start "Download every game".
     """
     if not ctx.start_sync(full=full):
-        title = strings.FULL_RESYNC if full else strings.SYNC_NOW
+        title = strings.DOWNLOAD_ALL if full else strings.SYNC_NOW
         message(title, [strings.SYNC_ALREADY_RUNNING])
+
+
+def _stop_download(ctx: AppContext) -> None:
+    """Stop an unfinished "Download every game" for good (downloaded games stay).
+
+    Args:
+        ctx: App context.
+    """
+    ctx.stop_full_download()
+    message(strings.DOWNLOAD_ALL, [strings.DOWNLOAD_ALL_STOPPED])
 
 
 def _clear_images(ctx: AppContext) -> None:
@@ -199,6 +226,7 @@ def show_settings(ctx: AppContext) -> None:
         "auto": lambda: _toggle(ctx, "auto_sync"),
         "sync": lambda: _sync(ctx, full=False),
         "full": lambda: _sync(ctx, full=True),
+        "stop": lambda: _stop_download(ctx),
         "key": lambda: change_key(ctx),
         "clear": lambda: _clear_images(ctx),
         "about": _about,

@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 from cheevos.core.models import Achievement, PendingAward
+from cheevos.core.sync.planner import RECENT_UNLOCK_COUNT
 from cheevos.ui import strings
 from cheevos.ui.context import AppContext
 from cheevos.ui.pyui.views import MenuItem, choose
 from cheevos.ui.screens.achievement import show_achievement
 from cheevos.ui.screens.common import message
 from cheevos.ui.screens.rows import achievement_row
-
-RECENT_LIMIT = 100
 
 
 def show_recent(ctx: AppContext) -> None:
@@ -20,7 +19,7 @@ def show_recent(ctx: AppContext) -> None:
         ctx: App context.
     """
     pending = ctx.pending_awards()
-    unlocks = ctx.data.recent_unlocks(RECENT_LIMIT)
+    unlocks = ctx.data.recent_unlocks(RECENT_UNLOCK_COUNT)  # the sync keeps their games cached
     entries: list[tuple[Achievement, PendingAward | None]] = _pending_entries(ctx, pending)
     entries += [(a, None) for a in unlocks]
     if not entries:

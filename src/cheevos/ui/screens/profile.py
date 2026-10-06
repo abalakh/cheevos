@@ -57,29 +57,38 @@ def rank_text(profile: UserProfile) -> str:
     return strings.RANK_TOP.format(rank=rank, total=total, percent=percent)
 
 
-def _recent(ctx: AppContext, profile: UserProfile) -> RecentPoints | None:
-    """Return points earned lately, from the stored unlock window or a fresh one.
+def _see_more(ctx: AppContext, profile: UserProfile) -> tuple[RecentPoints | None, int | None]:
+    """Return what "See more" needs from RA, fetching what isn't stored yet.
 
     Args:
         ctx: App context.
         profile: Account summary (a mostly casual player counts casual unlocks too).
 
     Returns:
-        The points, or ``None`` when none were ever fetched and RA can't be reached.
+        Points earned lately (``None`` when never fetched and RA can't be reached), and the
+        first hardcore unlock (fetched once, then stored; ``None`` when unknown).
     """
     now = int(ctx.clock())
     window = ctx.data.unlock_window()
-    if window is None or now - window.end > WINDOW_FRESH:
+    first = ctx.data.first_hardcore_unlock()
+    fetch_window = window is None or now - window.end > WINDOW_FRESH
+    fetch_first = first is None and profile.hardcore_points > 0
+    if fetch_window or fetch_first:
         busy(strings.PROFILE, strings.LOADING)
+    if fetch_window:
         start = window_start(now)
         unlocks = ctx.fetch_unlocks(start, now)
         if unlocks is not None:
             window = UnlockWindow(start, now, tuple(unlocks))
             ctx.data.save_unlock_window(window)
+    if fetch_first:
+        first = ctx.fetch_first_unlock(profile.member_since or 0)
+        if first is not None:
+            ctx.data.save_first_hardcore_unlock(first)
     if window is None:
-        return None
+        return None, first
     casual = profile.softcore_points > profile.hardcore_points
-    return recent_points(window, casual_player=casual)
+    return recent_points(window, casual_player=casual), first
 
 
 def _percent(value: float | None) -> str:
@@ -422,8 +431,10 @@ def show_profile(ctx: AppContext) -> None:
         message(strings.PROFILE, [strings.WAITING_FOR_SYNC])
         return
     counts, awards = ctx.data.awards()
-    first_unlock = ctx.data.first_hardcore_unlock()
-    stats = player_stats(profile, ctx.data.games(), counts, awards, first_unlock, ctx.clock())
+    games = ctx.data.games()
+    stats = player_stats(
+        profile, games, counts, awards, ctx.data.first_hardcore_unlock(), ctx.clock()
+    )
     recent: RecentPoints | None = None
     more = False
     rows: list[Row] | None = None
@@ -440,5 +451,7 @@ def show_profile(ctx: AppContext) -> None:
         if pressed is Button.B:
             return
         if pressed is Button.X and not more:
-            recent, more, rows = _recent(ctx, profile), True, None
+            recent, first_unlock = _see_more(ctx, profile)
+            stats = player_stats(profile, games, counts, awards, first_unlock, ctx.clock())
+            more, rows = True, None
         first = page.scroll(first, pressed, rows, area.height)

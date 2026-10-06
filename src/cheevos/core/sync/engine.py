@@ -1,8 +1,9 @@
 """The sync engine: fetch from RA into the caches, incrementally and resumably.
 
-Phases: preflight (clock, network) → profile → library (completion progress + recently
-played) → details (only planned games, one commit per game) → awards → media (avatar, game
-icons, badges for the configured scope). See .agents/sync-and-storage.md.
+Phases: preflight (clock, rate limit, network) → profile → library (completion progress +
+recently played) → details (the working set's new games, changed and stale cached games, and
+the games behind the newest unlocks; one commit per game) → awards → media (avatar, game icons,
+badges for the configured scope). See .agents/sync-and-storage.md.
 
 An interrupted sync needs no explicit resume state: games whose details were not fetched keep
 their old fingerprint (or none), so the next plan picks up exactly the remaining ones.
@@ -28,7 +29,15 @@ from cheevos.core.ra_client.client import RaClient
 from cheevos.core.settings import BadgeScope
 from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.media_cache import MediaCache, avatar_key, badge_key, icon_key
-from cheevos.core.sync.planner import DAY, badge_game_ids, merge_library, plan_detail_fetches
+from cheevos.core.sync.planner import (
+    DAY,
+    RECENT_UNLOCK_COUNT,
+    badge_game_ids,
+    merge_library,
+    plan_detail_fetches,
+    unlock_candidates,
+    working_set,
+)
 from cheevos.core.sync.progress import Failure, Phase, ProgressTracker, SyncStatus
 
 logger = logging.getLogger(__name__)
@@ -65,9 +74,10 @@ class SyncOptions:
     """What one sync should do.
 
     Attributes:
-        full: Re-fetch every game's details (explicit "Full re-sync").
+        full: Start "Download every game": fetch every game's details, resuming in later
+            syncs until done.
         badge_scope: Which games' badges to download.
-        recent_days: Activity window for the "recent" part of the badge scope.
+        recent_days: Activity window for the working set and the badge scope's "recent".
     """
 
     full: bool = False
@@ -140,7 +150,7 @@ class SyncEngine:
             self._preflight()
             self._sync_profile()
             games = self._sync_library()
-            self._sync_details(games, full=options.full)
+            self._sync_details(games, options)
             self._sync_awards()
             self._sync_media(games, options)
         except (SyncCancelledError, RequestCancelledError):
@@ -242,22 +252,30 @@ class SyncEngine:
         self._deps.data.upsert_games(games)
         return games
 
-    def _sync_details(self, games: list[GameProgress], *, full: bool) -> None:
+    def _sync_details(self, games: list[GameProgress], options: SyncOptions) -> None:
         """Fetch details for the planned games, committing one game at a time.
+
+        Without an unfinished "Download every game", new games are fetched only for the working
+        set, then for the games holding the newest unlocks (so Recent unlocks is complete).
 
         Args:
             games: Merged library.
-            full: Re-fetch every game.
+            options: Sync options (``full`` starts "Download every game").
         """
         now = int(self._clock())
-        if full:
+        if options.full:
             self._deps.data.set_meta(FULL_SINCE_KEY, str(now))
         pending_full = self._deps.data.get_meta(FULL_SINCE_KEY)
+        wanted = None
+        if pending_full is None:
+            recent_since = now - options.recent_days * DAY
+            wanted = working_set(games, on_device=self._deps.on_device(), recent_since=recent_since)
         plan = plan_detail_fetches(
             games,
             self._deps.data.detail_states(),
             now=now,
-            full=full,
+            wanted=wanted,
+            full=options.full,
             refetch_before=int(pending_full) if pending_full else None,
         )
         by_id = {game.game_id: game for game in games}
@@ -269,14 +287,42 @@ class SyncEngine:
             len(plan.stale),
         )
         for game_id in plan.ordered:
-            self._check_cancel()
-            game = by_id[game_id]
-            self._tracker.working_on(game.title)
-            detail = self._deps.client.game_detail(game_id)
-            self._deps.data.save_game_detail(
-                detail, fingerprint=game.fingerprint, synced_at=int(self._clock())
-            )
-            self._tracker.advance(detail=True)
+            self._fetch_detail(by_id[game_id])
+        if wanted is not None:
+            self._cover_recent_unlocks(games)
+
+    def _cover_recent_unlocks(self, games: list[GameProgress]) -> None:
+        """Fetch uncached games, newest unlock first, until the newest unlocks are all cached.
+
+        Args:
+            games: Merged library.
+        """
+        states = self._deps.data.detail_states()
+        cached = {game_id for game_id, (_, synced_at) in states.items() if synced_at is not None}
+        fetched = 0
+        for game in unlock_candidates(games, cached):
+            cutoff = self._deps.data.nth_newest_unlock(RECENT_UNLOCK_COUNT)
+            if cutoff is not None and (game.last_unlock_at or 0) <= cutoff:
+                break
+            self._tracker.add_total(1)
+            self._fetch_detail(game)
+            fetched += 1
+        if fetched:
+            logger.info("Fetched %d more games for recent unlocks", fetched)
+
+    def _fetch_detail(self, game: GameProgress) -> None:
+        """Fetch and store one game's details.
+
+        Args:
+            game: The game, from the library.
+        """
+        self._check_cancel()
+        self._tracker.working_on(game.title)
+        detail = self._deps.client.game_detail(game.game_id)
+        self._deps.data.save_game_detail(
+            detail, fingerprint=game.fingerprint, synced_at=int(self._clock())
+        )
+        self._tracker.advance(detail=True)
 
     def _sync_awards(self) -> None:
         """Fetch and store mastery/beaten awards."""
@@ -357,90 +403,3 @@ class SyncEngine:
             include_all=options.badge_scope is BadgeScope.ALL,
             recent_since=recent_since,
         )
-
-
-class BackgroundSync:
-    """Runs syncs on a worker thread; the UI polls :meth:`status` on its input ticks.
-
-    Args:
-        open_deps: Creates the sync collaborators; called on the worker thread with the
-            sync's cancel event (its client's waits stop when it is set).
-        online: Connectivity check passed to the engine.
-        clock_ok: Clock plausibility check passed to the engine.
-    """
-
-    def __init__(
-        self,
-        open_deps: Callable[[threading.Event], SyncDeps],
-        *,
-        online: Callable[[], bool],
-        clock_ok: Callable[[float], bool],
-    ) -> None:
-        self._open_deps = open_deps
-        self._online = online
-        self._clock_ok = clock_ok
-        self._tracker = ProgressTracker()
-        self._cancel = threading.Event()
-        self._thread: threading.Thread | None = None
-
-    def status(self) -> SyncStatus:
-        """Return the latest status snapshot."""
-        return self._tracker.snapshot()
-
-    def start(self, options: SyncOptions) -> bool:
-        """Start a sync unless one is running.
-
-        Args:
-            options: What to sync.
-
-        Returns:
-            ``True`` if a new sync started.
-        """
-        if self._thread is not None and self._thread.is_alive():
-            return False
-        self._cancel.clear()
-        self._tracker.reset()
-        self._tracker.phase(Phase.PREFLIGHT)
-        self._thread = threading.Thread(
-            target=self._work, args=(options,), name="cheevos-sync", daemon=True
-        )
-        self._thread.start()
-        return True
-
-    def cancel(self) -> None:
-        """Ask a running sync to stop: at once while it waits, else after the current request."""
-        self._cancel.set()
-
-    @property
-    def cancelling(self) -> bool:
-        """Whether a cancel was requested and the sync has not stopped yet."""
-        return self._cancel.is_set() and self.status().running
-
-    def join(self, timeout: float | None = None) -> None:
-        """Wait for the worker to finish.
-
-        Args:
-            timeout: Maximum seconds to wait.
-        """
-        if self._thread is not None:
-            self._thread.join(timeout)
-
-    def _work(self, options: SyncOptions) -> None:
-        """Worker body: open collaborators, run the engine, always release them.
-
-        Args:
-            options: What to sync.
-        """
-        try:
-            deps = self._open_deps(self._cancel)
-        except CheevosError:
-            logger.exception("Could not start sync")
-            self._tracker.finish(Phase.FAILED, failure=Failure.ERROR, at=time.time())
-            return
-        try:
-            engine = SyncEngine(
-                deps, self._tracker, self._cancel, online=self._online, clock_ok=self._clock_ok
-            )
-            engine.run(options)
-        finally:
-            deps.close()

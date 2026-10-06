@@ -53,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
         ``0`` when the sync finished, ``1`` otherwise.
     """
     parser = argparse.ArgumentParser(prog="python -m cheevos.core.sync")
-    parser.add_argument("--full", action="store_true", help="re-fetch every game's details")
+    parser.add_argument("--full", action="store_true", help="download every game's details")
     parser.add_argument("--scope", choices=[scope.value for scope in BadgeScope], default=None)
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s: %(message)s")

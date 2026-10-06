@@ -76,6 +76,7 @@ def context(queue, games=None):
         icons=Path(),
         validate_key=lambda _u, _k: True,
         fetch_unlocks=lambda _s, _e: [],
+        fetch_first_unlock=lambda _since: None,
     )
 
 

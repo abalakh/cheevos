@@ -17,8 +17,9 @@ too, but those haven't been tried yet: expect rough edges, and please report the
 (see [Themes and devices](Themes-and-Devices)).
 
 ## Data from RetroAchievements
-- **The first sync takes a while for big libraries:** the details of every game are fetched one
-  by one, about a second each. Later syncs only fetch what changed.
+- **Achievements of games you don't play aren't kept by default:** only games on your SD card
+  and games played lately are downloaded, about a second each. **Download every game** in
+  Settings fetches the rest (close to an hour for 3,000 games).
 - **Spoiler protection is coarse.** RetroAchievements has no spoiler flag. "Story only" uses the
   Progression and Win condition tags, which many older sets don't have. See [Settings](Settings).
 - **"Last active"** is when your rich presence last changed. RetroAchievements doesn't expose

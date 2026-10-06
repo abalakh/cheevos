@@ -125,9 +125,12 @@ other screens. Top to bottom:
 - **Player stats:** achievements unlocked (hardcore, casual), games beaten (retail count),
   RetroRatio, started games beaten.
 - **"[X] See more"** (like RA): points in the last 7 and 30 days, average points per week,
-  average completion, a 30-day points chart, and every console in the table below. Only the
-  recent points need a request (`API_GetAchievementsEarnedBetween`), made when X is pressed; the
-  result is kept 10 minutes and stored for offline use.
+  average completion, a 30-day points chart, and every console in the table below. Requests are
+  made when X is pressed, both `API_GetAchievementsEarnedBetween`:
+  - the recent points, kept 10 minutes and stored for offline use;
+  - once, the first hardcore unlock for points per week (RA counts weeks since it). The cache
+    doesn't hold every game, so it can't tell; one request from the "member since" date
+    returns it as the first row. Stored for good.
 - **Games by console:** a table of games played, beaten and mastered per console (cumulative:
   mastered games count as beaten), most recently played console first, with a total row over
   all of them. Only the five latest show until See more ("and N more consoles"), so big
@@ -153,12 +156,12 @@ Stored in `Saves/cheevos/settings.json`.
 
 | Setting | Default | Options |
 |---|---|---|
-| Badge downloads | On-device + recent | On-device + recent · All games · None (download while browsing online) |
-| "Recent" window | 30 days | 7 · 30 · 90 days |
+| Badge downloads | On-device + recent | On-device + recent · All games (whose achievements are downloaded) · None (download while browsing online) |
+| "Recent" window | 30 days | 7 · 30 · 90 days. Also decides which games' achievements every sync keeps ([sync-and-storage.md](sync-and-storage.md)). |
 | Hide locked descriptions | Off | Off · Story only (Progression and Win condition tags) · All |
 | RAOfflineProxy | — | Read-only status, shown when the proxy is installed |
 | Auto-sync on open | On | On · Off |
-| Actions | — | Sync now · Full re-sync · Re-enter API key · Clear image cache (shows size) |
+| Actions | — | Sync now · Download every game (every game's achievements; resumes until done; reads "Stop downloading every game" until then) · Re-enter API key · Clear image cache (shows size) |
 | About | — | Version, license (MIT), credits: PyUI (Copyright (c) 2025 Christopher Jacobs; its license requires this user-facing credit), pixelarticons (MIT), RetroAchievements as the data source |
 
 The file also remembers `game_list_details` (the games list view).
@@ -222,6 +225,7 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
 | RA down (5xx, timeouts) | Back off (3 tries). The bottom bar shows "RetroAchievements unavailable". |
 | RA asks us to slow down (HTTP 429) | Pauses of up to 10 s are waited out. A longer one stops the sync: the bottom bar shows "RetroAchievements asked to wait N min" with no Retry hint, and no sync asks RA again before then. Cached data stays usable. |
 | Power-off mid-sync | Resumes next run. Per-game commits mean the DB is never half-written for a game. |
+| A game whose achievements were never downloaded | Opening it says they aren't downloaded yet, and that Settings → Download every game gets them. |
 | Proxy missing or unreadable | Hide the Settings status row and pending markers. |
 | Theme lacks an asset we use | Fall back to our bundled icons (`cheevos/res/`) or generate it (button badges). |
 | The app can't start (PyUI import, bootstrap, any crash) | `launch.sh` sees the non-zero exit, appends stderr to the app log (errors before logging starts only reach stderr), and shows "Cheevos couldn't start" with the log's path through `App/PyUI/launch.sh -msgDisplay` (PyUI's launcher sets up every platform's display). Verified on the Mini. |

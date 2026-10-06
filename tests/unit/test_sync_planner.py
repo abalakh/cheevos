@@ -6,6 +6,8 @@ from cheevos.core.sync.planner import (
     badge_game_ids,
     merge_library,
     plan_detail_fetches,
+    unlock_candidates,
+    working_set,
 )
 
 NOW = 1_800_000_000
@@ -111,3 +113,37 @@ def test_refetch_before_continues_an_interrupted_full_resync():
     states = {1: (games[0].fingerprint, NOW - 10), 2: (games[1].fingerprint, NOW + 5)}
     plan = plan_detail_fetches(games, states, now=NOW + 10, refetch_before=NOW)
     assert plan.ordered == (1,)  # 2 was already re-fetched after the full re-sync began
+
+
+def test_never_fetched_games_outside_the_working_set_wait():
+    games = [
+        game(1, earned=1, last_unlock=10),  # never fetched, wanted
+        game(2, earned=1, last_unlock=9),  # never fetched, not wanted
+        game(3, earned=2, last_unlock=8),  # cached, changed: refreshed anyway
+    ]
+    states = {3: ("old-fingerprint", NOW - DAY)}
+    plan = plan_detail_fetches(games, states, now=NOW, wanted={1})
+    assert plan == DetailPlan(never_fetched=(1,), changed=(3,))
+    assert plan_detail_fetches(games, states, now=NOW, wanted=None).never_fetched == (1, 2)
+
+
+def test_working_set_is_on_device_or_recently_active():
+    games = [
+        game(1, last_unlock=NOW - DAY),  # recent unlock
+        game(2, last_played=NOW - 2 * DAY),  # recently played, no unlock
+        game(3, last_unlock=NOW - 60 * DAY),  # old, on device
+        game(4, last_unlock=NOW - 60 * DAY),  # old
+    ]
+    since = NOW - 30 * DAY
+    assert working_set(games, on_device={3}, recent_since=since) == {1, 2, 3}
+
+
+def test_unlock_candidates_are_uncached_games_with_unlocks_newest_first():
+    games = [
+        game(1, earned=1, last_unlock=100),
+        game(2, earned=1, last_unlock=300),
+        game(3, earned=1, last_unlock=200),  # cached
+        game(4, earned=0, last_played=400),  # no unlocks
+        game(5, earned=1, total=0, last_unlock=500),  # no achievements
+    ]
+    assert [g.game_id for g in unlock_candidates(games, cached={3})] == [2, 1]

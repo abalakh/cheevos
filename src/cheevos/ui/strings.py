@@ -80,7 +80,8 @@ GAME_SORTS = {
     "completion": "Completion",
 }
 NO_GAMES = "No games match this filter."
-NO_DETAILS = "Achievements for this game haven't been synced yet."
+NO_DETAILS = "This game's achievements aren't downloaded yet."
+NO_DETAILS_HINT = "Settings → Download every game gets them for every game."
 
 # --- achievements -----------------------------------------------------------------------------
 TYPE_LABELS = {"progression": "Progression", "win_condition": "Win", "missable": "Missable"}
@@ -203,8 +204,11 @@ ON = "On"
 OFF = "Off"
 SYNC_NOW = "Sync now"
 SYNC_NOW_HINT = "Fetch what changed since the last sync"
-FULL_RESYNC = "Full re-sync"
-FULL_RESYNC_HINT = "Fetch every game's achievements again"
+DOWNLOAD_ALL = "Download every game"
+DOWNLOAD_ALL_HINT = "For offline use · about a second per game"
+DOWNLOAD_ALL_STOP = "Stop downloading every game"
+DOWNLOAD_ALL_STOP_HINT = "Keep what's downloaded so far"
+DOWNLOAD_ALL_STOPPED = "Stopped. What's downloaded so far stays."
 SYNC_ALREADY_RUNNING = "A sync is already running"
 API_KEY = "Web API key"
 API_KEY_SET = "Set (ends with {tail})"

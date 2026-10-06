@@ -352,12 +352,20 @@ def test_unlock_window_round_trip(cache):
     assert cache.unlock_window() is None
 
 
-def test_first_hardcore_unlock(cache):
-    assert cache.first_hardcore_unlock() is None
+def test_first_hardcore_unlock_is_stored_not_derived_from_cached_games(cache):
+    cache.save_game_detail(detail_from_fixture(519), fingerprint="x", synced_at=1)
+    assert cache.first_hardcore_unlock() is None  # a partial cache can't tell
+    cache.save_first_hardcore_unlock(1_500_000_000)
+    assert cache.first_hardcore_unlock() == 1_500_000_000
+
+
+def test_nth_newest_unlock(cache):
     recorded = detail_from_fixture(519)
     cache.save_game_detail(recorded, fingerprint="x", synced_at=1)
-    earliest = min(a.earned_hardcore_at for a in recorded.achievements if a.earned_hardcore_at)
-    assert cache.first_hardcore_unlock() == earliest
+    times = sorted((a.unlocked_at for a in recorded.achievements if a.unlocked_at), reverse=True)
+    assert cache.nth_newest_unlock(1) == times[0]
+    assert cache.nth_newest_unlock(len(times)) == times[-1]
+    assert cache.nth_newest_unlock(len(times) + 1) is None
 
 
 def test_unlocked_among(cache):

@@ -1,19 +1,21 @@
 """Decide what a sync must fetch. Pure functions: no I/O, no clock, fully deterministic.
 
 A sync always refreshes the cheap list-level data (profile, completion progress, recently
-played). Per-game details (achievement sets, unlock dates) are the expensive part, so they are
-re-fetched only when something about the game changed (.agents/sync-and-storage.md):
+played). Per-game details (achievement sets, unlock dates) are the expensive part: about a
+second each at RA's pace. So a sync fetches them only for the **working set**, the games on
+this device or active lately, and other games when the user opens them
+(.agents/sync-and-storage.md). Details are fetched when:
 
-1. never fetched;
-2. fingerprint changed (an unlock, a new award, a revised set);
-3. details older than ``stale_after``: a small budget per sync, oldest first, so text or badge
-   edits on RA eventually show up;
-4. everything, on an explicit full re-sync.
+1. never fetched, for a game in the working set (every game during "Download every game");
+2. fingerprint changed (an unlock, a new award, a revised set), for any cached game;
+3. details older than ``stale_after``, for any cached game: a small budget per sync, oldest
+   first, so text or badge edits on RA eventually show up;
+4. everything, when "Download every game" starts.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
 from cheevos.core.models import GameProgress
@@ -21,6 +23,7 @@ from cheevos.core.models import GameProgress
 DAY = 24 * 60 * 60
 DEFAULT_STALE_AFTER = 30 * DAY
 DEFAULT_STALE_BUDGET = 20
+RECENT_UNLOCK_COUNT = 100  # Recent unlocks shows this many; their games are always cached
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,11 +130,12 @@ def activity(game: GameProgress) -> int:
     return max(game.last_unlock_at or 0, game.last_played_at or 0)
 
 
-def plan_detail_fetches(
+def plan_detail_fetches(  # noqa: PLR0913 — planning inputs, all keyword-only
     games: Sequence[GameProgress],
     states: Mapping[int, DetailState],
     *,
     now: int,
+    wanted: Collection[int] | None = None,
     full: bool = False,
     refetch_before: int | None = None,
     policy: PlanPolicy = PlanPolicy(),  # noqa: B008 — immutable dataclass default
@@ -145,9 +149,11 @@ def plan_detail_fetches(
         games: Library from :func:`merge_library` (activity order is preserved).
         states: Cached detail state per game ID.
         now: Current time (epoch seconds).
-        full: Fetch every game (explicit full re-sync).
-        refetch_before: Treat details fetched before this time as changed (an interrupted full
-            re-sync carries on until every game has been fetched again).
+        wanted: The working set: a game never fetched is planned only if it's in here.
+            ``None`` plans every game (an unfinished "Download every game").
+        full: Fetch every game ("Download every game" starts).
+        refetch_before: Treat details fetched before this time as changed (an interrupted
+            "Download every game" carries on until every game has been fetched again).
         policy: Staleness rules.
 
     Returns:
@@ -162,7 +168,8 @@ def plan_detail_fetches(
     for game in with_achievements:
         fingerprint, synced_at = states.get(game.game_id, (None, None))
         if synced_at is None:
-            never.append(game.game_id)
+            if wanted is None or game.game_id in wanted:
+                never.append(game.game_id)
         elif fingerprint != game.fingerprint or (
             refetch_before is not None and synced_at < refetch_before
         ):
@@ -171,6 +178,50 @@ def plan_detail_fetches(
             stale.append((synced_at, game.game_id))
     oldest_first = [game_id for _, game_id in sorted(stale)][: max(policy.stale_budget, 0)]
     return DetailPlan(tuple(never), tuple(changed), tuple(oldest_first))
+
+
+def working_set(
+    games: Sequence[GameProgress], *, on_device: Collection[int], recent_since: int
+) -> set[int]:
+    """Return the games whose details every sync keeps: on this device, or active lately.
+
+    Args:
+        games: The library.
+        on_device: Game IDs with a ROM on this SD card.
+        recent_since: Games active at or after this time count as recent.
+
+    Returns:
+        Their game IDs.
+    """
+    return {
+        game.game_id
+        for game in games
+        if game.game_id in on_device or activity(game) >= recent_since
+    }
+
+
+def unlock_candidates(games: Sequence[GameProgress], cached: Collection[int]) -> list[GameProgress]:
+    """List uncached games that may hold some of the newest unlocks, newest unlock first.
+
+    The sync fetches them in this order until the newest :data:`RECENT_UNLOCK_COUNT` unlocks
+    are all cached: a game whose last unlock is older than the last of those can't add one.
+
+    Args:
+        games: The library.
+        cached: Game IDs whose details are cached.
+
+    Returns:
+        Games with unlocks and no cached details, by last unlock, newest first.
+    """
+    candidates = [
+        game
+        for game in games
+        if game.game_id not in cached
+        and game.max_possible > 0
+        and game.earned > 0
+        and game.last_unlock_at is not None
+    ]
+    return sorted(candidates, key=lambda game: -(game.last_unlock_at or 0))
 
 
 def badge_game_ids(

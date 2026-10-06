@@ -34,7 +34,8 @@ the app deletes it and starts fresh.
 `PRAGMA user_version`; a mismatch means recreate):
 
 ```sql
-meta(key TEXT PRIMARY KEY, value TEXT)  -- username the cache belongs to, last sync times, plan
+meta(key TEXT PRIMARY KEY, value TEXT)  -- username, last sync, unfinished full download,
+                                        -- RA's pause, unlock window, first hardcore unlock
 profile(username TEXT PRIMARY KEY, json TEXT, synced_at INTEGER)
 games(game_id INTEGER PRIMARY KEY, title, console_id, console_name, image_icon,
       max_possible, num_awarded, num_awarded_hc, most_recent_awarded_at, highest_award_kind,
@@ -77,20 +78,29 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
 3. **Game list**: every page of `GetUserCompletionProgress`. Upsert the `games` rows. Compute a
    fingerprint per game: `(MaxPossible, NumAwarded, NumAwardedHardcore, MostRecentAwardedDate,
    HighestAwardKind)`.
-4. **Plan detail fetches** for games where any of these hold:
-   - never fetched;
-   - the fingerprint changed;
-   - the details are older than 30 days. At most 20 of these per sync, oldest first, so revised
-     sets slowly converge;
-   - a Full re-sync was requested (fetch everything).
+4. **Plan detail fetches.** A game's details take one request, about a second at RA's pace,
+   so a sync doesn't fetch every game: 2,937 games would take ~51 min. It keeps a **working
+   set**: games on this device (`local_games`) and games played or unlocked within the "Recent
+   games" window (30 days by default). Other games are fetched when opened. Planned:
+   - never fetched, for a game in the working set;
+   - the fingerprint changed, for any cached game;
+   - the details are older than 30 days, for any cached game. At most 20 of these per sync,
+     oldest first, so revised sets slowly converge;
+   - every game, while "Download every game" is unfinished (`meta.full_resync_since`). It
+     resumes in every later sync until a sync finishes, unless the user stops it in Settings.
 5. **Fetch details**: `GetGameInfoAndUserProgress` per planned game, committed **one game at a
    time**. An interrupted sync (power-off, sleep, app exit) resumes from the remaining plan on the
    next run.
+   - Then **Recent unlocks coverage**: uncached games, newest last unlock first, until the
+     newest 100 cached unlocks (`RECENT_UNLOCK_COUNT`, what Recent unlocks shows) are newer than
+     the next game's last unlock. Usually nothing: recent games are in the working set. A
+     player with no activity lately gets their last few games.
+   - The test account (2,937 games) has 60 games in a 30-day working set: about a minute.
 6. **Awards**: `GetUserAwards`.
 7. **Badges** (the "Badge downloads" setting):
    - On-device + recent: games in `local_games` plus games played or unlocked within the recent
      window.
-   - All: every synced game.
+   - All: every game whose details are cached.
    - None: nothing is downloaded during sync.
    - Only the variant matching the current state is fetched: colour if unlocked, `_lock` if
      locked. This halves the file count. A newly unlocked achievement gets its colour badge on the
@@ -101,7 +111,7 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
 8. **Local matching refresh** ([integration.md](integration.md), "On-device games").
 
 - **Triggers**: auto on app open when the network is up and the setting is on; Start on any
-  screen; Settings → "Sync now" / "Full re-sync".
+  screen; Settings → "Sync now" / "Download every game".
 - **Cancellation**: sync stops at the next safe point when Start is pressed again or the app
   exits. A wait for the next request slot or a retry ends at once (the client raises
   `RequestCancelledError`).

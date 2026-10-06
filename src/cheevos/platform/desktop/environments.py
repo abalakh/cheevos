@@ -130,7 +130,8 @@ def fixture_environment(sd_root: Path) -> AppEnvironment:
             online=lambda: True,
             clock_ok=lambda _now: True,
         )
-        status = engine.run(SyncOptions(badge_scope=BadgeScope.ALL))
+        # Fixture mode shows everything: every game's details and badges, as if downloaded.
+        status = engine.run(SyncOptions(full=True, badge_scope=BadgeScope.ALL))
         logger.info("Fixture pre-sync: %s", status.phase.value)
     finally:
         deps.close()

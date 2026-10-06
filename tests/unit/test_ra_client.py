@@ -414,3 +414,22 @@ def test_unlocks_between_pages_past_ras_row_cap(monkeypatch):
     assert [u.achievement_id for u in unlocks] == [1, 2, 3, 4]  # the repeated row is dropped
     starts = [call[2]["f"] for call in transport.calls]
     assert starts == ["100", str(unlocks[2].unlocked_at)]
+
+
+def test_first_unlock_is_the_first_row_from_registration():
+    rows = [unlock_row(1, "2017-07-21 03:23:18"), unlock_row(2, "2017-07-22 10:00:00")]
+    transport = ScriptedTransport(ok(rows))
+    first = make(transport).first_unlock(1_500_000_000, 2_000_000_000)
+    assert first == timegm((2017, 7, 21, 3, 23, 18))
+    assert transport.calls[0][2]["f"] == "1500000000"
+
+
+def test_first_hardcore_unlock_pages_past_casual_ones(monkeypatch):
+    monkeypatch.setattr("cheevos.core.ra_client.client.UNLOCK_PAGE", 2)
+    casual = [dict(unlock_row(i, f"2020-01-0{i} 10:00:00"), HardcoreMode=0) for i in (1, 2)]
+    later = [dict(unlock_row(3, "2020-01-03 10:00:00"), HardcoreMode=0)]
+    later.append(unlock_row(4, "2020-01-04 10:00:00"))
+    transport = ScriptedTransport(ok(casual), ok(later))
+    assert make(transport).first_unlock(0, 2_000_000_000) == timegm((2020, 1, 4, 10, 0, 0))
+    none = ScriptedTransport(ok([dict(unlock_row(1, "2020-01-01 10:00:00"), HardcoreMode=0)]))
+    assert make(none).first_unlock(0, 2_000_000_000) is None

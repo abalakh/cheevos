@@ -16,7 +16,8 @@ from cheevos.core.screenshots import ScreenshotIndex
 from cheevos.core.settings import Settings, save_settings
 from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.media_cache import MediaCache
-from cheevos.core.sync.engine import BackgroundSync, SyncOptions
+from cheevos.core.sync.background import BackgroundSync
+from cheevos.core.sync.engine import FULL_SINCE_KEY, SyncOptions
 from cheevos.core.sync.session import Credentials
 from cheevos.platform.paths import Paths
 from cheevos.ui.media import MediaResolver
@@ -42,6 +43,8 @@ class AppContext:
         validate_key: Checks a Web API key with RA (``None`` result: unreachable).
         fetch_unlocks: Fetches the user's unlocks in a time window, blocking (``None``:
             offline or RA unreachable).
+        fetch_first_unlock: Finds the user's first hardcore unlock from a start time,
+            blocking (``None``: offline, RA unreachable, or none).
         clock: Wall clock.
     """
 
@@ -57,6 +60,7 @@ class AppContext:
     icons: Path
     validate_key: Callable[[str, str], bool | None]
     fetch_unlocks: Callable[[int, int], list[Unlock] | None]
+    fetch_first_unlock: Callable[[int], int | None]
     clock: Callable[[], float] = time.time
     _on_device: set[int] | None = field(default=None, repr=False)
 
@@ -75,7 +79,7 @@ class AppContext:
         """Start a background sync with the current settings.
 
         Args:
-            full: Re-fetch every game's details.
+            full: Start "Download every game".
 
         Returns:
             ``True`` if a new sync started (``False`` if one is already running).
@@ -86,6 +90,16 @@ class AppContext:
             recent_days=self.settings.recent_days,
         )
         return self.sync.start(options)
+
+    def full_download_pending(self) -> bool:
+        """Whether "Download every game" started and hasn't finished (later syncs resume it)."""
+        return self.data.get_meta(FULL_SINCE_KEY) is not None
+
+    def stop_full_download(self) -> None:
+        """Stop "Download every game" for good: later syncs go back to the working set."""
+        self.data.set_meta(FULL_SINCE_KEY, None)
+        if self.sync.status().running:
+            self.sync.cancel()  # a running one would carry on with its plan
 
     def update_settings(self, settings: Settings) -> None:
         """Replace and persist the settings.
