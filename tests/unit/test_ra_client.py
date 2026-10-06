@@ -276,7 +276,7 @@ def test_a_long_retry_after_stops_at_once_and_pauses_every_client():
 
 def test_clients_sharing_a_pacer_keep_their_combined_pace():
     clock = FakeClock()
-    pacer = Pacer(1.0, clock=clock)
+    pacer = Pacer(1.0, burst=1, clock=clock)
     make(ScriptedTransport(ok({"User": "a"})), clock, pacer=pacer).validate_key()
     make(ScriptedTransport(ok({"User": "a"})), clock, pacer=pacer).validate_key()
     assert clock.sleeps == [1.0]

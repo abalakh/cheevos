@@ -38,9 +38,11 @@ look and counting rules come from the website's own source (RAWeb). The client l
   - per key, not per IP: a keyless request from the same network still got a normal 401;
   - images: 5,101 downloads at ~20/s drew none.
 - **Politeness**:
-  - API calls start at least 1 s apart, counted across the whole app: the sync, "See more"
-    and the key check share one `Pacer` (`ra_client/pacer.py`). The desktop runner's fixture
-    mode doesn't pace.
+  - API calls share one `Pacer` (`ra_client/pacer.py`) across the whole app: the sync, the
+    game worker, "See more" and the key check. It's a token bucket: after an idle spell, up to
+    5 requests 0.3 s apart (RA's first 429 came after ~18 at that spacing), then 1 per second
+    (clean for 20 minutes). A sync with nothing new (4 requests) stays quick; game details
+    settle at 1/s. No burst after a 429 pause. The desktop runner's fixture mode doesn't pace.
   - Images aren't paced. The sync downloads them itself, stored in batches of 25 per
     transaction; images needed while browsing come from one background worker.
   - HTTP 429 with a `Retry-After` of up to 10 s pauses every client, then retries (3 tries;

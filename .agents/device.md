@@ -92,8 +92,8 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 |---|---|---|
 | Launch to a cached home screen | ≤ 3 s | 2.9–3.4 s (PyUI ready after ~3 s) |
 | List navigation | ≤ 100 ms per move | Images load lazily; only visible rows resolve them |
-| Sync with no changes | ≤ 10 s | 4.0 s (12 games; 4 requests at 1/s) |
-| First sync | Home, games list and awards within ~15 s; recent games' achievements within ~2 min | 2,937 games (2026-10-06): list in 8 s; all data in ~68 s (a 58-game working set); 5,114 icons and badges 2.5 min more, in the background. Downloading every game would take ~51 min. |
+| Sync with no changes | ≤ 10 s | 1.4 s (12 games; 4 requests in the pacer's burst; 4.0 s at a flat 1/s) |
+| First sync | Home, games list and awards within ~15 s; recent games' achievements within ~2 min | 2,937 games (2026-10-06): list in 8 s (list and awards in 5.6 s with the burst, measured from a Mac); all data in ~68 s (a 58-game working set); 5,114 icons and badges 2.5 min more, in the background. Downloading every game would take ~51 min. |
 | Opening a game that isn't downloaded | ≤ 2 s | 1.8 s for 493 achievements during a sync (list on screen at 2.2 s) |
 | Big lists | — | Games list with 2,940 games: 3.7 s to open, 4.6 s during a sync, 3.0 s back from a game: the list is rebuilt every time. Row text uses cached glyph widths; measuring each title with SDL_ttf took over 15 s for 1,000 rows. |
 | Memory | Well within the Mini's 128 MB | 2,940 games: app RSS at most 54 MB, `MemAvailable` never below 33 MB, MMA never below 4.1 MB, no OOM. Images are extracted to a bounded RAM scratch. |

@@ -142,5 +142,5 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
   `meta` writes from the UI (the unlock window, stopping "Download every game"). The UI never
   waits on the network, except for "See more", behind a Loading page.
 - **Request pacing**: every thread that calls the Web API takes its slots from the app's one
-  `Pacer`, so together they stay at 1 request/s ([retroachievements.md](retroachievements.md),
-  "Politeness").
+  `Pacer`, so together they stay within a short burst, then 1 request/s
+  ([retroachievements.md](retroachievements.md), "Politeness").

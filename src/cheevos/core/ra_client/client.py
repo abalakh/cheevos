@@ -101,8 +101,8 @@ class RaClient:
         api_key: The user's Web API key; registered for log redaction.
         transport: HTTP transport (keep-alive HTTPS, or fixtures in tests).
         user_agent: User-Agent header value.
-        pacer: Shared request pacer; a private one spacing requests ``min_interval`` apart
-            when ``None``.
+        pacer: Shared request pacer; a private one spacing every request ``min_interval``
+            apart (no burst) when ``None``.
         min_interval: Seconds between API requests for a private pacer.
         cancel: When set, waits for a slot or a retry stop with
             :class:`~cheevos.core.errors.RequestCancelledError`.
@@ -130,7 +130,7 @@ class RaClient:
         self._api_key = api_key
         self._transport = transport
         self._headers = {"User-Agent": user_agent, "Accept": "application/json"}
-        self._pacer = pacer if pacer is not None else Pacer(min_interval, clock=clock)
+        self._pacer = pacer if pacer is not None else Pacer(min_interval, burst=1, clock=clock)
         self._cancel = cancel
         self._sleep = sleep
         self._max_retries = max_retries
