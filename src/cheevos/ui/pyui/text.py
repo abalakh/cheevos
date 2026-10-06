@@ -191,6 +191,15 @@ def fit_title(value: str) -> str:
     Returns:
         The title, truncated if needed.
     """
+    return fit_text(value, Text.HEADING, title_room())
+
+
+def title_room() -> int:
+    """Return the width the top-bar title has between the clock and the status icons.
+
+    Returns:
+        Width in pixels (measured once per screen width).
+    """
     from devices.device import Device
 
     width = int(Device.get_device().screen_width())
@@ -200,7 +209,7 @@ def fit_title(value: str) -> str:
         except Exception:  # an unusual theme or device: a share of the screen
             logger.exception("Could not measure the top bar; the title gets a fixed share")
             _title_rooms[width] = int(width * _TITLE_WIDTH_SHARE)
-    return fit_text(value, Text.HEADING, _title_rooms[width])
+    return _title_rooms[width]
 
 
 def _title_room(width: int) -> int:

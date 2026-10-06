@@ -129,6 +129,35 @@ def page_palette() -> Palette:
     return palette(page, _rgb(Theme.text_color(FontPurpose.DESCRIPTIVE_LIST_DESCRIPTION)))
 
 
+def top_bar_palette() -> Palette:
+    """Pick RA colours for things drawn on the top bar (a game's award dot).
+
+    Returns:
+        The palette.
+    """
+    from display.display import Display
+    from display.font_purpose import FontPurpose
+    from themes.theme import Theme
+
+    page_image = Display.bg_path or Theme.background()
+    page = generated.average_color(str(page_image)) if page_image else (0, 0, 0)
+    bar_image = Theme.get_title_bar_bg()
+    bar = generated.average_color(str(bar_image), page) if bar_image else page
+    return palette(bar, _rgb(Theme.text_color(FontPurpose.TOP_BAR_TEXT)))
+
+
+def dot_size(line: int) -> int:
+    """Return the award dot's diameter next to text of this height.
+
+    Args:
+        line: Text height in pixels.
+
+    Returns:
+        Diameter in pixels.
+    """
+    return max(round(line * _DOT_SHARE), 6)
+
+
 def _palettes(view: Any) -> tuple[Palette, Palette]:  # noqa: ANN401 — PyUI view
     """Pick bar colours for ordinary rows and the selected row from their backgrounds.
 
@@ -176,7 +205,7 @@ def _layout(view: Any, entries: Sequence[Any]) -> _Layout:  # noqa: ANN401 — P
     shown = [progress for entry in entries if (progress := _progress(entry))]
     label = max((text_width(progress.label, Text.BODY) for progress in shown), default=0)
     line = int(Display.get_text_dimensions(FontPurpose.DESCRIPTIVE_LIST_DESCRIPTION, "A")[1])
-    dot = max(round(line * _DOT_SHARE), 6) if any(p.award for p in shown) else 0
+    dot = dot_size(line) if any(p.award for p in shown) else 0
     tail = (dot + _DOT_GAP if dot else 0) + label
     bar_width = max(right - bar_x - (tail + _GAP if tail else 0), 0)
     dot_x = bar_x + bar_width + _GAP
@@ -202,7 +231,7 @@ def _fill(paint: Paint, rect: tuple[int, int, int, int]) -> None:
     Display.render_image(path, x, y, RenderMode.TOP_LEFT_ALIGNED, width, height, ResizeType.ZOOM)
 
 
-def _dot(marker: Marker, size: int, x: int, mid: int) -> None:
+def draw_dot(marker: Marker, size: int, x: int, mid: int) -> None:
     """Draw an award dot, vertically centred on ``mid``.
 
     Args:
@@ -262,7 +291,7 @@ def _draw(view: Any, cache: dict[int, _Layout]) -> None:  # noqa: ANN401 — PyU
         _fill(colors.hardcore, (layout.bar_x, y, solid, bar_height))
         marker = colors.markers.get(progress.award) if progress.award else None
         if marker is not None and layout.dot:
-            _dot(marker, layout.dot, layout.dot_x, mid)
+            draw_dot(marker, layout.dot, layout.dot_x, mid)
         if progress.label:
             color = marker.color if marker is not None else text
             mode = RenderMode.MIDDLE_LEFT_ALIGNED

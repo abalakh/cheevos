@@ -8,6 +8,7 @@ import os
 import struct
 import subprocess
 import sys
+import zlib
 from pathlib import Path
 
 import pytest
@@ -33,6 +34,50 @@ def png_size(path: Path) -> tuple[int, int]:
     header = path.read_bytes()[:24]
     assert header[:8] == b"\x89PNG\r\n\x1a\n"
     return struct.unpack(">II", header[16:24])
+
+
+def png_rows(path: Path, count: int) -> tuple[int, list[bytes]]:
+    """Decode the first ``count`` rows of an 8-bit RGB or RGBA PNG (as SDL_image saves them)."""
+    data, pos, idat = path.read_bytes(), 8, b""
+    width = bpp = 0
+    while pos < len(data):
+        length, kind = struct.unpack(">I4s", data[pos : pos + 8])
+        body = data[pos + 8 : pos + 8 + length]
+        if kind == b"IHDR":
+            width, _height, depth, color = struct.unpack(">IIBB", body[:10])
+            assert depth == 8
+            assert color in (2, 6)
+            bpp = 3 if color == 2 else 4
+        elif kind == b"IDAT":
+            idat += body
+        pos += 12 + length
+    raw, stride = zlib.decompress(idat), width * bpp
+    rows, previous = [], bytes(stride)
+    for y in range(count):
+        kind, line = (
+            raw[y * (stride + 1)],
+            bytearray(raw[y * (stride + 1) + 1 : (y + 1) * (stride + 1)]),
+        )
+        for i in range(stride):
+            a, b = line[i - bpp] if i >= bpp else 0, previous[i]
+            c = previous[i - bpp] if i >= bpp else 0
+            p = a + b - c
+            predictor = [0, a, b, (a + b) // 2, min((a, b, c), key=lambda v: abs(p - v))][kind]
+            line[i] = (line[i] + predictor) & 0xFF
+        rows.append(bytes(line))
+        previous = rows[-1]
+    return bpp, rows
+
+
+def gold_pixels(path: Path, top: int) -> int:
+    """Count RA-gold pixels (an award dot) in the top ``top`` rows of a screenshot."""
+    bpp, rows = png_rows(path, top)
+    return sum(
+        1
+        for row in rows
+        for x in range(0, len(row), bpp)
+        if row[x] > 235 and 195 < row[x + 1] < 235 and row[x + 2] < 30
+    )
 
 
 def run_app(tmp_path: Path, script: str, *, res: str = "640x480", simulate: str = "") -> str:
@@ -133,3 +178,16 @@ def test_start_syncs_from_any_screen(tmp_path):
     stderr = run_app(tmp_path, "down,a,start,shot:games_sync,wait:24,shot:games_synced")
     assert_shots(tmp_path, ["games_sync", "games_synced"])
     assert stderr.count("Sync done") == 2
+
+
+def test_award_dot_follows_its_title(tmp_path):
+    # Descent, the showcase's fourth game, is mastered: a gold dot between title and count.
+    script = "down,a,down,down,down,a,shot:game,y,shot:popup,b,a,shot:card,b,b,shot:games"
+    run_app(tmp_path, script, simulate="showcase")
+    shots = tmp_path / "shots" / "640x480"
+    gold = {
+        name: gold_pixels(shots / f"{name}.png", 56) for name in ("game", "popup", "card", "games")
+    }
+    assert gold["game"] > 20  # the dot is ~12 px across at 640x480
+    assert gold["popup"] == gold["game"]  # a popup over the screen keeps it
+    assert gold["card"] == gold["games"] == 0  # other screens never get a stale dot

@@ -9,6 +9,7 @@ from cheevos.core.models import Achievement, AchievementType, GameDetail
 from cheevos.ui import strings
 from cheevos.ui.context import AppContext
 from cheevos.ui.pyui.primitives import Button
+from cheevos.ui.pyui.title_bar import Title
 from cheevos.ui.pyui.views import Layout, MenuItem, choose
 from cheevos.ui.screens.achievement import show_achievement
 from cheevos.ui.screens.common import message, pick
@@ -76,7 +77,8 @@ def show_game(ctx: AppContext, game_id: int) -> None:
         return
     pending = ctx.pending_awards()
     earned = sum(1 for a in detail.achievements if a.unlocked)
-    title = f"{detail.title} · {earned}/{len(detail.achievements)}"
+    count = f"{earned}/{len(detail.achievements)}"
+    title = Title(detail.title, count, game.highest_award if game else None)
     view = _View()
     selected = 0
     while True:
@@ -86,7 +88,7 @@ def show_game(ctx: AppContext, game_id: int) -> None:
             detail.num_distinct_players,
         )
         if not shown:
-            message(title, [strings.NO_ACHIEVEMENTS])
+            message(detail.title, [strings.NO_ACHIEVEMENTS])
             view = _View(layout=view.layout)
             continue
         items = [_row(ctx, a, detail, pending) for a in shown]

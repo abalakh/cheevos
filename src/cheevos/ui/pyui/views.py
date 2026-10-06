@@ -11,18 +11,18 @@ from pathlib import Path
 from typing import Any
 
 from cheevos.core.models import AwardKind
-from cheevos.ui.pyui import grid_frames, row_bars, status_bar
+from cheevos.ui.pyui import grid_frames, row_bars, status_bar, title_bar
 from cheevos.ui.pyui.primitives import (
     Button,
     Text,
     displayable,
     fit_text,
-    fit_title,
     list_title_width,
     screen_size,
 )
 from cheevos.ui.pyui.row_bars import Progress
 from cheevos.ui.pyui.status_bar import Hint
+from cheevos.ui.pyui.title_bar import Title
 from cheevos.ui.pyui.visible_images import ImageDemand, VisibleImages, demanding
 
 logger = logging.getLogger(__name__)
@@ -230,7 +230,7 @@ def _screen_grid(tile: int) -> tuple[int, int, int]:
 
 
 def choose(  # noqa: PLR0913 — keyword-only presentation options
-    title: str,
+    title: str | Title,
     items: Sequence[MenuItem],
     *,
     selected: int = 0,
@@ -247,7 +247,8 @@ def choose(  # noqa: PLR0913 — keyword-only presentation options
     claims it. Popups ignore it.
 
     Args:
-        title: Top-bar text.
+        title: Top-bar text, or a :class:`Title` whose tail always shows (a game's count,
+            and its award dot).
         items: Rows (list) or tiles (grid), in order. Must not be empty.
         selected: Initially highlighted index.
         buttons: Buttons that confirm a choice (B always backs out).
@@ -276,7 +277,7 @@ def choose(  # noqa: PLR0913 — keyword-only presentation options
     with demanding(ImageDemand.MEASURED):  # PyUI asks every row for its image here
         view = ViewCreator.create_view(
             view_type=ViewType[layout.value],
-            top_bar_text=fit_title(title),
+            top_bar_text=title_bar.top_title(title),
             options=entries,
             selected_index=selected,
             cols=columns or None,

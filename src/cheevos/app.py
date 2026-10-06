@@ -29,7 +29,7 @@ from cheevos.core.sync.session import Credentials, make_client, open_sync_deps
 from cheevos.platform.paths import Paths
 from cheevos.ui.context import AppContext
 from cheevos.ui.media import MediaResolver
-from cheevos.ui.pyui import generated, primitives, status_bar, visible_images
+from cheevos.ui.pyui import generated, primitives, status_bar, title_bar, visible_images
 from cheevos.ui.screens.home import Home
 from cheevos.ui.screens.setup import change_key, ensure_credentials, untested_device_note
 from cheevos.ui.screens.status import SyncBar
@@ -223,7 +223,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
     visible_images.track_images(lambda: ctx.media.version, ctx.media.new_window)
     bar = SyncBar(ctx, _icons_dir(bar=True), lambda: change_key(ctx))
     try:
-        with status_bar.installed(bar.status, bar.press_start):
+        with status_bar.installed(bar.status, bar.press_start), title_bar.installed():
             Home(ctx).run()
     finally:
         sync.cancel()

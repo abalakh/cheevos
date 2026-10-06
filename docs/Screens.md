@@ -50,7 +50,8 @@ recognised on your SD card (see [Limitations](Limitations)).
 
 ## A game's achievements
 Every achievement with its badge, points, type and unlock date, or how rare it is if you haven't
-unlocked it yet. "screenshot" means there's an unlock screenshot for it.
+unlocked it yet. "screenshot" means there's an unlock screenshot for it. The top bar shows how
+many you've unlocked, with the game's award dot if it has one.
 
 ![Achievements](images/game.png)
 

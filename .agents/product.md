@@ -69,7 +69,9 @@ Settings.
   All.
 
 ## A game's achievements
-- **Top bar**: the title and `unlocked/total`.
+- **Top bar**: the title and `unlocked/total`. Only the title is shortened, so the count always
+  shows. A game with an award gets RA's award dot between them, as in the games list; without
+  one, a space separates them (a plain dot there would look like an award).
 - **Row**:
   - badge: colour when unlocked, `_lock` variant when locked;
   - title, points, and a type tag (Progression / Win / Missable);

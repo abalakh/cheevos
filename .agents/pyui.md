@@ -152,6 +152,17 @@ of PyUI's views, without patching PyUI.
   Pico-8). `status_bar.hidden()` (the keyboard) drops the status and the Start action but keeps
   hints. `app.run` installs the bar before setup too (no status, Start does nothing), so setup
   screens can show hints.
+- **Top-bar title** (`title_bar.py`): PyUI draws the title centred at `int(width / 2)`. A game's
+  `Title` shortens only its name, so the count stays. For the award dot, the bridge passes PyUI
+  the whole title with a run of spaces in it, and a hook on `Display.top_bar.render_top_bar`
+  draws the dot in the gap (measured once with SDL_ttf). If the hook draws nothing, the title
+  still reads right. Gotchas:
+  - `displayable()` collapses runs of spaces, so the gap is added after fitting the name.
+  - Unlike the bottom bar, PyUI redraws the whole top bar on popup frames, over the frozen
+    backdrop; the dot is drawn there too.
+  - The dot belongs to one exact title string and is forgotten the first time the top bar
+    draws any other title, so no screen gets a stale one. Themes that show tabs
+    (`skip_main_menu`, ART_BOOK_NEXT) or hide the title get no dot.
 
 ## Themes
 - **Size and DPI:** nothing in Spruce or PyUI knows a panel's DPI or physical size. PyUI draws at
