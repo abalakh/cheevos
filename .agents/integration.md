@@ -51,8 +51,9 @@ v1 uses only identifications that Spruce already made (no new ROM hashing):
    game_id}]`, written by PyUI and RAOfflineProxy.
 2. RAOfflineProxy's `cached_game_ids.txt` (game IDs only), read directly.
 
-A game Spruce never identified isn't "on this device". Hashing ROMs ourselves is an idea in
-[roadmap.md](roadmap.md).
+A game Spruce never identified isn't "on this device". Hashing ROMs ourselves would close that
+gap: on demand per system, with the proxy's `libraproxy_rchash.so` (rcheevos `rc_hash`) through
+ctypes, or by matching title and console.
 
 ## RAOfflineProxy (`core/proxy.py`)
 The proxy takes RetroArch's unlocks while offline and sends them when Wi-Fi is back. It forces

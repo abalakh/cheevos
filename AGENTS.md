@@ -1,9 +1,9 @@
 # Cheevos
 
 On-device RetroAchievements hub for SpruceOS, built on PyUI (Spruce's Python/SDL2 UI).
-Instructions for coding agents; `CLAUDE.md` imports this file.
+Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), so there's no
+`CLAUDE.md`.
 
-- **Start here:** `.agents/roadmap.md` (what's next).
 - `.agents/` explains how the app works, one file per area. Each file covers the design, its
   rules and the gotchas found so far. Read the file for an area before changing it. Code
   comments cite these files, e.g. `(.agents/integration.md)`.
