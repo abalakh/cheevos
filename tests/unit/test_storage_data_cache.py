@@ -368,3 +368,12 @@ def test_unlocked_among(cache):
     probe = set(list(locked)[:3]) | unlocked | {999_999_999}
     assert cache.unlocked_among(probe) == unlocked
     assert cache.unlocked_among([]) == set()
+
+
+def test_achievement_games(cache):
+    cache.save_game_detail(detail_from_fixture(519), fingerprint="x", synced_at=1)
+    cache.save_game_detail(detail_from_fixture(3830), fingerprint="x", synced_at=1)
+    assert cache.achievement_games([177852, 522844, 999_999_999]) == {177852: 519, 522844: 3830}
+    many = [*range(1, 1200), 522844]  # more IDs than one query takes
+    assert cache.achievement_games(many) == {522844: 3830}
+    assert cache.achievement_games([]) == {}

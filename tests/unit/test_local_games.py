@@ -39,10 +39,11 @@ def test_combines_pyui_cache_and_proxy_ids(tmp_path):
             {"rom_file_path": "", "game_id": 5},
             {"rom_file_path": "/bool.gba", "game_id": True},
             {"rom_file_path": "/zero.gba", "game_id": 0},
+            {"rom_file_path": "/super.gba", "game_id": "²"},  # isdigit() but not int()
             "not a dict",
         ],
     )
-    write_proxy_ids(paths, "519\n1446\n")
+    write_proxy_ids(paths, "519\n1446\n²\n")
     assert local_games(paths, ProxyReader(paths)) == [
         LocalGame(519, FFTA_ROM, "GBA", "pyui-cheevos-cache"),
         LocalGame(3830, "/mnt/SDCARD/Roms/PS/Descent.chd", "", "pyui-cheevos-cache"),

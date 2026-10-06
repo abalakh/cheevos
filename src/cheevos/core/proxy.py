@@ -57,7 +57,7 @@ def _patch_game_id(cache_key: str) -> int | None:
     if not cache_key.startswith(PATCH_PREFIX):
         return None
     value = cache_key[len(PATCH_PREFIX) :].split(":", 1)[0]
-    return int(value) if value.isdigit() else None
+    return int(value) if value.isdecimal() else None  # isdigit() takes "²", which int() refuses
 
 
 def _patch_entries(game_id: int, body: str) -> dict[int, _PatchInfo]:
@@ -71,12 +71,19 @@ def _patch_entries(game_id: int, body: str) -> dict[int, _PatchInfo]:
         Achievement ID to patch info; empty for unparsable bodies.
     """
     try:
-        patch = json.loads(body).get("PatchData") or {}
+        patch = json.loads(body).get("PatchData")
     except (json.JSONDecodeError, AttributeError):
         return {}
+    if not isinstance(patch, dict):
+        return {}
     title = patch.get("Title") or f"Game {game_id}"
+    achievements = patch.get("Achievements")
+    if isinstance(achievements, dict):  # the proxy accepts both shapes
+        achievements = list(achievements.values())
+    if not isinstance(achievements, list):
+        return {}
     entries: dict[int, _PatchInfo] = {}
-    for achievement in patch.get("Achievements") or []:
+    for achievement in achievements:
         achievement_id = achievement.get("ID") if isinstance(achievement, dict) else None
         if not isinstance(achievement_id, int):
             continue
@@ -156,7 +163,7 @@ class ProxyReader:
             lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         except OSError:
             return set()
-        return {int(line.strip()) for line in lines if line.strip().isdigit()}
+        return {int(line.strip()) for line in lines if line.strip().isdecimal()}
 
     def pending_awards(self, username: str) -> list[PendingAward]:
         """Return unlocks queued for submission, oldest first.
@@ -180,6 +187,9 @@ class ProxyReader:
             return self._read_pending(connection, username)
         except sqlite3.Error as exc:
             self._warn_once("Cannot read RAOfflineProxy database: %s", exc)
+            return []
+        except Exception as exc:  # noqa: BLE001 — data from a proxy version we don't know
+            self._warn_once("Unexpected RAOfflineProxy data; hiding its queue: %r", exc)
             return []
         finally:
             connection.close()

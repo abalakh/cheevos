@@ -25,7 +25,6 @@ tools in [TESTING.md](../TESTING.md).
          Spruce's RA settings. Send the PyUI author a courtesy notice, as its license asks.
 
 ## Ideas
-- Read the proxy's `achievementsets:` cache as a fallback for pending-award titles.
 - Settings has "Sync now" next to Start; drop it if it proves redundant.
 - A progress bar in a game's header (hardcore/casual completion).
 - Match on-device games beyond what Spruce identified: hash a chosen system on demand with the

@@ -6,7 +6,7 @@ import logging
 import time
 from collections import Counter
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from cheevos.core.local_games import on_device_game_ids
@@ -110,8 +110,8 @@ class AppContext:
         """Count queued RAOfflineProxy unlocks per game that RA doesn't know about yet.
 
         Returns:
-            Game ID to number of unlocks waiting to sync (games the proxy can't name are left
-            out).
+            Game ID to number of unlocks waiting to sync (unlocks whose game is unknown are
+            left out).
         """
         pending = self.pending_awards()
         if not pending:
@@ -125,10 +125,18 @@ class AppContext:
         return dict(counts)
 
     def pending_awards(self) -> dict[int, PendingAward]:
-        """Return unlocks waiting in RAOfflineProxy's queue, by achievement ID."""
+        """Return unlocks waiting in RAOfflineProxy's queue, by achievement ID.
+
+        Each unlock's game comes from the synced achievement lists, or else from the proxy's
+        cached ``patch`` data, which RetroArch 1.22 no longer requests (.agents/integration.md).
+        """
         if not self.proxy_active():
             return {}
+        awards = self.proxy.pending_awards(self.credentials.username)
+        games = self.data.achievement_games(award.achievement_id for award in awards)
         return {
-            award.achievement_id: award
-            for award in self.proxy.pending_awards(self.credentials.username)
+            award.achievement_id: replace(
+                award, game_id=games.get(award.achievement_id, award.game_id)
+            )
+            for award in awards
         }

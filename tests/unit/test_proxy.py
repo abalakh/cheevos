@@ -169,6 +169,52 @@ def test_patch_without_title_or_points(paths):
     ]
 
 
+def test_achievements_keyed_by_id(paths):
+    db = make_db(paths)
+    achievements = {"70": {"ID": 70, "Title": "Keyed", "Points": 5}}
+    add_cache(db, "patch:7:balah", {"PatchData": {"Title": "G", "Achievements": achievements}})
+    add_award(db, 70, 0)
+    db.close()
+    assert ProxyReader(paths).pending_awards("balah") == [
+        PendingAward(70, 7, "G", "Keyed", 5, None)
+    ]
+
+
+@pytest.mark.parametrize(
+    ("key", "body"),
+    [
+        ("patch:7:balah", {"PatchData": [1]}),
+        ("patch:7:balah", {"PatchData": "x"}),
+        ("patch:7:balah", {"PatchData": {"Achievements": 5}}),
+        ("patch:7:balah", [1, 2]),
+        ("patch:²:balah", FFTA_PATCH),  # isdigit() but not int()
+    ],
+)
+def test_odd_patch_data_is_skipped(paths, key, body):
+    db = make_db(paths)
+    add_cache(db, key, body)
+    add_award(db, 177850, 0)
+    db.close()
+    assert ProxyReader(paths).pending_awards("balah") == [
+        PendingAward(177850, None, "", "", None, None)
+    ]
+
+
+def test_unexpected_failure_hides_the_queue_and_warns_once(paths, monkeypatch, caplog):
+    db = make_db(paths)
+    add_award(db, 1, 1000)
+    db.close()
+
+    def broken(*args):
+        raise ValueError("a newer proxy")
+
+    monkeypatch.setattr(ProxyReader, "_patch_index", staticmethod(broken))
+    reader = ProxyReader(paths)
+    assert reader.pending_awards("Balah") == []
+    assert reader.pending_awards("Balah") == []
+    assert caplog.text.count("Unexpected RAOfflineProxy data") == 1
+
+
 def test_schema_mismatch_hides_data_and_warns_once(paths, caplog):
     make_db(paths, ddl="CREATE TABLE pending_awards (achievementId INTEGER);").close()
     reader = ProxyReader(paths)
@@ -222,8 +268,22 @@ def test_online_state(paths):
 def test_cached_game_ids(paths):
     reader = ProxyReader(paths)
     assert reader.cached_game_ids() == set()
-    (paths.proxy_data_dir / "cached_game_ids.txt").write_text("519\n 3830 \njunk\n\n-4\n519\n")
+    (paths.proxy_data_dir / "cached_game_ids.txt").write_text("519\n 3830 \njunk\n\n-4\n²\n519\n")
     assert reader.cached_game_ids() == {519, 3830}
+
+
+def test_installed_but_never_run(tmp_path):
+    paths = Paths(sdcard=tmp_path)
+    paths.proxy_data_dir.parent.mkdir(parents=True)  # the app folder, without data/
+    spruce_proxy_setting(paths, "True")
+    reader = ProxyReader(paths)
+    assert (reader.installed(), reader.enabled()) == (True, True)
+    assert (reader.online(), reader.cached_game_ids(), reader.pending_awards("Balah")) == (
+        None,
+        set(),
+        [],
+    )
+    assert not paths.proxy_data_dir.exists()
 
 
 def test_installed_and_enabled(tmp_path):

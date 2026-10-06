@@ -72,7 +72,15 @@ unlocks show in the UI: [product.md](product.md).
     `list_pending_awards`.
   - `online_state.json` (`{"online": bool}`).
   - `cached_game_ids.txt` (one ID per line).
+- **An unlock's game** comes from our synced achievement lists first (`AppContext.pending_awards`),
+  then from the proxy's `patch:` entries. Spruce's RetroArch (1.22.2) only requests
+  `r=achievementsets`, so the proxy caches `achievementsets:<hash>:<user>` while you play
+  online. It writes `patch:` entries only when you cache a game from its own menu. Without a
+  game, a queued unlock is missing from Recent unlocks and the games list's "+N".
 - Guarded by a schema check. Any `sqlite3.Error` on the read-only open (locked, or a WAL without
   its `-shm` file while the service starts) or anything unexpected means "proxy unavailable":
-  the features hide and the next screen tries again. Never crash.
+  the features hide and the next screen tries again. Never crash: the screens don't catch
+  errors, so one escaping the reader would close the app. A missing proxy (older Spruce),
+  a proxy that never ran (no `data/`) and a missing or broken `spruce-config.json` all read as
+  "no proxy".
 - We never flush, delete or write the proxy's queue or state.

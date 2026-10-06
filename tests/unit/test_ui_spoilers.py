@@ -51,24 +51,23 @@ class FakeProxy:
 
 
 class FakeData:
+    def __init__(self, games=None):
+        self.games = games or {}
+
     def unlocked_among(self, ids):
         return {achievement_id for achievement_id in ids if achievement_id == 3}
 
+    def achievement_games(self, ids):
+        return {aid: self.games[aid] for aid in ids if aid in self.games}
 
-def test_pending_by_game_skips_synced_and_unknown_games():
-    queue = [
-        PendingAward(1, 519, "", "", None, 1),
-        PendingAward(2, 519, "", "", None, 2),
-        PendingAward(3, 519, "", "", None, 3),  # RA already has it
-        PendingAward(4, None, "", "", None, 4),  # the proxy can't name the game
-        PendingAward(5, 3830, "", "", None, 5),
-    ]
+
+def context(queue, games=None):
     none = cast(Any, None)
-    ctx = AppContext(
+    return AppContext(
         paths=none,
         credentials=Credentials("Balah", "k"),
         settings=Settings(),
-        data=cast(Any, FakeData()),
+        data=cast(Any, FakeData(games)),
         media_cache=none,
         media=none,
         sync=none,
@@ -78,4 +77,24 @@ def test_pending_by_game_skips_synced_and_unknown_games():
         validate_key=lambda _u, _k: True,
         fetch_unlocks=lambda _s, _e: [],
     )
-    assert ctx.pending_by_game() == {519: 2, 3830: 1}
+
+
+def test_pending_by_game_skips_synced_and_unknown_games():
+    queue = [
+        PendingAward(1, 519, "", "", None, 1),
+        PendingAward(2, 519, "", "", None, 2),
+        PendingAward(3, 519, "", "", None, 3),  # RA already has it
+        PendingAward(4, None, "", "", None, 4),  # neither the proxy nor the cache knows the game
+        PendingAward(5, 3830, "", "", None, 5),
+    ]
+    assert context(queue).pending_by_game() == {519: 2, 3830: 1}
+
+
+def test_synced_lists_name_the_game_of_pending_unlocks():
+    queue = [
+        PendingAward(1, None, "", "", None, 1),  # no "patch" data: RetroArch 1.22
+        PendingAward(2, 7, "", "", None, 2),  # RA's own lists win over the proxy's cache
+        PendingAward(4, 519, "", "", None, 4),  # not synced yet: the proxy's guess stands
+    ]
+    pending = context(queue, games={1: 3830, 2: 8}).pending_awards()
+    assert {aid: award.game_id for aid, award in pending.items()} == {1: 3830, 2: 8, 4: 519}

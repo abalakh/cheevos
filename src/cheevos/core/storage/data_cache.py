@@ -360,18 +360,39 @@ class DataCache:
         Returns:
             The unlocked ones.
         """
+        query = "SELECT achievement_id FROM achievements WHERE unlocked_at IS NOT NULL AND"
+        return {row[0] for row in self._among(query, achievement_ids)}
+
+    def achievement_games(self, achievement_ids: Iterable[int]) -> dict[int, int]:
+        """Return the game of each of these achievements, for those in synced games.
+
+        Args:
+            achievement_ids: Achievement IDs (e.g. RAOfflineProxy's queue).
+
+        Returns:
+            Achievement ID to game ID.
+        """
+        query = "SELECT achievement_id, game_id FROM achievements WHERE"
+        return {row[0]: row[1] for row in self._among(query, achievement_ids)}
+
+    def _among(self, query: str, achievement_ids: Iterable[int]) -> list[tuple[int, ...]]:
+        """Run a query for a list of achievements, a chunk of IDs at a time.
+
+        Args:
+            query: SQL ending in ``WHERE`` or ``AND``; ``achievement_id IN (...)`` is appended.
+            achievement_ids: Achievement IDs.
+
+        Returns:
+            The rows of every chunk.
+        """
         ids = list(achievement_ids)
-        found: set[int] = set()
+        rows: list[tuple[int, ...]] = []
         for start in range(0, len(ids), _QUERY_CHUNK):
             chunk = ids[start : start + _QUERY_CHUNK]
             marks = ",".join("?" * len(chunk))
-            rows = self._db.execute(
-                f"SELECT achievement_id FROM achievements WHERE achievement_id IN ({marks}) "  # noqa: S608 — only "?" marks
-                "AND unlocked_at IS NOT NULL",
-                chunk,
-            )
-            found.update(row[0] for row in rows)
-        return found
+            sql = f"{query} achievement_id IN ({marks})"  # values are bound, never interpolated
+            rows += self._db.execute(sql, chunk).fetchall()
+        return rows
 
     # --- player statistics ------------------------------------------------------------------
 

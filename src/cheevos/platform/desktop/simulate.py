@@ -93,7 +93,9 @@ CREATE TABLE pending_awards (id INTEGER PRIMARY KEY AUTOINCREMENT,
     payloadHash TEXT NOT NULL DEFAULT '', prevHash TEXT NOT NULL DEFAULT '',
     signature TEXT NOT NULL DEFAULT '', signedAt INTEGER NOT NULL DEFAULT 0);
 """
-_PENDING = ((519, 177852), (519, 177853))  # FFTA: next two locked progression achievements
+# FFTA's next two locked progression achievements, cached with the proxy's "patch" data, and
+# Descent's first locked one, played with RetroArch 1.22, which caches no "patch" data.
+_PENDING = (177852, 177853, 522844)
 
 
 @dataclass(frozen=True, slots=True)
@@ -340,7 +342,7 @@ def prepare_card(name: str | None, paths: Paths, fixtures: Path) -> None:
 
 
 def _write_proxy_db(path: Path, fixtures: Path) -> None:
-    """Create a proxy database with FFTA's patch data and two queued unlocks.
+    """Create a proxy database with FFTA's patch data and three queued unlocks.
 
     Args:
         path: Database file (replaced).
@@ -366,7 +368,7 @@ def _write_proxy_db(path: Path, fixtures: Path) -> None:
             "VALUES (?, ?, ?, ?)",
             ("patch:519:balah", json.dumps(patch), now_ms, now_ms),
         )
-        for offset, (_game, achievement) in enumerate(_PENDING):
+        for offset, achievement in enumerate(_PENDING):
             db.execute(
                 "INSERT INTO pending_awards (achievementId, queryString, requestBody, userAgent,"
                 " queuedAt) VALUES (?, '', '', '', ?)",

@@ -32,7 +32,7 @@ def _pyui_entry(raw: object) -> LocalGame | None:
     if not isinstance(raw, dict):
         return None
     game_id = raw.get("game_id")
-    if isinstance(game_id, str) and game_id.strip().isdigit():
+    if isinstance(game_id, str) and game_id.strip().isdecimal():  # isdigit() takes "²"
         game_id = int(game_id.strip())
     rom_path = raw.get("rom_file_path")
     if not isinstance(game_id, int) or isinstance(game_id, bool) or game_id <= 0:
