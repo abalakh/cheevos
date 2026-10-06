@@ -224,9 +224,15 @@ class MediaCache:
             self._forget(scratch_name(key))
 
     def size_bytes(self) -> int:
-        """Return the total size of the cached images in bytes."""
-        row = self._db.execute("SELECT COALESCE(SUM(size), 0) FROM media").fetchone()
-        return int(row[0])
+        """Return the space the cache takes on the card: the database file's size, or 0 if empty.
+
+        Not ``SUM(size)``: each ``size`` is stored after its blob, so the sum reads the whole
+        file (2.4 s for 48 MB on a Miyoo Mini+), while ``stat`` takes 0.1 ms
+        (.agents/sync-and-storage.md).
+        """
+        if self._db.execute("SELECT 1 FROM media LIMIT 1").fetchone() is None:
+            return 0  # the empty schema's 12 KB isn't worth showing
+        return self._db_path.stat().st_size
 
     def clear(self) -> None:
         """Delete every cached image and extracted file, shrinking the database file."""

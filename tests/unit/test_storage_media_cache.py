@@ -40,13 +40,14 @@ def test_key_helpers():
     assert scratch_name("avatar/we!rd name") == "avatar__we_rd_name.png"
 
 
-def test_put_has_missing_size(media):
+def test_put_has_missing_size(media, tmp_path):
     assert not media.has("icon/1")
+    assert media.size_bytes() == 0  # not the empty schema's pages
     media.put("icon/1", png(10))
     media.put_many([("icon/2", png(20)), ("icon/3", png(30))])
     assert media.has("icon/2")
     assert media.missing(["icon/9", "icon/1", "icon/9", "icon/8"]) == ["icon/9", "icon/8"]
-    assert media.size_bytes() == 60
+    assert media.size_bytes() == (tmp_path / "media.db").stat().st_size  # what clearing frees
     stored_at = media._db.execute("SELECT stored_at FROM media WHERE key = 'icon/1'").fetchone()
     assert stored_at[0] == 1234
 

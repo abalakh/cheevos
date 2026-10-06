@@ -59,6 +59,9 @@ account and is recreated.
 - **SQLite:** WAL needs shared memory and is unreliable on FAT32, so all databases use
   `journal_mode=DELETE`. A `kill -9` during a full re-sync leaves `PRAGMA integrity_check` ok and
   no journal file; the next sync carries on (`full_resync_since`).
+- **Blob scans:** a badge spills into overflow pages, and a column stored after a blob is read
+  by walking them. So a scan of `media` reads the whole file, even for `SUM(size)`: 2.4 s for
+  48 MB on the Mini. Settings shows the size of `media.db` (`os.stat`, 0.1 ms) instead.
 - **`/tmp`:** a 49 MB tmpfs, which is RAM. Keep extracted images bounded; the app deletes both
   scratch folders on exit.
 - **Clock:** there's no RTC. Before NTP sync the clock reads 1970, and HTTPS fails. Check
