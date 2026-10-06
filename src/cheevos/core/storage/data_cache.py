@@ -188,6 +188,15 @@ class DataCache:
         ).fetchall()
         return [game_from_row(row) for row in rows]
 
+    def game_counts(self) -> tuple[int, int]:
+        """Count the games, and the ones with an award, without reading them (home summary).
+
+        Returns:
+            ``(games, games with an award)``.
+        """
+        row = self._db.execute("SELECT COUNT(*), COUNT(highest_award_kind) FROM games").fetchone()
+        return int(row[0]), int(row[1])
+
     def game(self, game_id: int) -> GameProgress | None:
         """Return one game.
 
@@ -360,19 +369,28 @@ class DataCache:
                 (_AWARD_COUNTS_KEY, json.dumps(dataclasses.asdict(counts))),
             )
 
+    def award_counts(self) -> AwardCounts | None:
+        """Return RA's award counters, without reading the awards (home summary).
+
+        Returns:
+            The counters, or ``None`` if awards were never synced.
+        """
+        raw = self.get_meta(_AWARD_COUNTS_KEY)
+        if raw is None:
+            return None
+        try:
+            return AwardCounts(**json.loads(raw))
+        except (TypeError, ValueError):
+            logger.warning("Stored award counts are unreadable; ignoring them")
+            return None
+
     def awards(self) -> tuple[AwardCounts | None, list[Award]]:
         """Return the award counters and awards, newest award first.
 
         Returns:
             ``(counts, awards)``; counts is ``None`` if awards were never synced.
         """
-        counts = None
-        raw = self.get_meta(_AWARD_COUNTS_KEY)
-        if raw is not None:
-            try:
-                counts = AwardCounts(**json.loads(raw))
-            except (TypeError, ValueError):
-                logger.warning("Stored award counts are unreadable; ignoring them")
+        counts = self.award_counts()
         rows = self._db.execute(
             "SELECT game_id, title, console_name, image_icon, kind, awarded_at, console_id, "
             "display_order FROM awards ORDER BY COALESCE(awarded_at, 0) DESC, "

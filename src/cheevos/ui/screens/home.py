@@ -68,10 +68,9 @@ class Home:
 
     def _games_row(self) -> MenuItem:
         """Summarise the library."""
-        games = self._ctx.data.games()
-        finished = sum(1 for game in games if game.highest_award is not None)
-        text = strings.GAMES_SUMMARY.format(count=len(games), finished=finished)
-        return MenuItem(strings.GAMES, text, self._ctx.icon("gamepad"), str(len(games)), "games")
+        count, finished = self._ctx.data.game_counts()
+        text = strings.GAMES_SUMMARY.format(count=count, finished=finished)
+        return MenuItem(strings.GAMES, text, self._ctx.icon("gamepad"), str(count), "games")
 
     def _recent_row(self) -> MenuItem:
         """Show the latest unlock."""
@@ -85,7 +84,7 @@ class Home:
 
     def _awards_row(self) -> MenuItem:
         """Summarise mastered and beaten games."""
-        counts, _awards = self._ctx.data.awards()
+        counts = self._ctx.data.award_counts()
         mastered = counts.mastered + counts.completed if counts else 0
         beaten = counts.beaten_hardcore + counts.beaten_softcore if counts else 0
         text = strings.AWARDS_SUMMARY.format(mastered=mastered, beaten=beaten)

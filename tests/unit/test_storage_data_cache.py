@@ -197,6 +197,18 @@ def test_games_ordered_by_latest_activity_then_title(cache):
     assert cache.game(999) is None
 
 
+def test_game_counts_count_games_and_awards_without_reading_them(cache):
+    assert cache.game_counts() == (0, 0)
+    cache.upsert_games(
+        [
+            game(1, highest_award=AwardKind.MASTERED),
+            game(2),
+            game(3, highest_award=AwardKind.BEATEN_SOFTCORE),
+        ]
+    )
+    assert cache.game_counts() == (3, 2)
+
+
 def test_version_changes_with_writes_through_any_connection(tmp_path):
     ui = DataCache.open(tmp_path / "data.db", "Balah")
     sync = DataCache.open(tmp_path / "data.db", "Balah")
@@ -323,6 +335,7 @@ def test_recent_unlocks_newest_first_with_limit(cache):
 
 def test_awards_round_trip(cache):
     assert cache.awards() == (None, [])
+    assert cache.award_counts() is None
     counts = AwardCounts(mastered=1, completed=0, beaten_hardcore=2, beaten_softcore=0)
     awards = [
         Award(
@@ -350,6 +363,7 @@ def test_awards_round_trip(cache):
     cache.save_awards(counts, awards)
     stored_counts, stored = cache.awards()
     assert stored_counts == counts
+    assert cache.award_counts() == counts
     assert stored == awards
     cache.save_awards(counts, awards[:1])  # replaces the whole set
     assert cache.awards()[1] == awards[:1]
@@ -358,6 +372,7 @@ def test_awards_round_trip(cache):
 def test_unreadable_award_counts_are_ignored(cache):
     cache.set_meta("award_counts", "{broken")
     assert cache.awards() == (None, [])
+    assert cache.award_counts() is None
 
 
 def test_unlock_window_round_trip(cache):
