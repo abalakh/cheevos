@@ -21,7 +21,6 @@ from cheevos.core.models import (
     Achievement,
     Award,
     AwardCounts,
-    AwardKind,
     GameDetail,
     GameProgress,
     Unlock,
@@ -32,12 +31,15 @@ from cheevos.core.storage.db import open_cache, reset_cache
 from cheevos.core.storage.schema import (
     ACHIEVEMENT_COLUMNS,
     ACTIVITY_ORDER,
+    AWARD_COLUMNS,
     DDL,
     GAME_COLUMNS,
     SCHEMA_VERSION,
     UPSERT_GAME,
     achievement_from_row,
     achievement_row,
+    award_from_row,
+    award_row,
     game_from_detail,
     game_from_row,
     game_row,
@@ -197,6 +199,18 @@ class DataCache:
         row = self._db.execute("SELECT COUNT(*), COUNT(highest_award_kind) FROM games").fetchone()
         return int(row[0]), int(row[1])
 
+    def game_titles(self, game_ids: Iterable[int]) -> dict[int, str]:
+        """Return the titles of these games, without reading every game.
+
+        Args:
+            game_ids: Game IDs (e.g. of recent unlocks; repeats are fine).
+
+        Returns:
+            Game ID to title, for the games in the list.
+        """
+        query = "SELECT game_id, title FROM games WHERE"
+        return {row[0]: row[1] for row in self._among(query, set(game_ids), column="game_id")}
+
     def game(self, game_id: int) -> GameProgress | None:
         """Return one game.
 
@@ -344,26 +358,13 @@ class DataCache:
             counts: Counters from RA.
             awards: Visible game awards from RA.
         """
-        rows = [
-            (
-                a.game_id,
-                a.kind.value,
-                a.title,
-                a.console_id,
-                a.console_name,
-                a.image_icon,
-                a.awarded_at,
-                a.display_order,
-            )
-            for a in awards
-        ]
+        insert = (
+            f"INSERT OR REPLACE INTO awards ({AWARD_COLUMNS}) "  # noqa: S608
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        )
         with self._db:
             self._db.execute("DELETE FROM awards")
-            self._db.executemany(
-                "INSERT OR REPLACE INTO awards (game_id, kind, title, console_id, console_name, "
-                "image_icon, awarded_at, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                rows,
-            )
+            self._db.executemany(insert, [award_row(award) for award in awards])
             self._db.execute(
                 "INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)",
                 (_AWARD_COUNTS_KEY, json.dumps(dataclasses.asdict(counts))),
@@ -392,12 +393,10 @@ class DataCache:
         """
         counts = self.award_counts()
         rows = self._db.execute(
-            "SELECT game_id, title, console_name, image_icon, kind, awarded_at, console_id, "
-            "display_order FROM awards ORDER BY COALESCE(awarded_at, 0) DESC, "
-            "title COLLATE NOCASE"
+            f"SELECT {AWARD_COLUMNS} FROM awards "  # noqa: S608
+            "ORDER BY COALESCE(awarded_at, 0) DESC, title COLLATE NOCASE"
         ).fetchall()
-        awards = [Award(r[0], r[1], r[2], r[3], AwardKind(r[4]), r[5], r[6], r[7]) for r in rows]
-        return counts, awards
+        return counts, [award_from_row(row) for row in rows]
 
     def unlocked_among(self, achievement_ids: Iterable[int]) -> set[int]:
         """Return which of these achievements the cache knows as unlocked.
@@ -423,22 +422,25 @@ class DataCache:
         query = "SELECT achievement_id, game_id FROM achievements WHERE"
         return {row[0]: row[1] for row in self._among(query, achievement_ids)}
 
-    def _among(self, query: str, achievement_ids: Iterable[int]) -> list[tuple[int, ...]]:
-        """Run a query for a list of achievements, a chunk of IDs at a time.
+    def _among(
+        self, query: str, ids: Iterable[int], *, column: str = "achievement_id"
+    ) -> list[sqlite3.Row]:
+        """Run a query for a list of IDs, a chunk at a time.
 
         Args:
-            query: SQL ending in ``WHERE`` or ``AND``; ``achievement_id IN (...)`` is appended.
-            achievement_ids: Achievement IDs.
+            query: SQL ending in ``WHERE`` or ``AND``; ``<column> IN (...)`` is appended.
+            ids: Achievement IDs, or IDs for ``column``.
+            column: The column the IDs are for.
 
         Returns:
             The rows of every chunk.
         """
-        ids = list(achievement_ids)
-        rows: list[tuple[int, ...]] = []
+        ids = list(ids)
+        rows: list[sqlite3.Row] = []
         for start in range(0, len(ids), _QUERY_CHUNK):
             chunk = ids[start : start + _QUERY_CHUNK]
             marks = ",".join("?" * len(chunk))
-            sql = f"{query} achievement_id IN ({marks})"  # values are bound, never interpolated
+            sql = f"{query} {column} IN ({marks})"  # values are bound, never interpolated
             rows += self._db.execute(sql, chunk).fetchall()
         return rows
 

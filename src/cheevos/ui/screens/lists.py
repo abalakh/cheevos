@@ -25,7 +25,7 @@ def show_recent(ctx: AppContext) -> None:
     if not entries:
         message(strings.RECENT, [strings.NOTHING_UNLOCKED])
         return
-    titles = {game.game_id: game.title for game in ctx.data.games()}
+    titles = ctx.data.game_titles(achievement.game_id for achievement, _ in entries)
     selected = 0
     while True:
         items = [_recent_row(ctx, a, p, titles) for a, p in entries]

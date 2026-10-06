@@ -11,6 +11,7 @@ import sqlite3
 from cheevos.core.models import (
     Achievement,
     AchievementType,
+    Award,
     AwardKind,
     GameDetail,
     GameProgress,
@@ -75,6 +76,10 @@ ON CONFLICT(game_id) DO UPDATE SET
 ACHIEVEMENT_COLUMNS = (
     "achievement_id, game_id, title, description, points, true_ratio, badge_name, "
     "display_order, type, num_awarded, num_awarded_hc, earned_at, earned_hc_at"
+)
+# Same order as the model's fields.
+AWARD_COLUMNS = (
+    "game_id, title, console_name, image_icon, kind, awarded_at, console_id, display_order"
 )
 ACTIVITY_ORDER = (
     "MAX(COALESCE(most_recent_awarded_at, 0), COALESCE(last_played_at, 0)) DESC, "
@@ -164,6 +169,40 @@ def achievement_from_row(row: sqlite3.Row) -> Achievement:
     return Achievement(
         r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], tag, r[9], r[10], r[11], r[12]
     )
+
+
+def award_row(award: Award) -> tuple[object, ...]:
+    """Flatten an award into ``AWARD_COLUMNS`` order.
+
+    Args:
+        award: The award.
+
+    Returns:
+        Values for an insert.
+    """
+    return (
+        award.game_id,
+        award.title,
+        award.console_name,
+        award.image_icon,
+        award.kind.value,
+        award.awarded_at,
+        award.console_id,
+        award.display_order,
+    )
+
+
+def award_from_row(row: sqlite3.Row) -> Award:
+    """Build an award from an ``awards`` row selected with ``AWARD_COLUMNS``.
+
+    Args:
+        row: The row.
+
+    Returns:
+        The award.
+    """
+    r = row
+    return Award(r[0], r[1], r[2], r[3], AwardKind(r[4]), r[5], r[6], r[7])
 
 
 def game_from_detail(detail: GameDetail) -> GameProgress:

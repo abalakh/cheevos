@@ -209,6 +209,12 @@ def test_game_counts_count_games_and_awards_without_reading_them(cache):
     assert cache.game_counts() == (3, 2)
 
 
+def test_game_titles_for_some_games(cache):
+    cache.upsert_games([game(1, title="Zelda"), game(2, title="Metroid"), game(3, title="Doom")])
+    assert cache.game_titles([3, 1, 3, 999]) == {3: "Doom", 1: "Zelda"}
+    assert cache.game_titles([]) == {}
+
+
 def test_version_changes_with_writes_through_any_connection(tmp_path):
     ui = DataCache.open(tmp_path / "data.db", "Balah")
     sync = DataCache.open(tmp_path / "data.db", "Balah")
