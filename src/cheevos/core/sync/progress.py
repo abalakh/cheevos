@@ -53,6 +53,8 @@ class SyncStatus:
         details_fetched: Game detail requests made this sync.
         media_fetched: Images downloaded this sync.
         finished_at: Wall-clock time the sync ended (final phases only).
+        retry_at: Wall-clock time RA asked us to wait until (``RATE_LIMITED`` failures only,
+            when RA said).
     """
 
     phase: Phase = Phase.IDLE
@@ -64,6 +66,7 @@ class SyncStatus:
     details_fetched: int = 0
     media_fetched: int = 0
     finished_at: float | None = None
+    retry_at: float | None = None
 
     @property
     def running(self) -> bool:
@@ -137,13 +140,21 @@ class ProgressTracker:
                 media_fetched=status.media_fetched + int(media),
             )
 
-    def finish(self, phase: Phase, *, failure: Failure | None = None, at: float) -> None:
+    def finish(
+        self,
+        phase: Phase,
+        *,
+        failure: Failure | None = None,
+        at: float,
+        retry_at: float | None = None,
+    ) -> None:
         """Enter a final phase.
 
         Args:
             phase: ``DONE``, ``FAILED`` or ``CANCELLED``.
             failure: Reason, for ``FAILED``.
             at: Wall-clock end time.
+            retry_at: When RA allows requests again, for a ``RATE_LIMITED`` failure.
         """
         with self._lock:
             self._status = dataclasses.replace(
@@ -153,4 +164,5 @@ class ProgressTracker:
                 current="",
                 eta_seconds=None,
                 finished_at=at,
+                retry_at=retry_at,
             )

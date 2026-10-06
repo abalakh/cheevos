@@ -30,13 +30,27 @@ look and counting rules come from the website's own source (RAWeb). The client l
     that, HTTPS is fast enough on the Mini.
   - Timeouts: 10 s connect/read for the API, 20 s for media.
   - User-Agent: `Cheevos/<version> (SpruceOS <spruce version>; <PLATFORM>)`.
-- **Politeness**: RA publishes no rate limits, and none were seen.
-  - API calls are serial, at least 300 ms apart (configurable).
-  - Images: the sync downloads them itself, stored in batches of 25 per transaction; images
-    needed while browsing come from one background worker.
-  - HTTP 429 honours `Retry-After`; 5xx retries with exponential backoff (3 tries).
+- **Rate limit**: RA limits requests per API key but publishes no numbers; its API docs only
+  say rate limiting is enabled. Measured on 2026-10-06 with a 2,937-game account:
+  - at ~2.6 requests/s (the old 0.3 s spacing), HTTP 429 within 7 s (`Retry-After: 1`), then
+    one about every 5 s, and after about 9 of those `Retry-After: 600`;
+  - at 1 request/s, none in 20 minutes (1,154 game details);
+  - per key, not per IP: a keyless request from the same network still got a normal 401;
+  - images: 5,101 downloads at ~20/s drew none.
+- **Politeness**:
+  - API calls start at least 1 s apart, counted across the whole app: the sync, "See more"
+    and the key check share one `Pacer` (`ra_client/pacer.py`). The desktop runner's fixture
+    mode doesn't pace.
+  - Images aren't paced. The sync downloads them itself, stored in batches of 25 per
+    transaction; images needed while browsing come from one background worker.
+  - HTTP 429 with a `Retry-After` of up to 10 s pauses every client, then retries (3 tries;
+    exponential backoff without the header). A longer one fails at once with
+    `RateLimitedError`: the sync stops, stores the time in `meta.rate_limited_until` and
+    doesn't ask RA again before it ([sync-and-storage.md](sync-and-storage.md)).
+  - 5xx retries with exponential backoff (3 tries).
+  - Waits for a slot or a retry can be interrupted: Cancel and exit act at once.
 - **Errors** map to typed exceptions: `AuthError`, `RateLimitedError`, `NetworkError`,
-  `ApiPayloadError`.
+  `ApiPayloadError`, and `RequestCancelledError` for a cancelled wait.
 - Responses are parsed into dataclasses at the client boundary. No raw dicts leak past
   `ra_client`.
 - `FixtureTransport` replays recorded JSON for tests and for the desktop runner's fixture mode.

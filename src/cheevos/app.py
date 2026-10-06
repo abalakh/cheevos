@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+import threading
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -17,6 +18,7 @@ from cheevos.core.errors import AuthError, CheevosError
 from cheevos.core.models import Unlock
 from cheevos.core.net import clock_plausible, is_online
 from cheevos.core.proxy import ProxyReader
+from cheevos.core.ra_client.pacer import API_INTERVAL, Pacer
 from cheevos.core.ra_client.transport import HttpTransport, Transport
 from cheevos.core.screenshots import ScreenshotIndex, screenshot_directory
 from cheevos.core.settings import load_settings
@@ -50,6 +52,8 @@ class AppEnvironment:
         online: Connectivity check.
         clock_ok: Clock plausibility check.
         auto_sync: Overrides the "sync when the app opens" setting when not ``None``.
+        api_interval: Seconds between Web API requests, shared by every client (recorded
+            fixtures need no pacing).
     """
 
     paths: Paths
@@ -57,6 +61,7 @@ class AppEnvironment:
     online: Callable[[], bool] = is_online
     clock_ok: Callable[[float], bool] = clock_plausible
     auto_sync: bool | None = None
+    api_interval: float = API_INTERVAL
 
 
 def _icons_dir(*, bar: bool = False) -> Path:
@@ -76,11 +81,12 @@ def _icons_dir(*, bar: bool = False) -> Path:
     return _RES / "icons" / ("72" if large else "48")
 
 
-def _validator(env: AppEnvironment) -> Callable[[str, str], bool | None]:
+def _validator(env: AppEnvironment, pacer: Pacer) -> Callable[[str, str], bool | None]:
     """Build the API-key check used by setup and settings.
 
     Args:
         env: App environment.
+        pacer: The app's shared request pacer.
 
     Returns:
         ``(username, key) -> True | False | None`` (``None``: RA unreachable).
@@ -88,7 +94,9 @@ def _validator(env: AppEnvironment) -> Callable[[str, str], bool | None]:
 
     def validate(username: str, key: str) -> bool | None:
         """Ask RA whether ``key`` is valid for ``username`` (anything but a rejection: unknown)."""
-        client = make_client(env.paths, Credentials(username, key), env.transport_factory())
+        client = make_client(
+            env.paths, Credentials(username, key), env.transport_factory(), pacer=pacer
+        )
         try:
             return client.validate_key()
         except AuthError:
@@ -101,13 +109,14 @@ def _validator(env: AppEnvironment) -> Callable[[str, str], bool | None]:
 
 
 def _unlock_fetcher(
-    env: AppEnvironment, ctx_ref: list[AppContext]
+    env: AppEnvironment, ctx_ref: list[AppContext], pacer: Pacer
 ) -> Callable[[int, int], list[Unlock] | None]:
     """Build the on-demand unlock fetch behind the profile's "See more".
 
     Args:
         env: App environment.
         ctx_ref: One-element list holding the context.
+        pacer: The app's shared request pacer.
 
     Returns:
         ``(start, end) -> unlocks``, or ``None`` when offline, the clock is unset or RA fails.
@@ -118,7 +127,7 @@ def _unlock_fetcher(
         if not env.online() or not env.clock_ok(time.time()):
             return None
         credentials = ctx_ref[0].credentials
-        client = make_client(env.paths, credentials, env.transport_factory())
+        client = make_client(env.paths, credentials, env.transport_factory(), pacer=pacer)
         try:
             return client.unlocks_between(start, end)
         except CheevosError:
@@ -128,12 +137,15 @@ def _unlock_fetcher(
     return fetch
 
 
-def _media_session(env: AppEnvironment, ctx_ref: list[AppContext]) -> Callable[[], MediaSession]:
+def _media_session(
+    env: AppEnvironment, ctx_ref: list[AppContext], pacer: Pacer
+) -> Callable[[], MediaSession]:
     """Build the lazy fetcher's session factory (runs on the fetcher's thread).
 
     Args:
         env: App environment.
         ctx_ref: One-element list holding the context (set once it exists).
+        pacer: The app's shared request pacer (images aren't paced; API calls would be).
 
     Returns:
         A factory returning ``(client, media cache, close)``.
@@ -142,14 +154,16 @@ def _media_session(env: AppEnvironment, ctx_ref: list[AppContext]) -> Callable[[
     def open_session() -> MediaSession:
         """Open a client and an image-cache connection for the fetcher thread."""
         credentials = ctx_ref[0].credentials
-        client = make_client(env.paths, credentials, env.transport_factory())
+        client = make_client(env.paths, credentials, env.transport_factory(), pacer=pacer)
         media = MediaCache.open(env.paths.media_db, env.paths.media_scratch)
         return client, media, media.close
 
     return open_session
 
 
-def _sync_deps(env: AppEnvironment, ctx_ref: list[AppContext]) -> Callable[[], SyncDeps]:
+def _sync_deps(
+    env: AppEnvironment, ctx_ref: list[AppContext], pacer: Pacer
+) -> Callable[[threading.Event], SyncDeps]:
     """Build the background sync's collaborator factory (runs on the sync thread).
 
     Reads the credentials when each sync starts, so a key changed in Settings applies to the
@@ -158,11 +172,19 @@ def _sync_deps(env: AppEnvironment, ctx_ref: list[AppContext]) -> Callable[[], S
     Args:
         env: App environment.
         ctx_ref: One-element list holding the context.
+        pacer: The app's shared request pacer.
 
     Returns:
-        The factory.
+        The factory, called with the sync's cancel event.
     """
-    return lambda: open_sync_deps(env.paths, ctx_ref[0].credentials, env.transport_factory())
+
+    def open_deps(cancel: threading.Event) -> SyncDeps:
+        """Open the sync's client and caches; its waits stop when ``cancel`` is set."""
+        credentials = ctx_ref[0].credentials
+        transport = env.transport_factory()
+        return open_sync_deps(env.paths, credentials, transport, pacer=pacer, cancel=cancel)
+
+    return open_deps
 
 
 def run(*, started_at: float, env: AppEnvironment) -> None:
@@ -174,7 +196,8 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
     """
     paths = env.paths
     icons = _icons_dir()
-    validate = _validator(env)
+    pacer = Pacer(env.api_interval)  # one per app run: every client shares the key's pace
+    validate = _validator(env, pacer)
     # Nothing to sync before setup ends, but its screens need the bar for their hints.
     with status_bar.installed(lambda _detailed: None, lambda: None):
         credentials = ensure_credentials(paths, validate)
@@ -188,8 +211,8 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
     except CheevosError:
         logger.exception("Could not open the caches")
         return
-    fetcher = LazyMediaFetcher(_media_session(env, ctx_ref))
-    sync = BackgroundSync(_sync_deps(env, ctx_ref), online=env.online, clock_ok=env.clock_ok)
+    fetcher = LazyMediaFetcher(_media_session(env, ctx_ref, pacer))
+    sync = BackgroundSync(_sync_deps(env, ctx_ref, pacer), online=env.online, clock_ok=env.clock_ok)
     ctx = AppContext(
         paths=paths,
         credentials=credentials,
@@ -202,7 +225,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         screenshots=ScreenshotIndex(screenshot_directory(paths)),
         icons=icons,
         validate_key=validate,
-        fetch_unlocks=_unlock_fetcher(env, ctx_ref),
+        fetch_unlocks=_unlock_fetcher(env, ctx_ref, pacer),
     )
     ctx_ref.append(ctx)
     if settings.auto_sync if env.auto_sync is None else env.auto_sync:

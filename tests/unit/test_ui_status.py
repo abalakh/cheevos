@@ -64,8 +64,10 @@ def running(phase: Phase, *, done: int = 0, total: int = 0, current: str = "") -
     return SyncStatus(phase=phase, done=done, total=total, current=current)
 
 
-def finished(phase: Phase, at: float, failure: Failure | None = None) -> SyncStatus:
-    return SyncStatus(phase=phase, failure=failure, finished_at=at)
+def finished(
+    phase: Phase, at: float, failure: Failure | None = None, retry_at: float | None = None
+) -> SyncStatus:
+    return SyncStatus(phase=phase, failure=failure, finished_at=at, retry_at=retry_at)
 
 
 @pytest.mark.parametrize(
@@ -134,6 +136,17 @@ def test_failure_offers_a_way_out_on_detailed_screens(failure, text, icon, actio
     bar = make_bar(ctx)
     assert bar.status(True) == BarStatus(text, ICONS / f"{icon}.png", action)
     assert bar.status(False) is None
+
+
+def test_rate_limit_shows_the_wait_and_offers_retry_only_once_it_is_over():
+    state = finished(Phase.FAILED, NOW, Failure.RATE_LIMITED, retry_at=NOW + 541)
+    ctx = FakeContext(sync=FakeSync(state))
+    bar = make_bar(ctx)
+    waiting = BarStatus("RetroAchievements asked to wait 10 min", ICONS / "cloud.png", "")
+    assert bar.status(True) == waiting
+    ctx.now = NOW + 600
+    over = BarStatus("RetroAchievements unavailable", ICONS / "cloud.png", "Retry")
+    assert bar.status(True) == over
 
 
 def test_cancelled_shows_briefly_then_falls_back_to_last_sync():

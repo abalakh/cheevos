@@ -30,6 +30,10 @@ class RateLimitedError(CheevosError):
         self.retry_after = retry_after
 
 
+class RequestCancelledError(CheevosError):
+    """A wait before a request was cancelled (the sync was cancelled or the app is exiting)."""
+
+
 class ApiPayloadError(CheevosError):
     """RA answered with a status or body we cannot interpret."""
 

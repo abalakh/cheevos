@@ -29,6 +29,7 @@ SYNC_OFFLINE = "Offline · showing saved data"
 SYNC_CLOCK = "Clock not set · connect to Wi-Fi"
 SYNC_AUTH = "API key rejected"
 SYNC_UNAVAILABLE = "RetroAchievements unavailable"
+SYNC_RATE_LIMITED = "RetroAchievements asked to wait {minutes} min"
 SYNC_CANCELLED = "Sync cancelled"
 SYNC_ERROR = "Sync failed · see the log"
 

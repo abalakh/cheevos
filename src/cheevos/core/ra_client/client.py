@@ -4,13 +4,20 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 import time
 from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlencode
 
 import cheevos
-from cheevos.core.errors import ApiPayloadError, AuthError, NetworkError, RateLimitedError
+from cheevos.core.errors import (
+    ApiPayloadError,
+    AuthError,
+    NetworkError,
+    RateLimitedError,
+    RequestCancelledError,
+)
 from cheevos.core.models import (
     Award,
     AwardCounts,
@@ -20,6 +27,7 @@ from cheevos.core.models import (
     UserProfile,
 )
 from cheevos.core.ra_client import parse
+from cheevos.core.ra_client.pacer import API_INTERVAL, LONG_PAUSE, Pacer
 from cheevos.core.ra_client.redact import install_redaction
 from cheevos.core.ra_client.transport import API_HOST, MEDIA_HOST, Response, Transport
 
@@ -85,17 +93,21 @@ def _retry_after(response: Response) -> float | None:
 class RaClient:
     """Typed access to the Web API endpoints Cheevos uses.
 
-    API requests are spaced at least ``min_interval`` seconds apart (RA publishes no rate
-    limits; this keeps a full sync polite). Media downloads are not throttled.
+    API requests take their slots from a :class:`Pacer`, which the app shares between all its
+    clients so their combined pace stays within RA's limit. Media downloads are not paced.
 
     Args:
         username: RA username whose data is requested.
         api_key: The user's Web API key; registered for log redaction.
         transport: HTTP transport (keep-alive HTTPS, or fixtures in tests).
         user_agent: User-Agent header value.
-        min_interval: Minimum seconds between API requests.
-        clock: Monotonic clock (injectable for tests).
-        sleep: Sleep function (injectable for tests).
+        pacer: Shared request pacer; a private one spacing requests ``min_interval`` apart
+            when ``None``.
+        min_interval: Seconds between API requests for a private pacer.
+        cancel: When set, waits for a slot or a retry stop with
+            :class:`~cheevos.core.errors.RequestCancelledError`.
+        clock: Monotonic clock for a private pacer (injectable for tests).
+        sleep: Sleep function, used when there is no ``cancel`` event (injectable for tests).
         max_retries: Retries for HTTP 429 and 5xx responses.
     """
 
@@ -106,7 +118,9 @@ class RaClient:
         transport: Transport,
         *,
         user_agent: str,
-        min_interval: float = 0.3,
+        pacer: Pacer | None = None,
+        min_interval: float = API_INTERVAL,
+        cancel: threading.Event | None = None,
         clock: Callable[[], float] = time.monotonic,
         sleep: Callable[[float], None] = time.sleep,
         max_retries: int = 3,
@@ -116,11 +130,10 @@ class RaClient:
         self._api_key = api_key
         self._transport = transport
         self._headers = {"User-Agent": user_agent, "Accept": "application/json"}
-        self._min_interval = min_interval
-        self._clock = clock
+        self._pacer = pacer if pacer is not None else Pacer(min_interval, clock=clock)
+        self._cancel = cancel
         self._sleep = sleep
         self._max_retries = max_retries
-        self._last_request: float | None = None
 
     @property
     def username(self) -> str:
@@ -267,7 +280,7 @@ class RaClient:
         path = f"/API/{method}.php?{query}"
         attempt = 0
         while True:
-            self._throttle()
+            self._wait(self._pacer.reserve())
             response = self._transport.get(API_HOST, path, self._headers)
             delay = self._retry_delay(method, response, attempt)
             if delay is None:
@@ -281,17 +294,26 @@ class RaClient:
                 attempt,
                 self._max_retries,
             )
-            self._sleep(delay)
+            if response.status == _HTTP_TOO_MANY:
+                self._pacer.pause(delay)  # every client sharing the pacer waits
+            else:
+                self._wait(delay)
 
-    def _throttle(self) -> None:
-        """Wait so API requests are at least ``min_interval`` apart."""
-        now = self._clock()
-        if self._last_request is not None:
-            wait = self._min_interval - (now - self._last_request)
-            if wait > 0:
-                self._sleep(wait)
-                now = self._clock()
-        self._last_request = now
+    def _wait(self, seconds: float) -> None:
+        """Wait before a request, stopping early when cancelled.
+
+        Args:
+            seconds: How long to wait (nothing happens for 0 or less).
+
+        Raises:
+            RequestCancelledError: The cancel event was set before or during the wait.
+        """
+        if self._cancel is None:
+            if seconds > 0:
+                self._sleep(seconds)
+            return
+        if self._cancel.wait(max(seconds, 0.0)):
+            raise RequestCancelledError
 
     def _retry_delay(self, method: str, response: Response, attempt: int) -> float | None:
         """Decide whether a response should be retried, and after how long.
@@ -305,12 +327,18 @@ class RaClient:
             Seconds to wait before retrying, or ``None`` if the response is final.
 
         Raises:
-            RateLimitedError: Still rate limited after ``max_retries`` retries.
+            RateLimitedError: RA asked for a pause longer than
+                :data:`~cheevos.core.ra_client.pacer.LONG_PAUSE` (every client sharing the
+                pacer is paused too), or it is still rate limited after ``max_retries`` retries.
             NetworkError: Still failing with 5xx after ``max_retries`` retries.
         """
         backoff = float(2**attempt)
         if response.status == _HTTP_TOO_MANY:
             retry_after = _retry_after(response)
+            if retry_after is not None and retry_after > LONG_PAUSE:
+                logger.warning("%s: HTTP 429, RA asked for %.0fs; stopping", method, retry_after)
+                self._pacer.pause(retry_after)
+                raise RateLimitedError(retry_after)
             if attempt >= self._max_retries:
                 raise RateLimitedError(retry_after)
             return retry_after if retry_after is not None else backoff

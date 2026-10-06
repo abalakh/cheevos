@@ -1,5 +1,6 @@
 import json
 import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -12,6 +13,7 @@ from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.media_cache import MediaCache, avatar_key, badge_key, icon_key
 from cheevos.core.sync.engine import (
     LAST_SYNC_KEY,
+    RATE_LIMITED_UNTIL_KEY,
     BackgroundSync,
     SyncDeps,
     SyncEngine,
@@ -59,13 +61,13 @@ class Harness:
         self.clock_ok = True
         self.on_device = set(on_device)
 
-    def engine(self):
+    def engine(self, now=NOW):
         deps = SyncDeps(self.client, self.data, self.media, on_device=lambda: self.on_device)
         return SyncEngine(
             deps,
             self.tracker,
             self.cancel,
-            clock=lambda: NOW,
+            clock=lambda: now,
             online=lambda: self.online,
             clock_ok=lambda _now: self.clock_ok,
         )
@@ -227,7 +229,7 @@ def test_background_sync_runs_on_a_worker_and_closes(tmp_path):
     closed = threading.Event()
     transport = FixtureTransport(FIXTURES, media_dir=build_media_dir(tmp_path / "host"))
 
-    def open_deps():
+    def open_deps(_cancel):
         client = RaClient("Balah", "k" * 32, transport, user_agent="test", min_interval=0)
         data = DataCache.open(tmp_path / "data.db", "Balah")
         media = MediaCache.open(tmp_path / "media.db", tmp_path / "scratch")
@@ -248,7 +250,7 @@ def test_background_sync_runs_on_a_worker_and_closes(tmp_path):
 
 
 def test_background_sync_reports_open_failure(tmp_path):
-    def open_deps():
+    def open_deps(_cancel):
         raise CheevosError("no key")
 
     sync = BackgroundSync(open_deps, online=lambda: True, clock_ok=lambda _now: True)
@@ -264,14 +266,16 @@ def test_auth_error_type_is_cheevos_error():
 class StatusTransport(FixtureTransport):
     """Fixture transport that answers one endpoint (or media) with a fixed status."""
 
-    def __init__(self, *args, fail_on, status, **kwargs):
+    def __init__(self, *args, fail_on, status, retry_after="0", **kwargs):
         super().__init__(*args, **kwargs)
         self.fail_on = fail_on
         self.status = status
+        self.retry_after = retry_after
 
     def get(self, host, path, headers):
         if self.fail_on in path:
-            return Response(status=self.status, headers={"retry-after": "0"}, body=b"{}")
+            headers = {"retry-after": self.retry_after}
+            return Response(status=self.status, headers=headers, body=b"{}")
         return super().get(host, path, headers)
 
 
@@ -307,7 +311,7 @@ def test_network_drop_during_media_keeps_downloaded_images(tmp_path):
 def test_background_sync_refuses_a_second_concurrent_start(tmp_path):
     release = threading.Event()
 
-    def open_deps():
+    def open_deps(_cancel):
         release.wait(5)
         raise CheevosError("stop")
 
@@ -354,3 +358,51 @@ def test_interrupted_full_resync_resumes_as_full(harness):
     assert status.details_fetched == len(recorded_game_ids()) - 4
     clock["now"] += 100
     assert engine().run(SyncOptions()).details_fetched == 0  # and then it's done
+
+
+def test_a_long_rate_limit_is_remembered_until_its_time_is_up(tmp_path):
+    media_dir = build_media_dir(tmp_path / "host")
+    transport = StatusTransport(
+        FIXTURES, media_dir=media_dir, fail_on="API_GetUserAwards", status=429, retry_after="600"
+    )
+    harness = Harness(tmp_path, transport=transport)
+    status = harness.engine().run(SyncOptions())
+    assert (status.failure, status.retry_at) == (Failure.RATE_LIMITED, NOW + 600)
+    assert harness.data.get_meta(RATE_LIMITED_UNTIL_KEY) == str(NOW + 600)
+
+    asked = len(transport.calls)
+    status = harness.engine(now=NOW + 300).run(SyncOptions())  # Start again too early
+    assert (status.failure, status.retry_at) == (Failure.RATE_LIMITED, NOW + 600)
+    assert len(transport.calls) == asked  # refused without asking RA
+
+    harness.transport = FixtureTransport(FIXTURES, media_dir=media_dir)
+    harness.client = RaClient("Balah", "k" * 32, harness.transport, user_agent="t", min_interval=0)
+    assert harness.engine(now=NOW + 601).run(SyncOptions()).phase is Phase.DONE
+    assert harness.data.get_meta(RATE_LIMITED_UNTIL_KEY) is None
+
+
+def test_cancel_during_a_wait_for_the_next_request_cancels_at_once(tmp_path):
+    harness = Harness(tmp_path)
+    harness.client = RaClient(
+        "Balah", "k" * 32, harness.transport, user_agent="t", min_interval=30, cancel=harness.cancel
+    )
+    threading.Timer(0.05, harness.cancel.set).start()
+    started = time.monotonic()
+    status = harness.engine().run(SyncOptions())  # the second request would wait 30 s
+    assert status.phase is Phase.CANCELLED
+    assert time.monotonic() - started < 5
+
+
+def test_background_sync_hands_each_run_its_cancel_event(tmp_path):
+    seen = []
+
+    def open_deps(cancel):
+        seen.append(cancel)
+        raise CheevosError("stop")
+
+    sync = BackgroundSync(open_deps, online=lambda: True, clock_ok=lambda _now: True)
+    sync.start(SyncOptions())
+    sync.join(timeout=5)
+    sync.cancel()
+    assert seen
+    assert seen[0].is_set()

@@ -70,6 +70,9 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
 1. **Pre-flight**:
    - Connectivity: interface up plus `HEAD https://retroachievements.org` with a 3 s timeout.
    - Clock plausibility: year ≥ 2026. If the clock is wrong, show "Clock not synced" and skip.
+   - Rate limit: if RA asked for a long pause (`meta.rate_limited_until`) and the time isn't up,
+     stop with "RetroAchievements asked to wait N min" without a request. A finished sync
+     clears it.
 2. **Profile**: `GetUserSummary` (`g=1` for the last game).
 3. **Game list**: every page of `GetUserCompletionProgress`. Upsert the `games` rows. Compute a
    fingerprint per game: `(MaxPossible, NumAwarded, NumAwardedHardcore, MostRecentAwardedDate,
@@ -100,7 +103,8 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
 - **Triggers**: auto on app open when the network is up and the setting is on; Start on any
   screen; Settings → "Sync now" / "Full re-sync".
 - **Cancellation**: sync stops at the next safe point when Start is pressed again or the app
-  exits.
+  exits. A wait for the next request slot or a retry ends at once (the client raises
+  `RequestCancelledError`).
 - **Progress**: phase, `done/total`, current game title, and an ETA from a moving average.
 
 `python -m cheevos.core.sync` runs a sync without the UI ([TESTING.md](../TESTING.md)).
@@ -116,3 +120,6 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
   only ([pyui.md](pyui.md), "Downloads follow the visible rows").
 - **SQLite**: one connection per thread. Writes happen only on the sync thread, in short
   transactions. The UI never waits on the network.
+- **Request pacing**: every thread that calls the Web API takes its slots from the app's one
+  `Pacer`, so together they stay at 1 request/s ([retroachievements.md](retroachievements.md),
+  "Politeness").

@@ -219,7 +219,8 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
 | No Wi-Fi, no cache | Open on empty lists. The bottom bar shows "Offline · showing saved data"; Start syncs once online. A key typed during setup is saved unchecked. |
 | Clock not synced | Skip sync and show a hint. Cached data still works. |
 | Key rejected (file typo, or reset on the site) | Stop sync. The bottom bar shows "API key rejected" and Start opens the keyboard; a key RA accepts is saved and synced at once. Cache stays usable. |
-| Rate limited / RA down | Back off. The bottom bar shows "RetroAchievements unavailable". |
+| RA down (5xx, timeouts) | Back off (3 tries). The bottom bar shows "RetroAchievements unavailable". |
+| RA asks us to slow down (HTTP 429) | Pauses of up to 10 s are waited out. A longer one stops the sync: the bottom bar shows "RetroAchievements asked to wait N min" with no Retry hint, and no sync asks RA again before then. Cached data stays usable. |
 | Power-off mid-sync | Resumes next run. Per-game commits mean the DB is never half-written for a game. |
 | Proxy missing or unreadable | Hide the Settings status row and pending markers. |
 | Theme lacks an asset we use | Fall back to our bundled icons (`cheevos/res/`) or generate it (button badges). |

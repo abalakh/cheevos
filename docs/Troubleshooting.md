@@ -10,6 +10,7 @@
 | "Clock not set · connect to Wi-Fi" | The device doesn't know the time yet, and secure connections need it. Turn on Wi-Fi, wait a moment, and press **Start**. |
 | "Offline · showing saved data" | No connection. Everything synced before is still there. Press **Start** to retry. |
 | "RetroAchievements unavailable" | The site is busy or down. Cheevos uses your saved data; try again later. |
+| "RetroAchievements asked to wait N min" | RetroAchievements limits how often an app may ask for data, and asked Cheevos to pause. Cheevos uses your saved data and syncs again once the time is up. Other tools using the same Web API key count towards the same limit. |
 | A pixel-art trophy (unlocked), grey lock (locked) or gamepad instead of a badge or game icon | The image isn't downloaded yet. It appears once you're online. To download more ahead of time, change **Badge downloads** in Settings. |
 | Something looks out of date | Press **Start**. If it's still wrong, use **Settings → Full re-sync**. |
 | No screenshot on an achievement | RetroArch only saves one when **Automatic Screenshot** is on (see [Setup](Setup)), and only for unlocks after that. |

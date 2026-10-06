@@ -8,6 +8,7 @@ import pytest
 
 from cheevos.app import AppEnvironment, _validator
 from cheevos.core.ra_client import Response
+from cheevos.core.ra_client.pacer import Pacer
 from cheevos.core.sync.session import Credentials
 from cheevos.platform.paths import Paths
 from cheevos.ui import strings
@@ -33,7 +34,7 @@ class Answer:
 def test_key_check_answers_instead_of_raising(tmp_path, status, verdict):
     paths = Paths(sdcard=tmp_path, platform="MiyooMini")
     env = AppEnvironment(paths=paths, transport_factory=lambda: Answer(status))
-    assert _validator(env)("Balah", KEY) is verdict
+    assert _validator(env, Pacer(0.0))("Balah", KEY) is verdict
 
 
 def fake_pyui(monkeypatch, pyui_log, get_input, entry=None):

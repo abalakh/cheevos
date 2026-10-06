@@ -9,6 +9,7 @@ when idle.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from pathlib import Path
 
@@ -125,6 +126,9 @@ class SyncBar:
         if state.phase is Phase.FAILED and state.failure is not None:
             text, icon = _FAILURES[state.failure]
             action = strings.ENTER_KEY if state.failure is Failure.AUTH else strings.SYNC_RETRY
+            wait = self._rate_limit_wait(state)
+            if wait is not None:  # retrying before RA's time is up would fail again
+                text, action = strings.SYNC_RATE_LIMITED.format(minutes=wait), ""
             return BarStatus(text, self._icon(icon), action if detailed else "")
         action = strings.SYNC if detailed else ""
         if state.phase is Phase.CANCELLED and fresh:
@@ -133,6 +137,20 @@ class SyncBar:
             return BarStatus(strings.SYNC_NEVER, self._icon("reload"), action)
         ago = fmt.ago(int(self._last_sync), self._ctx.clock())
         return BarStatus(strings.SYNC_DONE_AGO.format(ago=ago), self._icon("check"), action)
+
+    def _rate_limit_wait(self, state: SyncStatus) -> int | None:
+        """Return the minutes left before RA allows requests again, after a rate limit.
+
+        Args:
+            state: A failed sync's status.
+
+        Returns:
+            Whole minutes, rounded up, or ``None`` when there's no wait left (or RA didn't say).
+        """
+        if state.failure is not Failure.RATE_LIMITED or state.retry_at is None:
+            return None
+        left = state.retry_at - self._ctx.clock()
+        return math.ceil(left / 60) if left > 0 else None
 
     def press_start(self) -> None:
         """Start a sync, cancel the running one, or ask for a new key after a rejection."""

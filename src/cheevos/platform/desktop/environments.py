@@ -15,6 +15,7 @@ import threading
 from pathlib import Path
 
 from cheevos.app import AppEnvironment
+from cheevos.core.ra_client.pacer import Pacer
 from cheevos.core.ra_client.transport import FixtureTransport
 from cheevos.core.settings import BadgeScope
 from cheevos.core.sync.engine import SyncEngine, SyncOptions
@@ -119,7 +120,8 @@ def fixture_environment(sd_root: Path) -> AppEnvironment:
     _prepare_fixture_card(paths)
     prepare_card(scenario, paths, FIXTURES)
     transport = drill.transport if drill.seeds_card and drill.transport else _fixture_transport
-    deps = open_sync_deps(paths, Credentials(FIXTURE_USER, DUMMY_KEY), transport())
+    credentials = Credentials(FIXTURE_USER, DUMMY_KEY)
+    deps = open_sync_deps(paths, credentials, transport(), pacer=Pacer(0.0))
     try:
         engine = SyncEngine(
             deps,
@@ -138,6 +140,7 @@ def fixture_environment(sd_root: Path) -> AppEnvironment:
         online=lambda: drill.online,
         clock_ok=lambda _now: drill.clock_ok,
         auto_sync=drill.auto_sync,
+        api_interval=0.0,  # recorded responses: nothing to be polite to
     )
 
 

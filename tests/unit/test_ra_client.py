@@ -1,5 +1,7 @@
 import json
 import logging
+import threading
+import time
 from calendar import timegm
 from pathlib import Path
 from urllib.parse import parse_qsl, urlsplit
@@ -7,9 +9,16 @@ from urllib.parse import parse_qsl, urlsplit
 import pytest
 
 import cheevos
-from cheevos.core.errors import ApiPayloadError, AuthError, NetworkError, RateLimitedError
+from cheevos.core.errors import (
+    ApiPayloadError,
+    AuthError,
+    NetworkError,
+    RateLimitedError,
+    RequestCancelledError,
+)
 from cheevos.core.ra_client import FixtureTransport, RaClient, RedactingFilter, Response
 from cheevos.core.ra_client.client import default_user_agent
+from cheevos.core.ra_client.pacer import Pacer
 from cheevos.core.ra_client.redact import install_redaction
 from cheevos.core.ra_client.transport import API_HOST, MEDIA_HOST
 
@@ -245,10 +254,54 @@ def test_rate_limit_without_header_uses_backoff_and_gives_up():
 
 
 def test_rate_limit_error_carries_retry_after():
-    transport = ScriptedTransport(*[Response(status=429, headers={"retry-after": "30"})] * 2)
+    transport = ScriptedTransport(*[Response(status=429, headers={"retry-after": "8"})] * 2)
     with pytest.raises(RateLimitedError) as raised:
         make(transport, min_interval=0, max_retries=1).validate_key()
-    assert raised.value.retry_after == 30.0
+    assert raised.value.retry_after == 8.0
+
+
+def test_a_long_retry_after_stops_at_once_and_pauses_every_client():
+    clock = FakeClock()
+    pacer = Pacer(0.0, clock=clock)
+    first = ScriptedTransport(Response(status=429, headers={"retry-after": "600"}))
+    with pytest.raises(RateLimitedError) as raised:
+        make(first, clock, pacer=pacer).validate_key()
+    assert raised.value.retry_after == 600.0
+    assert clock.sleeps == []  # nothing waited out on the caller's thread
+    second = ScriptedTransport()
+    with pytest.raises(RateLimitedError):
+        make(second, clock, pacer=pacer).validate_key()
+    assert second.calls == []  # the other client didn't even ask
+
+
+def test_clients_sharing_a_pacer_keep_their_combined_pace():
+    clock = FakeClock()
+    pacer = Pacer(1.0, clock=clock)
+    make(ScriptedTransport(ok({"User": "a"})), clock, pacer=pacer).validate_key()
+    make(ScriptedTransport(ok({"User": "a"})), clock, pacer=pacer).validate_key()
+    assert clock.sleeps == [1.0]
+
+
+def test_a_cancelled_client_makes_no_request():
+    cancel = threading.Event()
+    cancel.set()
+    transport = ScriptedTransport()
+    with pytest.raises(RequestCancelledError):
+        make(transport, cancel=cancel, min_interval=0).validate_key()
+    assert transport.calls == []
+
+
+def test_cancel_interrupts_a_wait_for_the_next_slot():
+    cancel = threading.Event()
+    transport = ScriptedTransport(ok({"User": "a"}), ok({"User": "a"}))
+    client = RaClient("Balah", KEY, transport, user_agent="t", min_interval=30, cancel=cancel)
+    client.validate_key()
+    threading.Timer(0.05, cancel.set).start()
+    started = time.monotonic()
+    with pytest.raises(RequestCancelledError):
+        client.validate_key()  # would wait 30 s for its slot
+    assert time.monotonic() - started < 5
+    assert len(transport.calls) == 1
 
 
 def test_server_errors_back_off_then_fail():

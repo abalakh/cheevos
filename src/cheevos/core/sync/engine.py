@@ -16,7 +16,13 @@ import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 
-from cheevos.core.errors import AuthError, CheevosError, NetworkError, RateLimitedError
+from cheevos.core.errors import (
+    AuthError,
+    CheevosError,
+    NetworkError,
+    RateLimitedError,
+    RequestCancelledError,
+)
 from cheevos.core.models import GameProgress
 from cheevos.core.ra_client.client import RaClient
 from cheevos.core.settings import BadgeScope
@@ -31,6 +37,9 @@ MEDIA_BATCH = 25  # images per transaction: few commits on the SD's dirsync FAT3
 LAST_SYNC_KEY = "last_sync_at"
 # Set while a full re-sync is unfinished: details fetched before it are re-fetched.
 FULL_SINCE_KEY = "full_resync_since"
+# When RA allows requests again after asking for a long pause (wall clock, epoch seconds).
+RATE_LIMITED_UNTIL_KEY = "rate_limited_until"
+RATE_LIMIT_PAUSE = 60.0  # assumed pause when RA rate-limits without saying for how long
 
 
 class SyncCancelledError(Exception):
@@ -42,11 +51,13 @@ class _FailedError(Exception):
 
     Args:
         failure: The reason.
+        retry_at: When RA allows requests again, for ``RATE_LIMITED``.
     """
 
-    def __init__(self, failure: Failure) -> None:
+    def __init__(self, failure: Failure, retry_at: float | None = None) -> None:
         super().__init__(failure.value)
         self.failure = failure
+        self.retry_at = retry_at
 
 
 @dataclass(frozen=True, slots=True)
@@ -132,18 +143,25 @@ class SyncEngine:
             self._sync_details(games, full=options.full)
             self._sync_awards()
             self._sync_media(games, options)
-        except SyncCancelledError:
+        except (SyncCancelledError, RequestCancelledError):
             logger.info("Sync cancelled")
             self._tracker.finish(Phase.CANCELLED, at=self._clock())
         except _FailedError as stop:
             logger.info("Sync stopped: %s", stop.failure.value)
-            self._tracker.finish(Phase.FAILED, failure=stop.failure, at=self._clock())
+            self._tracker.finish(
+                Phase.FAILED, failure=stop.failure, at=self._clock(), retry_at=stop.retry_at
+            )
         except AuthError:
             logger.warning("Sync failed: API key rejected")
             self._tracker.finish(Phase.FAILED, failure=Failure.AUTH, at=self._clock())
-        except RateLimitedError:
-            logger.warning("Sync failed: rate limited by RA")
-            self._tracker.finish(Phase.FAILED, failure=Failure.RATE_LIMITED, at=self._clock())
+        except RateLimitedError as exc:
+            now = self._clock()
+            pause = exc.retry_after if exc.retry_after is not None else RATE_LIMIT_PAUSE
+            self._deps.data.set_meta(RATE_LIMITED_UNTIL_KEY, str(int(now + pause)))
+            logger.warning("Sync stopped: RA asked us to wait %.0fs", pause)
+            self._tracker.finish(
+                Phase.FAILED, failure=Failure.RATE_LIMITED, at=now, retry_at=now + pause
+            )
         except NetworkError as exc:
             logger.warning("Sync failed: network error: %s", exc)
             self._tracker.finish(Phase.FAILED, failure=Failure.NETWORK, at=self._clock())
@@ -154,6 +172,7 @@ class SyncEngine:
             now = self._clock()
             self._deps.data.set_meta(LAST_SYNC_KEY, str(int(now)))
             self._deps.data.set_meta(FULL_SINCE_KEY, None)
+            self._deps.data.set_meta(RATE_LIMITED_UNTIL_KEY, None)
             self._tracker.finish(Phase.DONE, at=now)
             status = self._tracker.snapshot()
             logger.info(
@@ -173,16 +192,33 @@ class SyncEngine:
             raise SyncCancelledError
 
     def _preflight(self) -> None:
-        """Check the clock and the network before any HTTPS request.
+        """Check the clock, RA's last pause request and the network before any HTTPS request.
 
         Raises:
-            _FailedError: Clock not synced, or no connection to RA.
+            _FailedError: Clock not synced, RA asked us to wait and the time isn't up, or no
+                connection to RA.
         """
         self._tracker.phase(Phase.PREFLIGHT)
-        if not self._clock_ok(self._clock()):
+        now = self._clock()
+        if not self._clock_ok(now):
             raise _FailedError(Failure.CLOCK)
+        until = self._rate_limited_until()
+        if until is not None and until > now:
+            raise _FailedError(Failure.RATE_LIMITED, retry_at=until)
         if not self._online():
             raise _FailedError(Failure.OFFLINE)
+
+    def _rate_limited_until(self) -> float | None:
+        """Return when RA allows requests again, if a past sync was told to wait.
+
+        Returns:
+            The time, or ``None`` when there is none (or it can't be read).
+        """
+        raw = self._deps.data.get_meta(RATE_LIMITED_UNTIL_KEY)
+        try:
+            return float(raw) if raw is not None else None
+        except ValueError:
+            return None
 
     def _sync_profile(self) -> None:
         """Fetch and store the account summary."""
@@ -327,14 +363,15 @@ class BackgroundSync:
     """Runs syncs on a worker thread; the UI polls :meth:`status` on its input ticks.
 
     Args:
-        open_deps: Creates the sync collaborators; called on the worker thread.
+        open_deps: Creates the sync collaborators; called on the worker thread with the
+            sync's cancel event (its client's waits stop when it is set).
         online: Connectivity check passed to the engine.
         clock_ok: Clock plausibility check passed to the engine.
     """
 
     def __init__(
         self,
-        open_deps: Callable[[], SyncDeps],
+        open_deps: Callable[[threading.Event], SyncDeps],
         *,
         online: Callable[[], bool],
         clock_ok: Callable[[float], bool],
@@ -371,7 +408,7 @@ class BackgroundSync:
         return True
 
     def cancel(self) -> None:
-        """Ask a running sync to stop at the next request boundary."""
+        """Ask a running sync to stop: at once while it waits, else after the current request."""
         self._cancel.set()
 
     @property
@@ -395,7 +432,7 @@ class BackgroundSync:
             options: What to sync.
         """
         try:
-            deps = self._open_deps()
+            deps = self._open_deps(self._cancel)
         except CheevosError:
             logger.exception("Could not start sync")
             self._tracker.finish(Phase.FAILED, failure=Failure.ERROR, at=time.time())
