@@ -82,7 +82,8 @@ app/                     packaging: config.json, launch.sh, cheevos.png
 assets/                  icon sources (SVG)
 tests/                   unit and screen tests, fixtures/
 scripts/                 check_conventions, record_fixtures, fetch_dev_media, fetch_pyui.sh,
-                         build_package, render_icons, make_synthetic_cache, doc_screens, device.sh
+                         build_package, release_notes, render_icons, make_synthetic_cache,
+                         doc_screens, device.sh
 docs/                    the user guide, published as the GitHub wiki (images/ from doc_screens)
 .agents/                 docs for coding agents, by area (AGENTS.md is the entry point)
 README.md, CONTRIBUTING.md, TESTING.md

@@ -46,7 +46,9 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
   any platform.
 - The release is that zip, which extracts to the SD card root. Pushing a `v<version>` tag
   publishes it as a GitHub release (the `release` job in `ci.yml`; steps in TESTING.md, under
-  "Releases"). Game Nursery packaging follows whatever format the maintainers ask for.
+  "Releases"). The description links merged PR titles and direct commit titles. Pre-releases
+  start at the previous version tag; stable releases start at the previous stable tag.
+  Game Nursery packaging follows whatever format the maintainers ask for.
 
 ## Device gotchas (verified on a Miyoo Mini+, SpruceOS 4.5.0)
 - **Idle check:** a test once replaced the cache under an open session; hence the rule to check
