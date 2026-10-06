@@ -8,7 +8,7 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 | Item | Value |
 |---|---|
 | OS | SpruceOS ≥ 4.5.0. Needs PyUI views, `spruce/scripts/appEnv.sh` and RAOfflineProxy 2.x. |
-| Devices | Every device Spruce supports. Verified on a Miyoo Mini+ (640×480); `TESTED_DEVICES` (`app.py`) lists the Mini family. Elsewhere a one-time note asks for reports. |
+| Devices | Every device Spruce supports. Verified on a Miyoo Mini+ (640×480); the rest of the Mini family shares its setup. Others are untested. |
 | Resolutions | Every resolution the default SPRUCE theme ships: 640×480, 720×480, 752×560, 720×720, 960×720, 1024×768, 1280×720, 480×800. |
 | Runtime | Spruce's CPython **3.10.18**: `$SPRUCE_PYTHON` (32-bit: `spruce/bin/python/bin/python3.10`; 64-bit: `spruce/flip/bin/python3.10`). |
 | Built-in modules we rely on | `ssl` (OpenSSL 3.5), `sqlite3`, `json`, `hashlib`, `zlib`, `ctypes`, `zoneinfo` |
@@ -34,11 +34,12 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 - The Apps launcher discovers any `App/*/config.json`. PyUI exits fully while the app runs and
   restarts when it quits.
 - **No `devices` list:** a `devices` list in an app's `config.json` hides it on every device not
-  named there. Cheevos ships without one, so the Apps menu shows it on every device, and handles
-  untested devices itself. `launch.sh` covers every platform PyUI's launcher does.
-- **Untested devices:** on a device not in `TESTED_DEVICES`, the app shows a one-time
-  "untested device" note with the log's path (remembered as `untested_note` in
-  `settings.json`). Add each device that has been tried to `TESTED_DEVICES`.
+  named there. Cheevos ships without one, so the Apps menu shows it on every device.
+  `launch.sh` covers every platform PyUI's launcher does.
+- **Untested devices run the same code as the Mini.** Keep device-specific screens and code
+  paths out of the app: we can't test them, so on exactly the devices they're for they would
+  be the riskiest code. A one-time "untested device" note was removed for this reason (it also
+  gave users nothing to act on). Release notes say which devices are tested.
 - **Start-up failures:** when the app exits non-zero, `launch.sh` appends its stderr to the app
   log and shows a message ([product.md](product.md), "Offline and error behaviour").
   `/mnt/SDCARD/App/PyUI/launch.sh -msgDisplay "text" -msgDisplayTimeMs 5000` shows a message on

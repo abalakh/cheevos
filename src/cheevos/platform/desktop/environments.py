@@ -138,7 +138,6 @@ def fixture_environment(sd_root: Path) -> AppEnvironment:
         online=lambda: drill.online,
         clock_ok=lambda _now: drill.clock_ok,
         auto_sync=drill.auto_sync,
-        device=drill.device,
     )
 
 

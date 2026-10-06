@@ -90,7 +90,7 @@ def main() -> int:
     logger.info("PyUI ready after %.2fs", time.monotonic() - STARTED_AT)
 
     try:
-        env = app.AppEnvironment(paths=Paths.from_env(), device=device_name)
+        env = app.AppEnvironment(paths=Paths.from_env())
         app.run(started_at=STARTED_AT, env=env)
     except Exception:
         logger.exception("Unhandled error")

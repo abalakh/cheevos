@@ -244,12 +244,6 @@ HINT_DELETE = "Delete"
 HINT_SHIFT = "Shift"
 HINT_CAPS = "Caps"
 EXIT = "Exit"
-UNTESTED_TITLE = "Untested device"
-UNTESTED_TEXT = "Cheevos hasn't been tested on this device ({device}) yet."
-UNTESTED_REPORT = (
-    "If something looks wrong, please report it on the project's GitHub page and attach the "
-    "log: {log}"
-)
 
 # --- generic ----------------------------------------------------------------------------------
 LOADING = "Loading…"

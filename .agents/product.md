@@ -161,8 +161,7 @@ Stored in `Saves/cheevos/settings.json`.
 | Actions | — | Sync now · Full re-sync · Re-enter API key · Clear image cache (shows size) |
 | About | — | Version, license (MIT), credits: PyUI (Copyright (c) 2025 Christopher Jacobs; its license requires this user-facing credit), pixelarticons (MIT), RetroAchievements as the data source |
 
-The file also remembers `game_list_details` (the games list view) and `untested_note` (the
-one-time note on an untested device).
+The file also remembers `game_list_details` (the games list view).
 
 ## Controls
 These follow the conventions of Spruce's own menus (see [pyui.md](pyui.md), "Buttons"): X acts
@@ -226,4 +225,3 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
 | Theme lacks an asset we use | Fall back to our bundled icons (`cheevos/res/`) or generate it (button badges). |
 | The app can't start (PyUI import, bootstrap, any crash) | `launch.sh` sees the non-zero exit, appends stderr to the app log (errors before logging starts only reach stderr), and shows "Cheevos couldn't start" with the log's path through `App/PyUI/launch.sh -msgDisplay` (PyUI's launcher sets up every platform's display). Verified on the Mini. |
 | Unknown platform | `launch.sh` shows "Cheevos doesn't support this device yet" the same way. |
-| Untested device | A one-time note on first start asks for a report with the log's path ([device.md](device.md)). |

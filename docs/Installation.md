@@ -4,8 +4,7 @@
 - **SpruceOS 4.5.0 or newer.** Cheevos uses Spruce's own UI toolkit (PyUI) and Python, so it
   needs nothing else.
 - **A device Spruce runs on.** Cheevos is tested on the Miyoo Mini family; on other devices it
-  should work too, and it tells you on first start if yours hasn't been tested yet (see
-  [Themes and devices](Themes-and-Devices)).
+  should work too (see [Themes and devices](Themes-and-Devices)).
 - **A RetroAchievements account**, signed in on the device (in Spruce's RetroAchievements
   settings or in RetroArch), and its **Web API key**. See [Setup](Setup).
 - **Wi-Fi** for the first sync. After that, Cheevos also works offline.

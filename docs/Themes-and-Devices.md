@@ -27,8 +27,8 @@ Mini v4, Mini Flip) shares its hardware and software setup.
 
 It's installed and started the same way on Spruce's other devices (Miyoo A30 and Flip, TrimUI
 Brick and Smart Pro, Anbernic RG devices, and more): its launcher uses the same settings Spruce
-uses to start its own UI on each of them. They just haven't been tried yet. On such a device
-Cheevos says so once, on first start, and asks you to report how it went.
+uses to start its own UI on each of them. They just haven't been tried yet, so please report
+how it went.
 
 If it doesn't start at all, you get a short message ("Cheevos couldn't start") and are back in
 Spruce's menu: nothing is changed on your SD card. Either way, a report with the log

@@ -6,7 +6,6 @@ only in the :class:`AppEnvironment` they pass (real HTTPS vs. recorded fixtures)
 
 from __future__ import annotations
 
-import dataclasses
 import logging
 import shutil
 import time
@@ -20,7 +19,7 @@ from cheevos.core.net import clock_plausible, is_online
 from cheevos.core.proxy import ProxyReader
 from cheevos.core.ra_client.transport import HttpTransport, Transport
 from cheevos.core.screenshots import ScreenshotIndex, screenshot_directory
-from cheevos.core.settings import load_settings, save_settings
+from cheevos.core.settings import load_settings
 from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.media_cache import MediaCache
 from cheevos.core.sync.engine import BackgroundSync, SyncDeps
@@ -31,15 +30,12 @@ from cheevos.ui.context import AppContext
 from cheevos.ui.media import MediaResolver
 from cheevos.ui.pyui import generated, primitives, status_bar, title_bar, visible_images
 from cheevos.ui.screens.home import Home
-from cheevos.ui.screens.setup import change_key, ensure_credentials, untested_device_note
+from cheevos.ui.screens.setup import change_key, ensure_credentials
 from cheevos.ui.screens.status import SyncBar
 
 logger = logging.getLogger(__name__)
 
 _RES = Path(__file__).resolve().parent / "res"
-# Devices Cheevos has been tried on (PyUI device names). Others get a one-time note asking for
-# reports; add a device here once it has been confirmed to work.
-TESTED_DEVICES = frozenset({"MIYOO_MINI", "MIYOO_MINI_V4", "MIYOO_MINI_PLUS", "MIYOO_MINI_FLIP"})
 _LARGE_SCREEN_WIDTH = 1000
 _SHUTDOWN_TIMEOUT = 3.0
 
@@ -54,7 +50,6 @@ class AppEnvironment:
         online: Connectivity check.
         clock_ok: Clock plausibility check.
         auto_sync: Overrides the "sync when the app opens" setting when not ``None``.
-        device: PyUI's name for the device (``None`` on the desktop).
     """
 
     paths: Paths
@@ -62,7 +57,6 @@ class AppEnvironment:
     online: Callable[[], bool] = is_online
     clock_ok: Callable[[float], bool] = clock_plausible
     auto_sync: bool | None = None
-    device: str | None = None
 
 
 def _icons_dir(*, bar: bool = False) -> Path:
@@ -187,11 +181,6 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         if credentials is None:
             return
         settings = load_settings(paths.settings_file)
-        device = env.device
-        if device and device not in TESTED_DEVICES and settings.untested_note != device:
-            untested_device_note(device, paths.log_file.relative_to(paths.sdcard))
-            settings = dataclasses.replace(settings, untested_note=device)
-            save_settings(paths.settings_file, settings)
     ctx_ref: list[AppContext] = []
     try:
         data = DataCache.open(paths.data_db, credentials.username)

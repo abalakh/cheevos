@@ -52,7 +52,6 @@ class Settings:
         auto_sync: Sync automatically when the app opens and the network is up.
         game_list_details: The games list shows console and last activity instead of
             progress bars (toggled with Select).
-        untested_note: The device the "not tested on this device yet" note was last shown on.
     """
 
     badge_scope: BadgeScope = BadgeScope.ON_DEVICE_AND_RECENT
@@ -60,7 +59,6 @@ class Settings:
     hide_descriptions: DescriptionHiding = DescriptionHiding.OFF
     auto_sync: bool = True
     game_list_details: bool = False
-    untested_note: str = ""
 
 
 DEFAULTS = Settings()
@@ -108,18 +106,6 @@ def _flag(raw: object, *, default: bool) -> bool:
     return raw if isinstance(raw, bool) else default
 
 
-def _text(raw: object) -> str:
-    """Parse a free-text value.
-
-    Args:
-        raw: Value from JSON.
-
-    Returns:
-        The string, or ``""`` for anything else.
-    """
-    return raw if isinstance(raw, str) else ""
-
-
 def _hiding(data: dict[str, Any]) -> DescriptionHiding:
     """Parse the spoiler setting, accepting the older on/off form.
 
@@ -154,7 +140,6 @@ def settings_from_dict(data: dict[str, Any]) -> Settings:
         hide_descriptions=_hiding(data),
         auto_sync=_flag(data.get("auto_sync"), default=DEFAULTS.auto_sync),
         game_list_details=_flag(data.get("game_list_details"), default=DEFAULTS.game_list_details),
-        untested_note=_text(data.get("untested_note")),
     )
 
 
@@ -173,7 +158,6 @@ def settings_to_dict(settings: Settings) -> dict[str, Any]:
         "hide_descriptions": settings.hide_descriptions.value,
         "auto_sync": settings.auto_sync,
         "game_list_details": settings.game_list_details,
-        "untested_note": settings.untested_note,
     }
 
 

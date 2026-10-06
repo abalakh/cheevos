@@ -135,7 +135,6 @@ def test_unlock_screenshot(tmp_path):
         ("auth", "wait:24,shot:home,start,shot:enter_key", ["home", "enter_key"]),
         ("setup", "shot:welcome,a,shot:keyboard,b,b", ["welcome", "keyboard"]),
         ("empty", "shot:home,down,a,shot:games", ["home", "games"]),
-        ("untested", "shot:note,a,shot:home", ["note", "home"]),
         (
             "proxy",
             "down,a,shot:games,b,down,a,shot:recent,b,down,down,a,shot:settings",

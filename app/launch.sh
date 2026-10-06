@@ -4,9 +4,8 @@
 #
 # Each branch mirrors the matching branch of App/PyUI/launch.sh (SpruceOS 4.5.0): the SDL
 # libraries and drivers, the PyUI device name, the Python binary and the working directory
-# PyUI uses on that platform. Only the Miyoo Mini family has been tested on hardware; on other
-# devices the app says so once (TESTED_DEVICES in cheevos/app.py). If the app can't start, or
-# the platform is unknown, a message is shown through PyUI's own launcher, which knows every
+# PyUI uses on that platform. Only the Miyoo Mini family has been tested on hardware. If the
+# app can't start, or the platform is unknown, a message is shown through PyUI's own launcher, which knows every
 # platform Spruce supports.
 
 # shellcheck source=/dev/null

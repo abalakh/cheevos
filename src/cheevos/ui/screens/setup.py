@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Callable
-from pathlib import Path
 
 from cheevos.core.credentials import (
     looks_like_api_key,
@@ -30,19 +29,6 @@ KEYBOARD_HINTS = (
     (Button.L1, strings.HINT_SHIFT),
     (Button.R1, strings.HINT_CAPS),
 )
-
-
-def untested_device_note(device: str, log: Path) -> None:
-    """Say once that this device hasn't been tested yet, and how to report problems.
-
-    Args:
-        device: PyUI's device name, e.g. ``"TRIMUI_BRICK"``.
-        log: The log file, relative to the SD card.
-    """
-    message(
-        strings.UNTESTED_TITLE,
-        [strings.UNTESTED_TEXT.format(device=device), strings.UNTESTED_REPORT.format(log=log)],
-    )
 
 
 def ensure_credentials(paths: Paths, validate: KeyValidator) -> Credentials | None:

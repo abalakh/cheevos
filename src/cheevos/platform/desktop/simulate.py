@@ -6,7 +6,6 @@ an account with no games. ``proxy`` adds an enabled RAOfflineProxy with queued u
 in both modes, mixed hardcore and casual), with achievement lists to match, and a made-up
 account, to review progress bars and the awards wall, and to take the screenshots for the docs
 (``scripts/doc_screens.py``).
-``untested`` pretends to run on a device Cheevos hasn't been tested on (its one-time note).
 ``setup`` starts without a key file, on the first-run key screen.
 ``awards`` serves another account's recorded awards (``record_fixtures.py USER --awards-only``)
 to review a big awards wall; images the mirror lacks are fetched live from RA's media host.
@@ -41,7 +40,6 @@ SCENARIOS = (
     "proxy",
     "showcase",
     "awards",
-    "untested",
     "setup",
 )
 NOT_FOUND = 404
@@ -113,7 +111,6 @@ class Simulation:
         transport: Factory for the transport, or ``None`` to keep the fixture one.
         auto_sync: Run a sync when the app opens (to show the failure).
         seeds_card: The transport serves different data, so the pre-sync uses it too.
-        device: Pretend to be this PyUI device (e.g. one Cheevos hasn't been tested on).
     """
 
     online: bool = True
@@ -121,7 +118,6 @@ class Simulation:
     transport: Callable[[], Transport] | None = None
     auto_sync: bool = False
     seeds_card: bool = False
-    device: str | None = None
 
 
 class _Rejecting:
@@ -367,7 +363,6 @@ def simulation(
         "auth": Simulation(transport=_Rejecting, auto_sync=True),
         "empty": Simulation(transport=lambda: FixtureTransport(empty), seeds_card=True),
         "showcase": Simulation(transport=lambda: _Showcase(source()), seeds_card=True),
-        "untested": Simulation(device="TRIMUI_BRICK"),
     }
     if name == "awards":
         recorded = (awards or Path()) / "user_awards.json"

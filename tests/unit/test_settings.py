@@ -35,7 +35,6 @@ def test_saved_json_has_stable_key_order(tmp_path):
         "hide_descriptions",
         "auto_sync",
         "game_list_details",
-        "untested_note",
     ]
 
 
@@ -107,11 +106,3 @@ def test_spoiler_setting_reads_the_older_on_off_form(tmp_path, stored, expected)
     path = tmp_path / "settings.json"
     path.write_text(json.dumps(stored))
     assert load_settings(path).hide_descriptions is expected
-
-
-def test_untested_note_device_round_trips(tmp_path):
-    path = tmp_path / "settings.json"
-    save_settings(path, Settings(untested_note="TRIMUI_BRICK"))
-    assert load_settings(path).untested_note == "TRIMUI_BRICK"
-    path.write_text(json.dumps({"untested_note": 5}))
-    assert load_settings(path).untested_note == ""
