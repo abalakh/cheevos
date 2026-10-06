@@ -13,7 +13,8 @@
 1. Download `Cheevos-<version>.zip` from the latest release on the repository's **Releases**
    page (not the "Source code" archives), or build it yourself with `make package` (see
    `TESTING.md` in the repository).
-2. Extract the zip to the root of your SD card, so that `App/Cheevos/launch.sh` exists.
+2. Unzip it on your computer, then copy the `Cheevos` folder into `App` on your SD card.
+   You should end up with `App/Cheevos/launch.sh`.
 3. Put the SD card back, open **Apps** in Spruce's main menu and start **Cheevos**.
 
 The first start asks for your Web API key (see [Setup](Setup)), then syncs your account. That
@@ -21,8 +22,8 @@ takes about a second per game the first time: a few minutes for a big library. Y
 while it runs.
 
 ## Update
-Delete the `App/Cheevos` folder, then extract the new zip as when installing. Your key and
-settings live in `Saves/cheevos/`, so they survive an update. The cache lives in
+Delete the old `App/Cheevos` folder, then copy in the new `Cheevos` folder as when installing.
+Your key and settings live in `Saves/cheevos/`, so they survive an update. The cache lives in
 `App/Cheevos/cache`, so the first start after an update syncs everything again.
 
 ## Remove

@@ -1,8 +1,8 @@
 """Assemble the device package: ``dist/App/Cheevos/`` and ``dist/Cheevos-<version>.zip``.
 
 Contents: ``config.json``, ``launch.sh``, ``cheevos.png`` and the ``cheevos`` package without
-the dev-only desktop shim and caches. The zip holds ``App/Cheevos/``, so it extracts to the SD
-card root; the release job in ``.github/workflows/ci.yml`` publishes it.
+the dev-only desktop shim and caches. The zip holds ``Cheevos/`` for copying into the SD card's
+``App/`` folder; the release job in ``.github/workflows/ci.yml`` publishes it.
 """
 
 from __future__ import annotations
@@ -41,7 +41,7 @@ def build(output: Path = OUTPUT) -> Path:
 
 
 def archive(package: Path = OUTPUT, version: str = __version__) -> Path:
-    """Zip the package directory with its ``App/Cheevos/`` prefix.
+    """Zip the package directory with its ``Cheevos/`` prefix.
 
     Args:
         package: The built ``App/Cheevos`` directory.
@@ -50,9 +50,9 @@ def archive(package: Path = OUTPUT, version: str = __version__) -> Path:
     Returns:
         The zip file, next to the ``App`` directory.
     """
-    sd_root = package.parents[1]
-    base = sd_root / f"Cheevos-{version}"
-    return Path(shutil.make_archive(str(base), "zip", sd_root, package.relative_to(sd_root)))
+    dist = package.parents[1]
+    base = dist / f"Cheevos-{version}"
+    return Path(shutil.make_archive(str(base), "zip", package.parent, package.name))
 
 
 def main() -> int:

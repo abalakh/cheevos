@@ -30,7 +30,7 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 ```
 
 - `make package` builds it into `dist/App/Cheevos/` (no desktop shim, no tests) and zips that
-  as `dist/Cheevos-<version>.zip`, with the `App/Cheevos/` prefix.
+  as `dist/Cheevos-<version>.zip`, with the `Cheevos/` prefix and no `App/` folder.
 - The Apps launcher discovers any `App/*/config.json`. PyUI exits fully while the app runs and
   restarts when it quits.
 - **No `devices` list:** a `devices` list in an app's `config.json` hides it on every device not
@@ -44,10 +44,10 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
   log and shows a message ([product.md](product.md), "Offline and error behaviour").
   `/mnt/SDCARD/App/PyUI/launch.sh -msgDisplay "text" -msgDisplayTimeMs 5000` shows a message on
   any platform.
-- The release is that zip, which extracts to the SD card root. Pushing a `v<version>` tag
-  publishes it as a GitHub release (the `release` job in `ci.yml`; steps in TESTING.md, under
-  "Releases"). The description links merged PR titles and direct commit titles. Pre-releases
-  start at the previous version tag; stable releases start at the previous stable tag.
+- The release is that zip; users copy its `Cheevos` folder into `App` on the SD card. Pushing a
+  `v<version>` tag publishes it as a GitHub release (the `release` job in `ci.yml`; steps in
+  TESTING.md, under "Releases"). The description links merged PR titles and direct commit titles.
+  Pre-releases start at the previous version tag; stable releases start at the previous stable tag.
   Game Nursery packaging follows whatever format the maintainers ask for.
 
 ## Device gotchas (verified on a Miyoo Mini+, SpruceOS 4.5.0)
