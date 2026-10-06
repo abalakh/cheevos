@@ -74,7 +74,9 @@ of PyUI's views, without patching PyUI.
   every row's `get_icon()` for an `ICON_AND_DESC` list (to pick the selection background), so
   opening a 138-row list used to queue all 138 badge downloads, top to bottom, and a jump to the
   end waited for all of them. `choose()` marks that scan `ImageDemand.MEASURED`: the resolver
-  returns what's cached and downloads nothing. Grids ask
+  returns the fallback icon without downloading or even looking in the cache. Returning cached
+  images extracted every row's icon: with 1,012 cached game icons that pushed ~20 MB through
+  the 4 MB scratch LRU (851 evictions) and made the view 10× slower to build. Grids ask
   `image_path_selected_searcher` for the highlighted tile; leave it unset and the selected
   tile has no image.
 - **Grids need an image size:** without `grid_resized_width/height`, `GridView.__init__` resolves

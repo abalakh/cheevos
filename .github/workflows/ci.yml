@@ -83,5 +83,5 @@ jobs:
           fi
           case "$version" in *a* | *b* | *rc* | *dev*) prerelease=1 ;; esac
           gh release create "$GITHUB_REF_NAME" "dist/Cheevos-$version.zip" \
-            --verify-tag --title "Cheevos $version" ${prerelease:+--prerelease} --generate-notes \
+            --verify-tag --title "Cheevos v$version" ${prerelease:+--prerelease} --generate-notes \
             --notes "Install: extract \`Cheevos-$version.zip\` to the root of the SD card, so that \`App/Cheevos/launch.sh\` exists."

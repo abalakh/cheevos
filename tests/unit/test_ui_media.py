@@ -155,6 +155,17 @@ def test_rows_pyui_only_measures_are_neither_fetched_nor_memoized(media, icons):
     assert fetcher.requests == [ICON]
 
 
+def test_cached_images_of_rows_pyui_only_measures_are_not_extracted(media, icons, tmp_path):
+    media.put(icon_key(519), b"ICON")
+    demand = Demand()
+    resolver = MediaResolver(media, icons, FakeFetcher(), demand)
+    demand.now = ImageDemand.MEASURED
+    assert resolver.game_icon(519, ICON[1]) == icons / "gamepad.png"
+    assert not any((tmp_path / "scratch").glob("*"))
+    demand.now = ImageDemand.SHOWN
+    assert resolver.game_icon(519, ICON[1]).read_bytes() == b"ICON"
+
+
 def test_next_page_waits_until_it_is_on_screen(media, icons):
     fetcher, demand = FakeFetcher(), Demand()
     resolver = MediaResolver(media, icons, fetcher, demand)

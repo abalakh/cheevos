@@ -76,9 +76,10 @@ class MediaResolver:
     def resolve(self, key: str, media_path: str | None, fallback: str) -> Path:
         """Return the cached image for ``key``, or a fallback icon while it is unavailable.
 
-        A miss on screen is requested ahead of everything waiting, a miss on the next page
-        after it, and a miss in rows PyUI only measures not at all (it is asked for again when
-        the row is drawn).
+        A miss on screen is requested ahead of everything waiting, and a miss on the next page
+        after it. Rows PyUI only measures get the fallback without a cache lookup: PyUI only
+        checks that the row has an image, and extracting every row's cached image churned the
+        scratch directory (asked for again when the row is drawn).
 
         Args:
             key: Image cache key.
@@ -94,14 +95,12 @@ class MediaResolver:
             self._asked_later.clear()
             self._seen_version = version
         missing = self._icons / f"{fallback}.png"
-        if key in self._asked:
+        demand = self._demand()
+        if demand is ImageDemand.MEASURED or key in self._asked:
             return missing
         path = self._media.path_for(key)
         if path is not None:
             return path
-        demand = self._demand()
-        if demand is ImageDemand.MEASURED:
-            return missing
         later = demand is ImageDemand.NEXT
         asked = self._asked_later if later else self._asked
         if key not in asked:

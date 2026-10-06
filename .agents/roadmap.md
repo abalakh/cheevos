@@ -25,9 +25,6 @@ tools in [TESTING.md](../TESTING.md).
          Spruce's RA settings. Send the PyUI author a courtesy notice, as its license asks.
 
 ## Ideas
-- Show the list-building progress in the bottom bar instead of a "Loading…" frame for slow
-  lists.
-- Remove stale `_lock` badge blobs after an unlock (harmless today).
 - Read the proxy's `achievementsets:` cache as a fallback for pending-award titles.
 - Settings has "Sync now" next to Start; drop it if it proves redundant.
 - A progress bar in a game's header (hardcore/casual completion).

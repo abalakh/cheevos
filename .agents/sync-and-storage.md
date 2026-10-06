@@ -93,6 +93,8 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
      locked. This halves the file count. A newly unlocked achievement gets its colour badge on the
      next sync. In every mode, missing images are fetched lazily while browsing online
      (`lazy_media.py`).
+   - The `_lock` blob stays after an unlock, on purpose: it's a few KB, it's needed again if
+     progress is reset on RA, and "Clear image cache" removes it.
 8. **Local matching refresh** ([integration.md](integration.md), "On-device games").
 
 - **Triggers**: auto on app open when the network is up and the setting is on; Start on any

@@ -22,7 +22,7 @@ class ImageDemand(Enum):
 
     SHOWN = "shown"  # drawn now: download it ahead of anything waiting
     NEXT = "next"  # the next page: download it after what's on screen
-    MEASURED = "measured"  # PyUI scanning rows it won't draw yet: don't download
+    MEASURED = "measured"  # PyUI scanning rows it won't draw yet: no download, no extraction
 
 
 @dataclass(slots=True)
