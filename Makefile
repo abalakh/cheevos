@@ -10,7 +10,7 @@ SCREEN_SCRIPT ?= shot:home,a,shot:profile,b,down,a,shot:games,select,shot:games_
 SHELL_SCRIPTS := $(shell find app scripts -name '*.sh' 2>/dev/null)
 
 .DEFAULT_GOAL := help
-.PHONY: help sync pyui fmt lint conventions shellcheck typecheck test check run screens doc-screens package \
+.PHONY: help sync pyui fmt lint conventions shellcheck typecheck test check run screens doc-screens wiki package \
 	deploy launch stop logs shot clean
 
 help: ## Show this help
@@ -60,6 +60,9 @@ screens: ## Headless PNGs of the walk-through into build/screens/<WxH>/
 
 doc-screens: ## Render the wiki screenshots into docs/images (showcase drill)
 	$(RUN) python scripts/doc_screens.py
+
+wiki: ## Export docs with wiki links into build/wiki (pages and images)
+	$(RUN) python scripts/build_wiki.py
 
 package: ## Build the device package: dist/App/Cheevos and dist/Cheevos-<version>.zip
 	$(RUN) python scripts/build_package.py

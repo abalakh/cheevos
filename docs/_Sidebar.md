@@ -1,11 +1,11 @@
-**[Cheevos](Home)**
+**[Cheevos](Home.md)**
 
-- [Installation](Installation)
-- [Setup](Setup)
-- [Screens](Screens)
-- [Controls](Controls)
-- [Sync and offline play](Sync-and-Offline-Play)
-- [Settings](Settings)
-- [Themes and devices](Themes-and-Devices)
-- [Limitations](Limitations)
-- [Troubleshooting](Troubleshooting)
+- [Installation](Installation.md)
+- [Setup](Setup.md)
+- [Screens](Screens.md)
+- [Controls](Controls.md)
+- [Sync and offline play](Sync-and-Offline-Play.md)
+- [Settings](Settings.md)
+- [Themes and devices](Themes-and-Devices.md)
+- [Limitations](Limitations.md)
+- [Troubleshooting](Troubleshooting.md)

@@ -8,7 +8,7 @@
 | **Recent games** | What "recently" means: 7, 30 (default) or 90 days. Every sync keeps the achievements of games played this recently, and badge downloads use it too. |
 | **Hide locked descriptions** | Spoiler protection. **Off** (default): every description is shown. **Story only**: hides locked achievements tagged *Progression* or *Win condition*, the story beats and the ending. **All**: hides every locked one. Press X on an achievement to reveal it anyway. |
 | **Sync when the app opens** | On (default) or off. Off means syncs only run when you press Start. |
-| **RAOfflineProxy** | Shown only when the proxy is installed: whether it's on, online, how many unlocks wait to sync, how many games it has cached. Press A for an explanation. See [Sync and offline play](Sync-and-Offline-Play). |
+| **RAOfflineProxy** | Shown only when the proxy is installed: whether it's on, online, how many unlocks wait to sync, how many games it has cached. Press A for an explanation. See [Sync and offline play](Sync-and-Offline-Play.md). |
 | **Sync now** | Same as pressing Start. |
 | **Download every game** | Downloads every game's achievements, for offline use: about a second per game. It carries on in later syncs until it's done; meanwhile this row reads **Stop downloading every game**. |
 | **Web API key** | Shows the end of the current key; press A to enter a new one. |

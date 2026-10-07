@@ -60,6 +60,8 @@ jobs:
     needs: check
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    outputs:
+      stable: ${{ steps.publish.outputs.stable }}
     permissions:
       contents: write
       pull-requests: read
@@ -81,6 +83,7 @@ jobs:
         run: uv run python scripts/release_notes.py "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY" dist/release-notes.md
 
       - name: Publish the release
+        id: publish
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -93,3 +96,47 @@ jobs:
           gh release create "$GITHUB_REF_NAME" "dist/Cheevos-$version.zip" \
             --verify-tag --title "v$version" ${prerelease:+--prerelease} \
             --notes-file dist/release-notes.md
+          if [ -z "${prerelease:-}" ]; then
+            echo "stable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "stable=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  # Mirror the released guide, after a successful stable release. Using a dependent job
+  # lets a failed wiki sync be retried without publishing the release again.
+  wiki:
+    needs: release
+    if: needs.release.outputs.stable == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: wiki-publish
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build wiki
+        run: python3 scripts/build_wiki.py
+
+      # Create the first wiki page on GitHub once, so this repository exists.
+      # checkout resolves its default branch and persists GITHUB_TOKEN for the push.
+      - name: Check out wiki
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ github.repository }}.wiki
+          path: build/wiki-checkout
+
+      - name: Publish wiki
+        working-directory: build/wiki-checkout
+        run: |
+          rsync --archive --delete --exclude=.git ../wiki/ ./
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "Wiki already matches $GITHUB_REF_NAME"
+          else
+            git commit -m "Docs: sync wiki for $GITHUB_REF_NAME"
+            git push
+          fi

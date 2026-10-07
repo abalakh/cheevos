@@ -30,7 +30,7 @@ Works offline, follows your Spruce theme.
 3. Open **Apps → Cheevos** and enter your **Web API key** when asked. Find it at
    retroachievements.org → Settings → Keys.
 
-The [wiki](../../wiki) explains every screen, setting and limitation.
+The [user guide](docs/Home.md) explains every screen, setting and limitation.
 
 ## Development
 Python 3.10 with no third-party packages at runtime; the screens are drawn with PyUI, the UI

@@ -221,15 +221,38 @@ and PyUI's core UI modules don't hard-code `/mnt/SDCARD`. So the runner needs no
 2. Commit, tag `v<version>` and push both: `git tag v0.1.0b1 && git push origin master v0.1.0b1`.
 3. Once the checks pass, CI's `release` job publishes a GitHub release with the zip. Versions
    with `a`, `b`, `rc` or `dev` in them are marked as pre-releases. A tag that doesn't match
-   the version fails the job. Pre-release notes cover changes since the previous version tag;
-   stable-release notes cover changes since the previous stable tag, including all intervening
-   pre-releases. If there is no tag of the relevant kind yet, notes cover the whole history.
+   the version fails the job. After a stable release, the `wiki` job publishes that release's
+   user guide; pre-releases leave the wiki as it is. Pre-release notes cover changes since the
+   previous version tag; stable-release notes cover changes since the previous stable tag,
+   including all intervening pre-releases. If there is no tag of the relevant kind yet, notes
+   cover the whole history.
    The description links each merged PR title once and links direct commit titles.
 
 GitHub adds its own "Source code" archives to every release; they can't be removed. Testers
 need only the `Cheevos-<version>.zip`.
 
 ## Publishing the wiki
-The pages in `docs/` are written for the GitHub wiki, which is a separate repository
-(`<repo>.wiki.git`). Copy the folder's contents, `images/` included, into a clone of it and
-push. Regenerate the screenshots first with `make doc-screens` when screens have changed.
+The [user guide](docs/Home.md) in `docs/` works when browsing the repository on GitHub or
+locally. Keep links between guide pages relative, with the `.md` extension (for example,
+`[Installation](Installation.md)`).
+
+The GitHub wiki is a separate repository (`<repo>.wiki.git`). To prepare its pages:
+
+1. Regenerate the screenshots with `make doc-screens` when screens have changed.
+2. Run `make wiki`. This copies the pages and `images/` into `build/wiki/`, converting guide
+   page links to the wiki's extensionless targets. Edit the sources in `docs/`, not the export.
+3. Copy the contents of `build/wiki/` into a clone of the wiki repository, then commit and push
+   there.
+
+CI does this automatically after each successful stable release, using the tagged commit's
+docs and checked-in screenshots. It doesn't regenerate screenshots: keep running
+`make doc-screens` when changing the UI and include the images in the release commit.
+
+**One-time setup:** enable **Wikis** in the repository settings and create an initial page
+in GitHub's Wiki tab. This creates the wiki Git repository so Actions can check it out.
+The job uses the built-in `GITHUB_TOKEN` with `contents: write`; no extra secret is needed.
+
+The published wiki mirrors the guide: deleted pages and images are removed too. Make changes
+in `docs/`; edits made directly in the wiki are replaced on the next stable release. Unchanged
+docs produce no wiki commit. If publishing fails after the release succeeds, rerun just the
+failed `wiki` job from Actions.

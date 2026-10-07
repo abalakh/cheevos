@@ -4,9 +4,9 @@
 - **SpruceOS 4.5.0+.** Cheevos uses Spruce's own UI toolkit (PyUI) and Python, so it
   needs nothing else.
 - **A device Spruce runs on.** Cheevos is tested on the Miyoo Mini family; on other devices it
-  should work too (see [Themes and devices](Themes-and-Devices)).
+  should work too (see [Themes and devices](Themes-and-Devices.md)).
 - **A RetroAchievements account**, signed in on the device (in Spruce's RetroAchievements
-  settings or in RetroArch), and its **Web API key**. See [Setup](Setup).
+  settings or in RetroArch), and its **Web API key**. See [Setup](Setup.md).
 - **Wi-Fi** for the first sync. After that, Cheevos also works offline.
 
 ## Install
@@ -17,7 +17,7 @@
    You should end up with `App/Cheevos/launch.sh`.
 3. Put the SD card back, open **Apps** in Spruce's main menu and start **Cheevos**.
 
-The first start asks for your Web API key (see [Setup](Setup)), then syncs your account. That
+The first start asks for your Web API key (see [Setup](Setup.md)), then syncs your account. That
 takes about a second per game the first time: a few minutes for a big library. You can browse
 while it runs.
 

@@ -46,7 +46,7 @@ Cheevos remembers your choice.
 
 Press **Y** to filter (all, on this device, in progress, mastered or beaten, not started) or sort
 (recent activity, title, console, completion). "On this device" lists games Spruce has already
-recognised on your SD card (see [Limitations](Limitations)).
+recognised on your SD card (see [Limitations](Limitations.md)).
 
 ## A game's achievements
 Every achievement with its badge, points, type and unlock date, or how rare it is if you haven't
@@ -69,7 +69,7 @@ for full screen.
 
 ![Full screen screenshot](images/fullscreen.png)
 
-With **Hide locked descriptions** on (see [Settings](Settings)), a locked achievement shows
+With **Hide locked descriptions** on (see [Settings](Settings.md)), a locked achievement shows
 "Description hidden" instead; press **X** to reveal it.
 
 ## Recent unlocks
@@ -87,6 +87,6 @@ follows RetroAchievements' colours: **gold** for mastered (thick) and completed 
 ![Awards](images/awards.png)
 
 ## Settings
-See [Settings](Settings).
+See [Settings](Settings.md).
 
 ![Settings](images/settings.png)

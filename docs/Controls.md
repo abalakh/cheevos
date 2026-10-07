@@ -22,7 +22,7 @@ The sync status sits in the bottom bar too. Home and Settings always show it ("S
 ago"). Other screens show it only while a sync runs and for a few seconds after it ends.
 
 ## On-screen keyboard
-The keyboard appears when you type your Web API key (see [Setup](Setup)). It's Spruce's own
+The keyboard appears when you type your Web API key (see [Setup](Setup.md)). It's Spruce's own
 keyboard:
 
 | Button | What it does |

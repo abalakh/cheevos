@@ -13,7 +13,7 @@
 | A pixel-art trophy (unlocked), grey lock (locked) or gamepad instead of a badge or game icon | The image isn't downloaded yet. It appears once you're online. To download more ahead of time, change **Badge downloads** in Settings. |
 | Something looks out of date | Press **Start**. If it's still wrong, use **Settings → Download every game**: it downloads every game's achievements again. |
 | "This game's achievements aren't downloaded yet" | Cheevos keeps the games you play and downloads others when you open them, which needs Wi-Fi. The message says what went wrong. To have every game offline, use **Settings → Download every game**. |
-| No screenshot on an achievement | RetroArch only saves one when **Automatic Screenshot** is on (see [Setup](Setup)), and only for unlocks after that. |
+| No screenshot on an achievement | RetroArch only saves one when **Automatic Screenshot** is on (see [Setup](Setup.md)), and only for unlocks after that. |
 
 ## Starting over
 Cheevos' data on the SD card:
@@ -33,8 +33,11 @@ If it fails to start, the error is added there too. The log never contains your 
 can attach it to a bug report.
 
 ## Data and privacy
-- Cheevos talks only to `retroachievements.org` and its image server, always over HTTPS with
+- Cheevos talks only to `retroachievements.org` and its image server, normally over HTTPS with
   certificate checks. There's no analytics or tracking.
+- If TLS fails (including an unset or incorrect device clock), Cheevos automatically falls
+  back to HTTP. This sends your Web API key and account data unencrypted, so someone able to
+  observe the connection could read them. See [Setup](Setup.md).
 - Your Web API key is stored as plain text on the SD card, like Spruce stores your RetroAchievements
   password. The key only gives read access through RetroAchievements' Web API. You can reset it
   on the site at any time.

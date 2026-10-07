@@ -6,11 +6,11 @@ updates it:
 1. Your profile (points, rank, last played game).
 2. Your list of games with their progress.
 3. The achievements of the games on your SD card and the games you played recently (see
-   **Recent games** in [Settings](Settings)), plus any game that changed since you last
+   **Recent games** in [Settings](Settings.md)), plus any game that changed since you last
    downloaded it. Games not refreshed for 30 days are checked a few at a time, so changes
    RetroAchievements makes to old sets also arrive.
 4. Your awards.
-5. Badges and game icons (see **Badge downloads** in [Settings](Settings)).
+5. Badges and game icons (see **Badge downloads** in [Settings](Settings.md)).
 
 **The first sync** takes about a second per game it downloads: seconds for most libraries, and
 about a minute for one with thousands of games, because only the games you play are downloaded.
@@ -44,7 +44,7 @@ for another reason, it automatically retries over HTTP. **Sync Time via Network*
 isn't required. Cheevos uses RetroAchievements' response time for its own recent activity and
 sync calculations, without changing the device's clock.
 
-The HTTP fallback sends your Web API key and account data unencrypted. See [Setup](Setup).
+The HTTP fallback sends your Web API key and account data unencrypted. See [Setup](Setup.md).
 
 ## RAOfflineProxy
 SpruceOS ships RAOfflineProxy, which lets you earn achievements without Wi-Fi: it keeps the

@@ -24,15 +24,15 @@ and unlock screenshots, right on the device, in the look of your Spruce theme.
   the story ones.
 
 ## Pages
-- [Installation](Installation): requirements, installing, updating, removing.
-- [Setup](Setup): your username and Web API key.
-- [Screens](Screens): a tour of every screen.
-- [Controls](Controls): buttons on every screen.
-- [Sync and offline play](Sync-and-Offline-Play): what syncing does, offline use, RAOfflineProxy.
-- [Settings](Settings): every option explained.
-- [Themes and devices](Themes-and-Devices): themes, resolutions, supported devices.
-- [Limitations](Limitations): what Cheevos doesn't do, and why.
-- [Troubleshooting](Troubleshooting): common problems, logs, data and privacy.
+- [Installation](Installation.md): requirements, installing, updating, removing.
+- [Setup](Setup.md): your username and Web API key.
+- [Screens](Screens.md): a tour of every screen.
+- [Controls](Controls.md): buttons on every screen.
+- [Sync and offline play](Sync-and-Offline-Play.md): what syncing does, offline use, RAOfflineProxy.
+- [Settings](Settings.md): every option explained.
+- [Themes and devices](Themes-and-Devices.md): themes, resolutions, supported devices.
+- [Limitations](Limitations.md): what Cheevos doesn't do, and why.
+- [Troubleshooting](Troubleshooting.md): common problems, logs, data and privacy.
 
 Cheevos isn't affiliated with RetroAchievements or SpruceOS. All data, badges and game icons
 come from RetroAchievements.org through its public Web API.

@@ -9,12 +9,12 @@ and some are limits of the data RetroAchievements offers.
 - **Launching games, leaderboards, social features** (friends, comments, messages).
 - **More than one account.** Cheevos follows the account signed in on the device.
 - **Changing settings of RetroArch or Spruce.** Cheevos only reads them. For example, it doesn't
-  turn on unlock screenshots for you (see [Setup](Setup)).
+  turn on unlock screenshots for you (see [Setup](Setup.md)).
 
 ## Devices
 Cheevos is tested on the Miyoo Mini family. It installs and starts on Spruce's other devices
 too, but those haven't been tried yet: expect rough edges, and please report them
-(see [Themes and devices](Themes-and-Devices)).
+(see [Themes and devices](Themes-and-Devices.md)).
 
 ## Data from RetroAchievements
 - **Achievements of games you don't play aren't kept by default:** only games on your SD card
@@ -22,7 +22,7 @@ too, but those haven't been tried yet: expect rough edges, and please report the
   them, which needs Wi-Fi. **Download every game** in Settings fetches the rest (close to an
   hour for 3,000 games).
 - **Spoiler protection is coarse.** RetroAchievements has no spoiler flag. "Story only" uses the
-  Progression and Win condition tags, which many older sets don't have. See [Settings](Settings).
+  Progression and Win condition tags, which many older sets don't have. See [Settings](Settings.md).
 - **"Last active"** is when your rich presence last changed. RetroAchievements doesn't expose
   your real last activity through its API.
 - **Rank** shows "Unranked" until you have 250 hardcore points. That's RetroAchievements' rule.
