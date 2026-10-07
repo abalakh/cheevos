@@ -26,8 +26,8 @@ requires = ["uv_build>=0.10,<0.11"]
 build-backend = "uv_build"
 
 [tool.cheevos]
-# Spruce commit (branch Development) the PyUI bridge and desktop shim were last verified against.
-pyui-tested-commit = "bd10c229891f6afcdf1a427fafe329545174d282"
+# SpruceOS commit the PyUI bridge and desktop shim were last verified against.
+pyui-tested-commit = "2c5638375c5998ebd7480970bb55e3d2b2629c58"
 
 [tool.ruff]
 line-length = 100

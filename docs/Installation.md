@@ -1,7 +1,7 @@
 # Installation
 
 ## Requirements
-- **SpruceOS 4.5.0 or newer.** Cheevos uses Spruce's own UI toolkit (PyUI) and Python, so it
+- **SpruceOS 4.5.0+.** Cheevos uses Spruce's own UI toolkit (PyUI) and Python, so it
   needs nothing else.
 - **A device Spruce runs on.** Cheevos is tested on the Miyoo Mini family; on other devices it
   should work too (see [Themes and devices](Themes-and-Devices)).
