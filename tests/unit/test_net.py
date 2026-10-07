@@ -1,56 +1,52 @@
-import calendar
-import urllib.error
-from contextlib import contextmanager
-from email.message import Message
-
 import pytest
 
-from cheevos.core.net import clock_plausible, is_online
+from cheevos.core.errors import NetworkError
+from cheevos.core.net import is_online
+from cheevos.core.ra_client.transport import Response
 
 
-def recording_opener(calls, outcome=None):
-    @contextmanager
-    def opener(request, timeout, context):
-        calls.append((request.get_method(), request.full_url, timeout, context))
-        if outcome is not None:
-            raise outcome
-        yield object()
+class Probe:
+    def __init__(self, outcome):
+        self.outcome = outcome
+        self.calls = []
+        self.closed = False
 
-    return opener
+    def head(self, host, path, headers):
+        self.calls.append((host, path, headers))
+        if isinstance(self.outcome, BaseException):
+            raise self.outcome
+        return self.outcome
 
-
-def test_online_when_host_answers():
-    calls = []
-    assert is_online(opener=recording_opener(calls), timeout=1.5)
-    assert calls == [("HEAD", "https://retroachievements.org/", 1.5, None)]
-
-
-def test_http_error_still_counts_as_online():
-    error = urllib.error.HTTPError("https://x/", 503, "busy", Message(), None)
-    assert is_online(opener=recording_opener([], error))
+    def close(self):
+        self.closed = True
 
 
-@pytest.mark.parametrize(
-    "error",
-    [urllib.error.URLError("no route"), TimeoutError("slow"), OSError("tls"), ValueError("odd")],
-)
-def test_offline_on_connection_failures(error, caplog):
+@pytest.mark.parametrize("status", [200, 301, 401, 429, 503])
+def test_any_http_answer_counts_as_online(status):
+    probe = Probe(Response(status))
+    assert is_online(transport=probe)
+    assert probe.calls == [("retroachievements.org", "/", {})]
+    assert not probe.closed
+
+
+@pytest.mark.parametrize("error", [NetworkError("offline"), ValueError("odd")])
+def test_connection_failure_counts_as_offline(error, caplog):
+    probe = Probe(error)
     caplog.set_level("INFO")
-    assert not is_online(host="example.org", opener=recording_opener([], error))
+    assert not is_online(host="example.org", transport=probe)
     assert "unreachable" in caplog.text
 
 
-def test_default_opener_is_used_without_network(monkeypatch):
-    calls = []
-    monkeypatch.setattr("urllib.request.urlopen", recording_opener(calls))
-    assert is_online()
-    assert calls[0][0] == "HEAD"
+@pytest.mark.parametrize("outcome", [Response(200), NetworkError("offline")])
+def test_default_transport_is_closed_and_receives_timeout(monkeypatch, outcome):
+    probe = Probe(outcome)
+    timeouts = []
 
+    def factory(*, timeout):
+        timeouts.append(timeout)
+        return probe
 
-def test_clock_plausibility():
-    assert not clock_plausible(0)  # 1970: before NTP sync on a device without RTC
-    assert not clock_plausible(calendar.timegm((2025, 12, 31, 23, 59, 59)))
-    assert clock_plausible(calendar.timegm((2026, 1, 1, 0, 0, 0)))
-    assert clock_plausible(calendar.timegm((2026, 1, 1, 0, 0, 0)), min_year=2026)
-    assert not clock_plausible(calendar.timegm((2026, 6, 1, 0, 0, 0)), min_year=2027)
-    assert clock_plausible()
+    monkeypatch.setattr("cheevos.core.net.HttpTransport", factory)
+    assert is_online(timeout=1.5) == isinstance(outcome, Response)
+    assert timeouts == [1.5]
+    assert probe.closed

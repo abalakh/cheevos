@@ -30,6 +30,11 @@ the bottom bar says **API key rejected**. Press **Start** to type the right one.
 
 To change the key at any time: **Settings → Web API key**.
 
+Cheevos normally connects over verified HTTPS. If TLS fails (including an unset or incorrect
+device clock), it automatically falls back to HTTP. The fallback sends your Web API key and
+account data unencrypted, so someone able to observe the connection could read them. A correct
+clock and working TLS keep connections on HTTPS; network time sync isn't required to use Cheevos.
+
 ## Unlock screenshots (optional)
 RetroArch can save a screenshot every time you unlock an achievement, and Cheevos then shows it
 on the achievement. It's off by default. To turn it on, open RetroArch's menu during a game:

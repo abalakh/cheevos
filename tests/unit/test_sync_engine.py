@@ -1,10 +1,12 @@
 import json
 import threading
 import time
+from email.utils import formatdate
 from pathlib import Path
 
 import pytest
 
+from cheevos.core.clock import ServerClock
 from cheevos.core.errors import AuthError, CheevosError
 from cheevos.core.ra_client.client import RaClient
 from cheevos.core.ra_client.transport import FixtureTransport, Response
@@ -63,7 +65,6 @@ class Harness:
         self.tracker = ProgressTracker()
         self.cancel = threading.Event()
         self.online = True
-        self.clock_ok = True
         self.on_device = set(on_device)
 
     def engine(self, now=NOW):
@@ -74,7 +75,6 @@ class Harness:
             self.cancel,
             clock=lambda: now,
             online=lambda: self.online,
-            clock_ok=lambda _now: self.clock_ok,
         )
 
     def calls(self):
@@ -160,16 +160,32 @@ def test_cancel_mid_details_then_resume_fetches_only_the_rest(harness):
     assert status.details_fetched == len(FIRST_SYNC_GAMES) - 3
 
 
-@pytest.mark.parametrize(
-    ("online", "clock_ok", "failure"),
-    [(False, True, Failure.OFFLINE), (True, False, Failure.CLOCK)],
-)
-def test_preflight_failures_make_no_requests(harness, online, clock_ok, failure):
-    harness.online, harness.clock_ok = online, clock_ok
+def test_offline_preflight_makes_no_api_requests(harness):
+    harness.online = False
     status = harness.engine().run(SyncOptions())
     assert status.phase is Phase.FAILED
-    assert status.failure is failure
+    assert status.failure is Failure.OFFLINE
     assert harness.calls() == []
+
+
+@pytest.mark.parametrize("wall_time", [0, NOW + 10 * 365 * 86400])
+def test_preflight_refreshes_time_before_pause_and_recent_game_planning(harness, wall_time):
+    clock = ServerClock(wall_clock=lambda: wall_time, monotonic=lambda: 0)
+    harness.data.set_meta(RATE_LIMITED_UNTIL_KEY, str(NOW - 60))
+
+    def online():
+        clock.observe_date(formatdate(NOW, usegmt=True))
+        return True
+
+    deps = SyncDeps(
+        harness.client, harness.data, harness.media, on_device=lambda: harness.on_device
+    )
+    engine = SyncEngine(deps, harness.tracker, harness.cancel, clock=clock.now, online=online)
+    status = engine.run(SyncOptions())
+    assert status.phase is Phase.DONE
+    assert status.details_fetched == len(FIRST_SYNC_GAMES)
+    assert harness.data.get_meta(LAST_SYNC_KEY) == str(NOW)
+    assert harness.data.get_meta(RATE_LIMITED_UNTIL_KEY) is None
 
 
 class RejectingTransport:
@@ -248,7 +264,7 @@ def test_background_sync_runs_on_a_worker_and_closes(tmp_path):
 
         return SyncDeps(client, data, media, close=close)
 
-    sync = BackgroundSync(open_deps, online=lambda: True, clock_ok=lambda _now: True)
+    sync = BackgroundSync(open_deps, online=lambda: True)
     assert sync.start(SyncOptions())
     sync.join(timeout=30)
     assert sync.status().phase is Phase.DONE
@@ -260,7 +276,7 @@ def test_background_sync_reports_open_failure(tmp_path):
     def open_deps(_cancel):
         raise CheevosError("no key")
 
-    sync = BackgroundSync(open_deps, online=lambda: True, clock_ok=lambda _now: True)
+    sync = BackgroundSync(open_deps, online=lambda: True)
     sync.start(SyncOptions())
     sync.join(timeout=5)
     assert sync.status().failure is Failure.ERROR
@@ -322,7 +338,7 @@ def test_background_sync_refuses_a_second_concurrent_start(tmp_path):
         release.wait(5)
         raise CheevosError("stop")
 
-    sync = BackgroundSync(open_deps, online=lambda: True, clock_ok=lambda _now: True)
+    sync = BackgroundSync(open_deps, online=lambda: True)
     assert sync.start(SyncOptions())
     assert sync.status().running
     assert not sync.start(SyncOptions())
@@ -353,7 +369,6 @@ def test_interrupted_full_resync_resumes_as_full(harness):
             harness.cancel,
             clock=lambda: clock["now"],
             online=lambda: True,
-            clock_ok=lambda _now: True,
         )
 
     status = engine().run(SyncOptions(full=True))
@@ -407,7 +422,7 @@ def test_background_sync_hands_each_run_its_cancel_event(tmp_path):
         seen.append(cancel)
         raise CheevosError("stop")
 
-    sync = BackgroundSync(open_deps, online=lambda: True, clock_ok=lambda _now: True)
+    sync = BackgroundSync(open_deps, online=lambda: True)
     sync.start(SyncOptions())
     sync.join(timeout=5)
     sync.cancel()

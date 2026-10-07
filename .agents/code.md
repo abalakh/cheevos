@@ -50,7 +50,7 @@ src/cheevos/
     errors.py            CheevosError and its subclasses
     storage/             db.py (open/recreate), schema.py (DDL, version, row mapping),
                          data_cache.py, media_cache.py
-    ra_client/           transport.py (HTTPS, fixtures), client.py (typed endpoints), parse.py,
+    ra_client/           transport.py (HTTPS with HTTP fallback, fixtures), client.py, parse.py,
                          redact.py (key redaction in logs)
     sync/                engine.py, planner.py (what to fetch), progress.py, lazy_media.py,
                          session.py, __main__.py (sync without UI)
@@ -60,7 +60,8 @@ src/cheevos/
     screenshots.py       *-cheevo-<id>.png index
     proxy.py             RAOfflineProxy reader (read-only files)
     local_games.py       on-device matching sources
-    net.py               connectivity and clock plausibility checks
+    net.py               connectivity check through the shared transport
+    clock.py             shared RA Date + monotonic app clock (system clock unchanged)
   ui/
     pyui/                bridge: bootstrap, views (lists, grids, popups), primitives (drawing,
                          input), text (fitting, glyph fallbacks), status_bar, bar_layout, glyphs,
@@ -181,6 +182,8 @@ Tooling gotchas:
   ([retroachievements.md](retroachievements.md), "Secrets").
 - **Time**:
   - Store UTC epoch seconds in the DB.
+  - Use `core.clock.network_clock.now` for app dates, cache freshness and retry deadlines:
+    it follows RA's Date after the first response, even when the device clock is incorrect.
   - Use timezone-aware `datetime`s (ruff `DTZ`).
   - Convert to local time only for display, via `zoneinfo` and the TZ from
     `Saves/spruce/shared-system.json`.

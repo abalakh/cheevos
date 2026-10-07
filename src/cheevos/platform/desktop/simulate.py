@@ -1,6 +1,6 @@
 """Failure and edge-case drills for desktop fixture mode (``CHEEVOS_SIMULATE``).
 
-``offline`` / ``clock`` / ``auth`` make the sync on open fail at that point. ``empty`` serves
+``offline`` / ``auth`` make the sync on open fail; ``clock`` recovers from 1970. ``empty`` serves
 an account with no games. ``proxy`` adds an enabled RAOfflineProxy with queued unlocks.
 ``showcase`` gives the fixture games assorted progress and awards (mastered, completed, beaten
 in both modes, mixed hardcore and casual), with achievement lists to match, and a made-up
@@ -25,6 +25,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
+from cheevos.core.clock import ServerClock
 from cheevos.core.ra_client.transport import (
     MEDIA_HOST,
     FixtureTransport,
@@ -32,6 +33,7 @@ from cheevos.core.ra_client.transport import (
     Response,
     Transport,
 )
+from cheevos.platform.desktop.clock_drill import ClockRecoveryTransport
 from cheevos.platform.paths import Paths
 
 SCENARIOS = (
@@ -112,7 +114,7 @@ class Simulation:
 
     Attributes:
         online: Connectivity check result.
-        clock_ok: Clock plausibility result.
+        clock: App clock (the clock drill starts at 1970, then recovers from RA).
         transport: Factory for the transport, or ``None`` to keep the fixture one.
         auto_sync: Run a sync when the app opens (to show the failure).
         seeds_card: The transport serves different data, so the pre-sync uses it too.
@@ -120,7 +122,7 @@ class Simulation:
     """
 
     online: bool = True
-    clock_ok: bool = True
+    clock: Callable[[], float] = time.time
     transport: Callable[[], Transport] | None = None
     auto_sync: bool = False
     seeds_card: bool = False
@@ -405,9 +407,15 @@ def simulation(
         raise ValueError(f"unknown CHEEVOS_SIMULATE {name!r}; choose from {SCENARIOS}")
     empty = fixtures.parent / "ra-empty"
     source = base or (lambda: FixtureTransport(fixtures))
+    if name == "clock":
+        clock = ServerClock(wall_clock=lambda: 0)
+        return Simulation(
+            clock=clock.now,
+            transport=lambda: ClockRecoveryTransport(source(), clock),
+            auto_sync=True,
+        )
     drills = {
         "offline": Simulation(online=False, auto_sync=True),
-        "clock": Simulation(clock_ok=False, auto_sync=True),
         "auth": Simulation(transport=_Rejecting, auto_sync=True),
         "empty": Simulation(transport=lambda: FixtureTransport(empty), seeds_card=True),
         "showcase": Simulation(transport=lambda: _Showcase(source()), seeds_card=True),

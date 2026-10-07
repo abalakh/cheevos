@@ -128,7 +128,6 @@ def fixture_environment(sd_root: Path) -> AppEnvironment:
             ProgressTracker(),
             threading.Event(),
             online=lambda: True,
-            clock_ok=lambda _now: True,
         )
         # Fixture mode shows everything (every game's details and badges, as if downloaded),
         # unless the drill is about what a first sync leaves out.
@@ -141,7 +140,7 @@ def fixture_environment(sd_root: Path) -> AppEnvironment:
         paths=paths,
         transport_factory=drill.transport or _fixture_transport,
         online=lambda: drill.online,
-        clock_ok=lambda _now: drill.clock_ok,
+        clock=drill.clock,
         auto_sync=drill.auto_sync,
         api_interval=0.0,  # recorded responses: nothing to be polite to
     )

@@ -1,4 +1,4 @@
-"""HTTP transports for the RetroAchievements client: real keep-alive HTTPS, or recorded fixtures."""
+"""Keep-alive HTTPS with an HTTP fallback for TLS failures, or recorded fixtures."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Protocol
 from urllib.parse import parse_qsl, urlsplit
 
+from cheevos.core.clock import ServerClock, network_clock
 from cheevos.core.errors import NetworkError
 
 logger = logging.getLogger(__name__)
@@ -80,6 +81,12 @@ class Connection(Protocol):
 
 
 ConnectionFactory = Callable[[str, float, ssl.SSLContext], Connection]
+PlainConnectionFactory = Callable[[str, float], Connection]
+
+
+def _http_connection(host: str, timeout: float) -> Connection:
+    """Open a plain HTTP connection lazily, for RA's TLS fallback."""
+    return http.client.HTTPConnection(host, timeout=timeout)
 
 
 def _https_connection(host: str, timeout: float, context: ssl.SSLContext) -> Connection:
@@ -106,7 +113,7 @@ def default_ssl_context() -> ssl.SSLContext:
 
 
 class HttpTransport:
-    """HTTPS transport keeping one connection alive per host.
+    """Prefer verified HTTPS; retry RA hosts over HTTP if TLS is unavailable.
 
     Opening a TLS connection costs ~1 s on a Miyoo Mini; reused connections answer in ~100 ms
     (measured on the Mini), so connections are kept and reused.
@@ -115,6 +122,8 @@ class HttpTransport:
         timeout: Socket timeout in seconds.
         connection_factory: Creates connections; tests inject fakes.
         ssl_context: TLS context; defaults to :func:`default_ssl_context`.
+        http_connection_factory: Creates fallback HTTP connections.
+        server_clock: App clock updated from the API host's Date headers.
     """
 
     def __init__(
@@ -123,10 +132,15 @@ class HttpTransport:
         timeout: float = DEFAULT_TIMEOUT,
         connection_factory: ConnectionFactory = _https_connection,
         ssl_context: ssl.SSLContext | None = None,
+        http_connection_factory: PlainConnectionFactory = _http_connection,
+        server_clock: ServerClock = network_clock,
     ) -> None:
         self._timeout = timeout
         self._factory = connection_factory
-        self._context = ssl_context or default_ssl_context()
+        self._context = ssl_context
+        self._http_factory = http_connection_factory
+        self._clock = server_clock
+        self._plain_hosts: set[str] = set()
         self._connections: dict[str, Connection] = {}
 
     def get(self, host: str, path: str, headers: dict[str, str]) -> Response:
@@ -143,21 +157,44 @@ class HttpTransport:
         Raises:
             NetworkError: The request failed (DNS, TLS, timeout, connection loss, bad HTTP).
         """
+        return self._request("GET", host, path, headers)
+
+    def head(self, host: str, path: str, headers: dict[str, str]) -> Response:
+        """Probe a host without downloading a body, using the same TLS fallback as GET."""
+        return self._request("HEAD", host, path, headers)
+
+    def _request(self, method: str, host: str, path: str, headers: dict[str, str]) -> Response:
+        """Retry dropped connections and TLS failures, never downgrading other failures."""
         try:
             try:
-                return self._send(host, path, headers)
-            except _DROPPED as exc:
-                logger.info("Connection to %s dropped (%s); reconnecting", host, type(exc).__name__)
+                return self._retry_dropped(method, host, path, headers)
+            except ssl.SSLError as exc:
+                if host not in (API_HOST, MEDIA_HOST) or host in self._plain_hosts:
+                    raise
+                logger.warning("TLS unavailable for %s (%s); using HTTP", host, type(exc).__name__)
                 self._discard(host)
-                return self._send(host, path, headers)
+                self._plain_hosts.add(host)
+                return self._retry_dropped(method, host, path, headers)
         except (OSError, http.client.HTTPException) as exc:
             self._discard(host)
             raise NetworkError(f"{host}: {type(exc).__name__}: {exc}") from exc
 
-    def _send(self, host: str, path: str, headers: dict[str, str]) -> Response:
+    def _retry_dropped(
+        self, method: str, host: str, path: str, headers: dict[str, str]
+    ) -> Response:
+        """Reconnect once when the server dropped a kept-alive connection."""
+        try:
+            return self._send(method, host, path, headers)
+        except _DROPPED as exc:
+            logger.info("Connection to %s dropped (%s); reconnecting", host, type(exc).__name__)
+            self._discard(host)
+            return self._send(method, host, path, headers)
+
+    def _send(self, method: str, host: str, path: str, headers: dict[str, str]) -> Response:
         """Send one request on the host's connection and read the whole response.
 
         Args:
+            method: GET or HEAD.
             host: Host name.
             path: Path including the query string.
             headers: Request headers.
@@ -166,10 +203,12 @@ class HttpTransport:
             The response.
         """
         connection = self._connection(host)
-        connection.request("GET", path, headers=headers)
+        connection.request(method, path, headers=headers)
         response = connection.getresponse()
         body = response.read()
         names = {name.lower(): value for name, value in response.getheaders()}
+        if host == API_HOST:
+            self._clock.observe_date(names.get("date"))
         return Response(status=response.status, headers=names, body=body)
 
     def _connection(self, host: str) -> Connection:
@@ -183,7 +222,15 @@ class HttpTransport:
         """
         connection = self._connections.get(host)
         if connection is None:
-            connection = self._factory(host, self._timeout, self._context)
+            if host in self._plain_hosts:
+                connection = self._http_factory(host, self._timeout)
+            else:
+                if self._context is None:
+                    try:
+                        self._context = default_ssl_context()
+                    except OSError as exc:
+                        raise ssl.SSLError("Could not load the TLS certificate bundle") from exc
+                connection = self._factory(host, self._timeout, self._context)
             self._connections[host] = connection
         return connection
 

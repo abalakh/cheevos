@@ -24,7 +24,6 @@ RESULT_SECONDS = 5.0  # a finished sync's result stays on every screen this long
 
 _FAILURES = {
     Failure.OFFLINE: (strings.SYNC_OFFLINE, "cloud"),
-    Failure.CLOCK: (strings.SYNC_CLOCK, "clock"),
     Failure.AUTH: (strings.SYNC_AUTH, "lock"),
     Failure.NETWORK: (strings.SYNC_UNAVAILABLE, "cloud"),
     Failure.RATE_LIMITED: (strings.SYNC_UNAVAILABLE, "cloud"),

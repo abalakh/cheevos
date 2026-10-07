@@ -14,7 +14,7 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 | Built-in modules we rely on | `ssl` (OpenSSL 3.5), `sqlite3`, `json`, `hashlib`, `zlib`, `ctypes`, `zoneinfo` |
 | Third-party | **None of our own.** PySDL2 0.9.17 is loaded only indirectly, through PyUI. No `requests`, no Pillow. |
 | UI toolkit | PyUI, imported at runtime from `/mnt/SDCARD/App/PyUI/main-ui` ([pyui.md](pyui.md)). |
-| TLS | CA bundle at `$SSL_CERT_FILE` (`/mnt/SDCARD/spruce/etc/ca-certificates.crt`). The devices have no RTC, so HTTPS needs a synced clock. |
+| TLS | CA bundle at `$SSL_CERT_FILE` (`/mnt/SDCARD/spruce/etc/ca-certificates.crt`). An unset/incorrect clock or another TLS failure uses HTTP automatically. RA's Date supplies app time without changing the device clock. |
 
 ## Packaging
 

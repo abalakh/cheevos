@@ -14,7 +14,7 @@ import threading
 import time
 
 from cheevos.core.errors import ConfigError
-from cheevos.core.net import clock_plausible, is_online
+from cheevos.core.net import is_online
 from cheevos.core.settings import BadgeScope, load_settings
 from cheevos.core.sync.engine import SyncEngine, SyncOptions
 from cheevos.core.sync.progress import ProgressTracker
@@ -77,9 +77,7 @@ def main(argv: list[str] | None = None) -> int:
     reporter.start()
     started = time.monotonic()
     try:
-        engine = SyncEngine(
-            deps, tracker, threading.Event(), online=is_online, clock_ok=clock_plausible
-        )
+        engine = SyncEngine(deps, tracker, threading.Event(), online=is_online)
         status = engine.run(options)
     finally:
         done.set()

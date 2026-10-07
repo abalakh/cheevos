@@ -165,8 +165,6 @@ def _why_not(status: FetchStatus | None, now: float) -> list[str]:
     failure = status.failure if status is not None else None
     if failure is Failure.NETWORK:
         return [strings.NO_DETAILS, strings.LOAD_NETWORK, strings.NO_DETAILS_HINT]
-    if failure is Failure.CLOCK:
-        return [strings.NO_DETAILS, strings.SYNC_CLOCK]
     if failure is Failure.AUTH:
         return [strings.NO_DETAILS, strings.SYNC_AUTH]
     if failure is Failure.RATE_LIMITED and status is not None and status.retry_at is not None:

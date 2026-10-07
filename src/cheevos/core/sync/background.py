@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import logging
 import threading
-import time
 from collections.abc import Callable
 
+from cheevos.core.clock import network_clock
 from cheevos.core.errors import CheevosError
 from cheevos.core.sync.engine import SyncDeps, SyncEngine, SyncOptions
 from cheevos.core.sync.progress import Failure, Phase, ProgressTracker, SyncStatus
@@ -21,7 +21,7 @@ class BackgroundSync:
         open_deps: Creates the sync collaborators; called on the worker thread with the
             sync's cancel event (its client's waits stop when it is set).
         online: Connectivity check passed to the engine.
-        clock_ok: Clock plausibility check passed to the engine.
+        clock: App time shared with the transport and UI.
     """
 
     def __init__(
@@ -29,11 +29,11 @@ class BackgroundSync:
         open_deps: Callable[[threading.Event], SyncDeps],
         *,
         online: Callable[[], bool],
-        clock_ok: Callable[[float], bool],
+        clock: Callable[[], float] = network_clock.now,
     ) -> None:
         self._open_deps = open_deps
         self._online = online
-        self._clock_ok = clock_ok
+        self._clock = clock
         self._tracker = ProgressTracker()
         self._cancel = threading.Event()
         self._thread: threading.Thread | None = None
@@ -90,11 +90,11 @@ class BackgroundSync:
             deps = self._open_deps(self._cancel)
         except CheevosError:
             logger.exception("Could not start sync")
-            self._tracker.finish(Phase.FAILED, failure=Failure.ERROR, at=time.time())
+            self._tracker.finish(Phase.FAILED, failure=Failure.ERROR, at=self._clock())
             return
         try:
             engine = SyncEngine(
-                deps, self._tracker, self._cancel, online=self._online, clock_ok=self._clock_ok
+                deps, self._tracker, self._cancel, online=self._online, clock=self._clock
             )
             engine.run(options)
         finally:

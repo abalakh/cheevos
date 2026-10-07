@@ -126,7 +126,6 @@ def test_idle_status_reads_last_sync_time_once_per_change():
     ("failure", "text", "icon", "action"),
     [
         (Failure.OFFLINE, "Offline · showing saved data", "cloud", "Retry"),
-        (Failure.CLOCK, "Clock not set · connect to Wi-Fi", "clock", "Retry"),
         (Failure.AUTH, "API key rejected", "lock", "Enter key"),
         (Failure.RATE_LIMITED, "RetroAchievements unavailable", "cloud", "Retry"),
     ],

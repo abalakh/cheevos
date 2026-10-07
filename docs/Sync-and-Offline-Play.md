@@ -39,9 +39,12 @@ Three things need a connection when you ask for them:
 - The profile's **See more** numbers (points in the last 7 and 30 days). The last values fetched
   stay available offline.
 
-HTTPS needs the right time, and these devices have no clock battery. Right after power-on the
-clock may still read 1970 until Spruce syncs it over Wi-Fi. Cheevos then says "Clock not set ·
-connect to Wi-Fi" and waits.
+Cheevos normally uses verified HTTPS. If the device's clock is unset or incorrect, or TLS fails
+for another reason, it automatically retries over HTTP. **Sync Time via Network** in Spruce
+isn't required. Cheevos uses RetroAchievements' response time for its own recent activity and
+sync calculations, without changing the device's clock.
+
+The HTTP fallback sends your Web API key and account data unencrypted. See [Setup](Setup).
 
 ## RAOfflineProxy
 SpruceOS ships RAOfflineProxy, which lets you earn achievements without Wi-Fi: it keeps the

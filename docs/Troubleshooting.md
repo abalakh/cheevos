@@ -7,7 +7,6 @@
 | "Sign in to RetroAchievements first" | Sign in in **Spruce Settings → RetroAchievements** (or in RetroArch), then start Cheevos again. |
 | "API key rejected" | The Web API key is wrong or was reset on the site. Copy it again from retroachievements.org (**Settings → Keys**), press **Start** and type it. |
 | "apikey.txt doesn't hold a Web API key" | The file needs just the key: 32 letters and digits on the first line, nothing else. Press **A** to type it instead. |
-| "Clock not set · connect to Wi-Fi" | The device doesn't know the time yet, and secure connections need it. Turn on Wi-Fi, wait a moment, and press **Start**. |
 | "Offline · showing saved data" | No connection. Everything synced before is still there. Press **Start** to retry. |
 | "RetroAchievements unavailable" | The site is busy or down. Cheevos uses your saved data; try again later. |
 | "RetroAchievements asked to wait N min" | RetroAchievements limits how often an app may ask for data, and asked Cheevos to pause. Cheevos uses your saved data and syncs again once the time is up. Other tools using the same Web API key count towards the same limit. |

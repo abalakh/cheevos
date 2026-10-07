@@ -15,11 +15,11 @@ from __future__ import annotations
 import logging
 import re
 import sqlite3
-import time
 from collections import OrderedDict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
+from cheevos.core.clock import network_clock
 from cheevos.core.storage.db import open_cache, reset_cache, select_among
 
 logger = logging.getLogger(__name__)
@@ -134,7 +134,7 @@ class MediaCache:
         scratch_dir: Path,
         *,
         scratch_limit_bytes: int = DEFAULT_SCRATCH_LIMIT,
-        clock: Callable[[], float] = time.time,
+        clock: Callable[[], float] = network_clock.now,
     ) -> MediaCache:
         """Open (or create) the image cache.
 

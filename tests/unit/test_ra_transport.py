@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from cheevos.core.clock import ServerClock
 from cheevos.core.errors import NetworkError
 from cheevos.core.ra_client.transport import (
     API_HOST,
@@ -109,7 +110,7 @@ class Factory:
         self.script = list(script)
         self.connections = []
 
-    def __call__(self, host, timeout, context):
+    def __call__(self, host, timeout, context=None):
         connection = FakeConnection(host, timeout, context, self.script)
         self.connections.append(connection)
         return connection
@@ -118,9 +119,13 @@ class Factory:
 OK = (200, {"Content-Type": "application/json", "Retry-After": "5"}, b"{}")
 
 
-def make(factory):
+def make(factory, http_factory=None, **kwargs):
     return HttpTransport(
-        timeout=3.0, connection_factory=factory, ssl_context=ssl.create_default_context()
+        timeout=3.0,
+        connection_factory=factory,
+        http_connection_factory=http_factory or factory,
+        ssl_context=ssl.create_default_context(),
+        **kwargs,
     )
 
 
@@ -167,7 +172,6 @@ def test_http_gives_up_after_second_drop():
     "error",
     [
         TimeoutError("timed out"),
-        ssl.SSLError("bad cert"),
         OSError("unreachable"),
         http.client.BadStatusLine("x"),
     ],
@@ -216,3 +220,89 @@ def test_default_connection_factory_is_lazy():
     connection = transport._connection("example.invalid")  # no socket is opened yet
     assert isinstance(connection, http.client.HTTPSConnection)
     transport.close()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ssl.SSLCertVerificationError("not yet valid"),
+        ssl.SSLCertVerificationError("expired"),
+        ssl.SSLError("protocol failure"),
+    ],
+)
+def test_tls_failure_retries_over_http_and_reuses_it(error, caplog):
+    secure, plain = Factory(error), Factory(OK, OK)
+    transport = make(secure, plain)
+    assert transport.get(API_HOST, "/API/x.php?y=secret", {}).status == 200
+    assert transport.get(API_HOST, "/API/y.php?y=secret", {}).status == 200
+    assert len(secure.connections) == len(plain.connections) == 1
+    assert secure.connections[0].closed
+    assert plain.connections[0].context is None
+    assert "using HTTP" in caplog.text
+    assert "secret" not in caplog.text
+    transport.close()
+    assert plain.connections[0].closed
+
+
+def test_api_downgrade_does_not_downgrade_media():
+    secure, plain = Factory(ssl.SSLError("clock"), OK), Factory(OK)
+    transport = make(secure, plain)
+    transport.get(API_HOST, "/a", {})
+    transport.get(MEDIA_HOST, "/b", {})
+    assert [c.host for c in secure.connections] == [API_HOST, MEDIA_HOST]
+    assert [c.host for c in plain.connections] == [API_HOST]
+
+
+def test_media_tls_failure_also_uses_http():
+    secure, plain = Factory(ssl.SSLError("clock")), Factory(OK)
+    assert make(secure, plain).get(MEDIA_HOST, "/Badge/1.png", {}).status == 200
+    assert plain.connections[0].host == MEDIA_HOST
+
+
+@pytest.mark.parametrize("status", [301, 401, 403, 429, 500])
+def test_http_statuses_do_not_trigger_downgrade_or_redirects(status):
+    secure, plain = Factory((status, {"Location": "http://elsewhere/"}, b"")), Factory()
+    assert make(secure, plain).get(API_HOST, "/a", {}).status == status
+    assert plain.connections == []
+    assert len(secure.connections) == 1
+
+
+def test_other_hosts_never_downgrade():
+    secure, plain = Factory(ssl.SSLError("untrusted")), Factory()
+    with pytest.raises(NetworkError):
+        make(secure, plain).get("example.org", "/a", {})
+    assert plain.connections == []
+
+
+def test_http_fallback_failure_is_reported_without_looping():
+    secure, plain = Factory(ssl.SSLError("clock")), Factory(TimeoutError("offline"), OK)
+    transport = make(secure, plain)
+    with pytest.raises(NetworkError, match="TimeoutError"):
+        transport.get(API_HOST, "/a", {})
+    assert plain.connections[0].closed
+    assert transport.get(API_HOST, "/b", {}).status == 200
+    assert len(secure.connections) == 1
+
+
+def test_missing_ca_bundle_uses_http_without_failing_at_startup(monkeypatch):
+    def unavailable():
+        raise FileNotFoundError("missing CA bundle")
+
+    monkeypatch.setattr("cheevos.core.ra_client.transport.default_ssl_context", unavailable)
+    secure, plain = Factory(), Factory(OK)
+    transport = HttpTransport(connection_factory=secure, http_connection_factory=plain)
+    assert transport.get(API_HOST, "/a", {}).status == 200
+    assert secure.connections == []
+
+
+def test_head_uses_fallback_and_updates_app_time_only_from_api_host():
+    date = {"Date": "Wed, 07 Oct 2026 12:00:00 GMT"}
+    clock = ServerClock(wall_clock=lambda: 0, monotonic=lambda: 10)
+    secure = Factory(ssl.SSLError("clock"), (200, {"Date": "Thu, 01 Jan 2037 00:00:00 GMT"}, b""))
+    plain = Factory((401, date, b""))
+    transport = make(secure, plain, server_clock=clock)
+    assert transport.head(API_HOST, "/", {}).status == 401
+    assert plain.connections[0].requests == [("HEAD", "/", {})]
+    assert clock.now() == 1_791_374_400
+    transport.get(MEDIA_HOST, "/Badge/1.png", {})
+    assert clock.now() == 1_791_374_400

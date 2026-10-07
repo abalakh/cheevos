@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-import time
 from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
+from cheevos.core.clock import network_clock
 from cheevos.core.local_games import on_device_game_ids
 from cheevos.core.models import PendingAward, Unlock
 from cheevos.core.proxy import ProxyReader
@@ -48,6 +48,7 @@ class AppContext:
         fetch_first_unlock: Finds the user's first hardcore unlock from a start time,
             blocking (``None``: offline, RA unreachable, or none).
         clock: Wall clock.
+        refresh_time: Refreshes app time and connectivity before on-demand date queries.
     """
 
     paths: Paths
@@ -64,7 +65,8 @@ class AppContext:
     validate_key: Callable[[str, str], bool | None]
     fetch_unlocks: Callable[[int, int], list[Unlock] | None]
     fetch_first_unlock: Callable[[int], int | None]
-    clock: Callable[[], float] = time.time
+    clock: Callable[[], float] = network_clock.now
+    refresh_time: Callable[[], bool] = field(default=lambda: True, repr=False)
     _on_device: set[int] | None = field(default=None, repr=False)
 
     def icon(self, name: str) -> Path:

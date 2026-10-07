@@ -64,18 +64,22 @@ account and is recreated.
   48 MB on the Mini. Settings shows the size of `media.db` (`os.stat`, 0.1 ms) instead.
 - **`/tmp`:** a 49 MB tmpfs, which is RAM. Keep extracted images bounded; the app deletes both
   scratch folders on exit.
-- **Clock:** there's no RTC. Before NTP sync the clock reads 1970, and HTTPS fails. Check
-  `net.clock_plausible` before syncing.
+- **Clock:** there may be no RTC, so the device can boot in 1970. TLS failures automatically
+  retry over HTTP. `core/clock.py` shares RA's API `Date` plus monotonic elapsed time across
+  sync, game downloads and UI calculations. Before the first valid sample it uses system time.
+  Ignore malformed dates and media CDN dates. Never change the system clock or Spruce's time
+  settings. NTP isn't a prerequisite for Cheevos.
 
 ## Sync engine
 It runs on a background worker thread. The UI reads committed DB state and a thread-safe
 `SyncProgress` snapshot.
 
 1. **Pre-flight**:
-   - Connectivity: interface up plus `HEAD https://retroachievements.org` with a 3 s timeout.
-   - Clock plausibility: year ≥ 2026. If the clock is wrong, show "Clock not synced" and skip.
+   - Connectivity: `HEAD https://retroachievements.org` with a 3 s timeout and the transport's
+     HTTP fallback on TLS failure. This refreshes app time before checking a stored pause.
    - Rate limit: if RA asked for a long pause (`meta.rate_limited_until`) and the time isn't up,
-     stop with "RetroAchievements asked to wait N min" without a request. A finished sync
+     stop with "RetroAchievements asked to wait N min" without a Web API request. The
+     credential-free HEAD may run to refresh time. A finished sync
      clears it.
 2. **Profile**: `GetUserSummary` (`g=1` for the last game).
 3. **Game list**: every page of `GetUserCompletionProgress`. Upsert the `games` rows. Compute a
@@ -135,8 +139,8 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
   only ([pyui.md](pyui.md), "Downloads follow the visible rows").
 - **Game worker**: one thread fetching the achievements of a game the user opens when they
   aren't cached (`DetailFetcher`, `core/sync/detail_fetch.py`), with its own client and cache
-  connection. The latest request goes first. It checks the clock and RA's stored pause before
-  asking, stores a long pause for the sync to respect, and reopens its client after a key
+  connection. The latest request goes first. It refreshes app time when checking RA's stored
+  pause, stores a long pause for the sync to respect, and reopens its client after a key
   rejection. The game screen shows "Loading achievements…" and polls it every input tick; B
   backs out and the fetch still completes. A game it fetched after the sync planned the same
   game isn't fetched again by the sync.

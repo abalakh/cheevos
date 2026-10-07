@@ -72,10 +72,16 @@ def _see_more(ctx: AppContext, profile: UserProfile) -> tuple[RecentPoints | Non
     now = int(ctx.clock())
     window = ctx.data.unlock_window()
     first = ctx.data.first_hardcore_unlock()
-    fetch_window = window is None or now - window.end > WINDOW_FRESH
+    fetch_window = window is None or not window.start <= now <= window.end + WINDOW_FRESH
     fetch_first = first is None and profile.hardcore_points > 0
     if fetch_window or fetch_first:
         busy(strings.PROFILE, strings.LOADING)
+        reachable = ctx.refresh_time()
+        now = int(ctx.clock())
+        fetch_window = reachable and (
+            window is None or not window.start <= now <= window.end + WINDOW_FRESH
+        )
+        fetch_first = reachable and fetch_first
     if fetch_window:
         start = window_start(now)
         unlocks = ctx.fetch_unlocks(start, now)

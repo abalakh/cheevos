@@ -88,7 +88,7 @@ real. Each drill gets a fresh card.
 | Drill | What it shows |
 |---|---|
 | `offline` | No network: the sync on open fails, saved data stays usable |
-| `clock` | Clock not set (the device just booted): sync waits |
+| `clock` | App clock starts in 1970, then recovers from RA's response time and syncs |
 | `auth` | The API key is rejected |
 | `empty` | An account with no games |
 | `proxy` | RAOfflineProxy enabled, with unlocks waiting to sync (games list `+N`, Recent unlocks, the Settings row). Descent's has no `patch:` data, as after playing online with RetroArch 1.22. |

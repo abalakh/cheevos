@@ -14,13 +14,13 @@ from __future__ import annotations
 import logging
 import sqlite3
 import threading
-import time
 from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol
 
+from cheevos.core.clock import network_clock
 from cheevos.core.errors import (
     AuthError,
     CheevosError,
@@ -103,20 +103,20 @@ class DetailFetcher:
     Args:
         open_session: Creates the client and data cache; called on the worker thread with its
             stop event, again after RA rejects the key (the user may have entered a new one).
-        clock_ok: Whether the device clock is plausible enough for HTTPS.
-        clock: Wall clock (epoch seconds).
+        clock: App clock (epoch seconds).
+        online: Refreshes app time before checking a stored RA pause, when supplied.
     """
 
     def __init__(
         self,
         open_session: Callable[[threading.Event], DetailSession],
         *,
-        clock_ok: Callable[[float], bool],
-        clock: Callable[[], float] = time.time,
+        clock: Callable[[], float] = network_clock.now,
+        online: Callable[[], bool] | None = None,
     ) -> None:
         self._open_session = open_session
-        self._clock_ok = clock_ok
         self._clock = clock
+        self._online = online
         self._lock = threading.Lock()
         self._waiting: deque[int] = deque()  # next to fetch first
         self._statuses: dict[int, FetchStatus] = {}
@@ -222,10 +222,12 @@ class DetailFetcher:
         """
         client, data, _ = session
         now = self._clock()
-        if not self._clock_ok(now):
-            self._finish(game_id, FetchStatus(FetchState.FAILED, Failure.CLOCK))
-            return True
         until = _float(data.get_meta(RATE_LIMITED_UNTIL_KEY))
+        if until is not None and self._online is not None:
+            if not self._online():
+                self._finish(game_id, FetchStatus(FetchState.FAILED, Failure.NETWORK))
+                return True
+            now = self._clock()
         if until is not None and until > now:
             self._finish(game_id, FetchStatus(FetchState.FAILED, Failure.RATE_LIMITED, until))
             return True
@@ -240,6 +242,7 @@ class DetailFetcher:
             self._finish(game_id, FetchStatus(FetchState.FAILED, Failure.AUTH))
             return False
         except RateLimitedError as exc:
+            now = self._clock()
             pause = exc.retry_after if exc.retry_after is not None else RATE_LIMIT_PAUSE
             data.set_meta(RATE_LIMITED_UNTIL_KEY, str(int(now + pause)))  # the sync waits too
             self._finish(game_id, FetchStatus(FetchState.FAILED, Failure.RATE_LIMITED, now + pause))

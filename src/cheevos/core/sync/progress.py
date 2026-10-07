@@ -32,7 +32,6 @@ class Failure(Enum):
     """Why a sync stopped early; drives the status line shown to the user."""
 
     OFFLINE = "offline"
-    CLOCK = "clock"  # device clock not synced yet: HTTPS would fail
     AUTH = "auth"
     NETWORK = "network"
     RATE_LIMITED = "rate-limited"

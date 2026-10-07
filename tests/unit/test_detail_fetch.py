@@ -76,10 +76,8 @@ class Harness:
         self.errors = {}
         self.gated = set()
         self.gate = threading.Event()
-        self.clock_ok = True
-        self.fetcher = DetailFetcher(
-            self.open_session, clock_ok=lambda _now: self.clock_ok, clock=lambda: NOW
-        )
+        self.now = NOW
+        self.fetcher = DetailFetcher(self.open_session, clock=lambda: self.now)
 
     def open_session(self, stop):
         client = FakeClient(stop)
@@ -179,10 +177,42 @@ def test_a_long_rate_limit_is_stored_for_the_sync_too(harness):
     assert harness.calls() == [FFTA]
 
 
-def test_an_unset_clock_fails_without_a_request(harness):
-    harness.clock_ok = False
+def test_an_unset_clock_does_not_block_a_request(harness):
+    harness.now = 0
     harness.fetcher.request(FFTA)
-    assert harness.finished(FFTA).failure is Failure.CLOCK
+    assert harness.finished(FFTA).state is FetchState.DONE
+    assert harness.calls() == [FFTA]
+
+
+@pytest.mark.parametrize("pause", [NOW - 60, NOW + 600])
+def test_stored_pause_uses_refreshed_time_after_a_cold_boot(harness, pause):
+    cache = harness.cache()
+    cache.set_meta(RATE_LIMITED_UNTIL_KEY, str(int(pause)))
+    cache.close()
+    harness.now = 0
+
+    def online():
+        harness.now = NOW
+        return True
+
+    harness.fetcher._online = online
+    harness.fetcher.request(FFTA)
+    status = harness.finished(FFTA)
+    if pause < NOW:
+        assert status.state is FetchState.DONE
+        assert harness.calls() == [FFTA]
+    else:
+        assert status.failure is Failure.RATE_LIMITED
+        assert harness.calls() == []
+
+
+def test_pause_time_refresh_failure_leaves_the_cache_usable(harness):
+    cache = harness.cache()
+    cache.set_meta(RATE_LIMITED_UNTIL_KEY, str(int(NOW + 600)))
+    cache.close()
+    harness.fetcher._online = lambda: False
+    harness.fetcher.request(FFTA)
+    assert harness.finished(FFTA).failure is Failure.NETWORK
     assert harness.calls() == []
 
 
@@ -202,7 +232,7 @@ def test_a_session_that_cannot_open_fails_the_request(tmp_path):
     def open_session(_stop):
         raise OSError("no card")
 
-    fetcher = DetailFetcher(open_session, clock_ok=lambda _now: True)
+    fetcher = DetailFetcher(open_session)
     fetcher.request(FFTA)
     assert settled(fetcher, FFTA).failure is Failure.ERROR
     fetcher.close()

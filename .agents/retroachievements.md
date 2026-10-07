@@ -28,6 +28,13 @@ look and counting rules come from the website's own source (RAWeb). The client l
     request on a new connection takes 0.7–1 s (DNS and a TLS handshake on a Cortex-A7), later
     ones on the same connection about 0.1 s (about 7× faster), so connections are reused. With
     that, HTTPS is fast enough on the Mini.
+  - On TLS errors (certificate dates, verification, protocol failures, or an unreadable CA
+    bundle), retry over `http.client.HTTPConnection`. Only the fixed API and media hosts may
+    fall back. Remember HTTP per host for that transport's lifetime; a new transport tries
+    HTTPS again. DNS failures, timeouts, dropped sockets and HTTP statuses never cause a
+    downgrade. No redirects are followed. The reachability HEAD uses this transport too.
+  - The API host's `Date` updates the shared app clock (`core/clock.py`); media dates are ignored
+    because CDN responses may be cached. The device clock and Spruce settings stay unchanged.
   - Timeouts: 10 s connect/read for the API, 20 s for media.
   - User-Agent: `Cheevos/<version> (SpruceOS <spruce version>; <PLATFORM>)`.
 - **Rate limit**: RA limits requests per API key but publishes no numbers; its API docs only
@@ -113,4 +120,7 @@ text colour in three strengths.
   personal data out of it too. Today it holds no username or key; game titles appear in file
   paths.
 - `scripts/record_fixtures.py` strips `y=` before saving; the key never reaches fixtures.
-- Only HTTPS. Certificates are always verified; there's no `-k` fallback.
+- Prefer verified HTTPS. If TLS fails, HTTP is an automatic compatibility fallback, explicitly
+  requested for devices with unset or incorrect clocks. It sends the Web API key and account
+  data unencrypted; this tradeoff is documented in the wiki's Setup page. Never disable
+  certificate verification on an HTTPS connection.

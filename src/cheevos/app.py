@@ -15,9 +15,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TypeVar
 
+from cheevos.core.clock import network_clock
 from cheevos.core.errors import AuthError, CheevosError
 from cheevos.core.models import Unlock
-from cheevos.core.net import clock_plausible, is_online
+from cheevos.core.net import is_online
 from cheevos.core.proxy import ProxyReader
 from cheevos.core.ra_client.client import RaClient
 from cheevos.core.ra_client.pacer import API_INTERVAL, Pacer
@@ -55,7 +56,7 @@ class AppEnvironment:
         paths: Device paths.
         transport_factory: Creates an HTTP transport (one per thread).
         online: Connectivity check.
-        clock_ok: Clock plausibility check.
+        clock: App time, updated by RA responses in the real environment.
         auto_sync: Overrides the "sync when the app opens" setting when not ``None``.
         api_interval: Seconds between Web API requests, shared by every client (recorded
             fixtures need no pacing).
@@ -64,7 +65,7 @@ class AppEnvironment:
     paths: Paths
     transport_factory: Callable[[], Transport] = HttpTransport
     online: Callable[[], bool] = is_online
-    clock_ok: Callable[[float], bool] = clock_plausible
+    clock: Callable[[], float] = network_clock.now
     auto_sync: bool | None = None
     api_interval: float = API_INTERVAL
 
@@ -116,7 +117,7 @@ def _validator(env: AppEnvironment, pacer: Pacer) -> Callable[[str, str], bool |
 class _OnDemand:
     """Blocking RA requests made when the user asks ("See more"), paced with everything else.
 
-    Each call returns ``None`` when offline, when the clock is unset or when RA fails.
+    Each call returns ``None`` when offline or when RA fails.
 
     Args:
         env: App environment.
@@ -135,8 +136,9 @@ class _OnDemand:
 
     def first_unlock(self, since: int) -> int | None:
         """Find the user's first hardcore unlock, looking from ``since`` (registration)."""
-        now = int(time.time())
-        return self._call("the first unlock", lambda client: client.first_unlock(since, now))
+        return self._call(
+            "the first unlock", lambda client: client.first_unlock(since, int(self._env.clock()))
+        )
 
     def _call(self, what: str, request: Callable[[RaClient], _T]) -> _T | None:
         """Run ``request`` with a fresh client, or return ``None`` if that's impossible.
@@ -149,8 +151,6 @@ class _OnDemand:
             Its result, or ``None``.
         """
         env = self._env
-        if not env.online() or not env.clock_ok(time.time()):
-            return None
         credentials = self._ctx_ref[0].credentials
         client = make_client(env.paths, credentials, env.transport_factory(), pacer=self._pacer)
         try:
@@ -271,8 +271,10 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         logger.exception("Could not open the caches")
         return
     fetcher = LazyMediaFetcher(_media_session(env, ctx_ref, pacer))
-    details = DetailFetcher(_detail_session(env, ctx_ref, pacer), clock_ok=env.clock_ok)
-    sync = BackgroundSync(_sync_deps(env, ctx_ref, pacer), online=env.online, clock_ok=env.clock_ok)
+    details = DetailFetcher(
+        _detail_session(env, ctx_ref, pacer), clock=env.clock, online=env.online
+    )
+    sync = BackgroundSync(_sync_deps(env, ctx_ref, pacer), online=env.online, clock=env.clock)
     ctx = AppContext(
         paths=paths,
         credentials=credentials,
@@ -288,6 +290,8 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
         validate_key=validate,
         fetch_unlocks=on_demand.unlocks,
         fetch_first_unlock=on_demand.first_unlock,
+        clock=env.clock,
+        refresh_time=env.online,
     )
     ctx_ref.append(ctx)
     if settings.auto_sync if env.auto_sync is None else env.auto_sync:

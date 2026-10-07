@@ -1,6 +1,6 @@
 """The sync engine: fetch from RA into the caches, incrementally and resumably.
 
-Phases: preflight (clock, rate limit, network) → profile → library (completion progress +
+Phases: preflight (network, rate limit) → profile → library (completion progress +
 recently played) → awards → details (the working set's new games, changed and stale cached
 games, and the games behind the newest unlocks; one commit per game) → media (avatar, game
 icons, badges for the configured scope). See .agents/sync-and-storage.md.
@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import logging
 import threading
-import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 
+from cheevos.core.clock import network_clock
 from cheevos.core.errors import (
     AuthError,
     CheevosError,
@@ -116,7 +116,6 @@ class SyncEngine:
         cancel: Set to stop at the next request boundary.
         clock: Wall clock (epoch seconds).
         online: Connectivity check.
-        clock_ok: Whether the device clock is plausible enough for HTTPS.
     """
 
     def __init__(
@@ -125,16 +124,14 @@ class SyncEngine:
         tracker: ProgressTracker,
         cancel: threading.Event,
         *,
-        clock: Callable[[], float] = time.time,
+        clock: Callable[[], float] = network_clock.now,
         online: Callable[[], bool],
-        clock_ok: Callable[[float], bool],
     ) -> None:
         self._deps = deps
         self._tracker = tracker
         self._cancel = cancel
         self._clock = clock
         self._online = online
-        self._clock_ok = clock_ok
         self._details_since = 0  # when the details phase began (games fetched since are fresh)
 
     def run(self, options: SyncOptions) -> SyncStatus:
@@ -203,21 +200,19 @@ class SyncEngine:
             raise SyncCancelledError
 
     def _preflight(self) -> None:
-        """Check the clock, RA's last pause request and the network before any HTTPS request.
+        """Check connectivity and refresh app time before respecting RA's last pause.
 
         Raises:
-            _FailedError: Clock not synced, RA asked us to wait and the time isn't up, or no
+            _FailedError: RA asked us to wait and the time isn't up, or no
                 connection to RA.
         """
         self._tracker.phase(Phase.PREFLIGHT)
+        if not self._online():
+            raise _FailedError(Failure.OFFLINE)
         now = self._clock()
-        if not self._clock_ok(now):
-            raise _FailedError(Failure.CLOCK)
         until = self._rate_limited_until()
         if until is not None and until > now:
             raise _FailedError(Failure.RATE_LIMITED, retry_at=until)
-        if not self._online():
-            raise _FailedError(Failure.OFFLINE)
 
     def _rate_limited_until(self) -> float | None:
         """Return when RA allows requests again, if a past sync was told to wait.
