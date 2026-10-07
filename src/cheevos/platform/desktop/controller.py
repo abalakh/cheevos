@@ -177,7 +177,9 @@ class DesktopControllerInterface(ControllerInterface):
             if isinstance(step, Wait):
                 if step.ticks > 1:
                     self._script.appendleft(Wait(step.ticks - 1))
-                time.sleep(max(timeout, 1) / 1000)
+                # PyUI truncates its seconds timeout to milliseconds. Cover the lost fraction
+                # so it returns to the UI instead of consuming another step in the same tick.
+                time.sleep((max(timeout, 0) + 1) / 1000)
                 return None  # one idle tick: PyUI redraws and our on_tick handlers run
             if isinstance(step, Capture):
                 if self._on_capture is not None:
