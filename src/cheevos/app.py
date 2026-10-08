@@ -169,7 +169,7 @@ def _media_session(
     Args:
         env: App environment.
         ctx_ref: One-element list holding the context (set once it exists).
-        pacer: The app's shared request pacer (images aren't paced; API calls would be).
+        pacer: The app's shared request pacer (images use the client's media pacer).
 
     Returns:
         A factory returning ``(client, media cache, close)``.

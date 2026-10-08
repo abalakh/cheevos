@@ -21,9 +21,10 @@ from collections.abc import Callable
 
 from cheevos.core.errors import RateLimitedError
 
-API_INTERVAL = 1.0  # seconds per request once the burst is used: measured clean on 2026-10-06
-API_BURST = 5  # requests allowed after an idle spell, well under the ~18 RA accepted
-API_SPACING = 0.3  # seconds between requests within a burst (RA's 429s took ~18 at this pace)
+API_INTERVAL = 3.0  # seconds per request once the burst is used
+API_BURST = 3  # requests allowed after an idle spell
+API_SPACING = 1.0  # seconds between requests within a burst
+MEDIA_INTERVAL = 0.25  # seconds between media downloads
 LONG_PAUSE = 10.0  # RA asking for a longer pause stops work instead of waiting it out
 
 
