@@ -1,7 +1,7 @@
 # Spruce, RetroArch and RAOfflineProxy: what we read
 
 Cheevos reads other software's files on the SD card and never writes them. It writes only
-`Saves/cheevos/`, `App/Cheevos/cache/`, `/tmp/cheevos/` and its log. Every path comes from
+`Saves/cheevos/`, `/tmp/cheevos/` and its log. Every path comes from
 `cheevos.platform.paths`.
 
 ## Credentials and first run (`core/credentials.py`)

@@ -1,4 +1,4 @@
-"""The RA data cache (``App/Cheevos/cache/data.db``): profile, games, achievements, awards.
+"""The RA data cache (``Saves/cheevos/cache/data.db``): profile, games, achievements, awards.
 
 Everything here is rebuildable from RetroAchievements, so the file is disposable
 (.agents/sync-and-storage.md): a schema change or corruption recreates it, and so does opening

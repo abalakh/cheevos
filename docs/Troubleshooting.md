@@ -23,9 +23,9 @@ Cheevos' data on the SD card:
 | `Saves/cheevos/apikey.txt` | Your Web API key | Yes. Cheevos asks for it again. |
 | `Saves/cheevos/settings.json` | Your settings | Yes. Back to defaults. |
 | `Saves/cheevos/pyui-state.json` | Last selected rows | Yes. |
-| `App/Cheevos/cache/` | Synced data and downloaded images | Yes. The next start syncs everything again. |
+| `Saves/cheevos/cache/` | Synced data and downloaded images | Yes. The next start syncs everything again. |
 
-Deleting `App/Cheevos/cache/` fixes most problems that downloading every game again doesn't.
+Deleting `Saves/cheevos/cache/` fixes most problems that downloading every game again doesn't.
 
 ## Logs
 Cheevos writes a log to `Saves/spruce/cheevos-<device>.log` (e.g. `cheevos-MiyooMini.log`).
@@ -42,7 +42,7 @@ can attach it to a bug report.
   password. The key only gives read access through RetroAchievements' Web API. You can reset it
   on the site at any time.
 - Cheevos reads Spruce's, RetroArch's and RAOfflineProxy's files but never writes to them. It
-  writes only to `Saves/cheevos/`, `App/Cheevos/cache/`, its log, and temporary files in `/tmp`.
+  writes only to `Saves/cheevos/`, its log, and temporary files in `/tmp`.
 
 ## Reporting a bug
 Open an issue on the project's GitHub page with: your device and Spruce version, what you did,
