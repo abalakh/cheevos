@@ -224,7 +224,6 @@ ABOUT_TEXT = (
     "MIT License · Copyright (c) 2026 Andrii Balakhtar",
     "Data, badges and game icons: RetroAchievements.org (not affiliated)",
     "Screens drawn with PyUI · Copyright (c) 2025 Christopher Jacobs, used under its license",
-    "List icons: pixelarticons by Gerrit Halfmann (MIT)",
 )
 
 # --- setup ------------------------------------------------------------------------------------

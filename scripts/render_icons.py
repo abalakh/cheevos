@@ -2,10 +2,10 @@
 
 - ``assets/icons/cheevos.svg`` -> ``app/cheevos.png``: the Apps-menu icon, drawn at the
   largest size SpruceOS themes use (105 px at 1280x720) so PyUI only ever scales it down.
-- ``assets/pixelarticons/<name>.svg`` -> ``src/cheevos/res/icons/<size>/<name>.png``: list
-  icons, recoloured to the theme accent and rendered at exact multiples of their 24 px grid
-  (24, 48 and 72 px) so every pixel edge stays sharp. A few also get a muted variant
-  (:data:`MUTED_ICONS`).
+- ``assets/icons/ui/<name>.svg`` -> ``src/cheevos/res/icons/<size>/<name>.png``: original
+  rounded outlines in SPRUCE gold, at 24 and 48 px for status icons and 96 and 144 px for
+  lists and image fallbacks. Larger list sources keep curves clean when PyUI scales them
+  into the theme's icon column. A few also get a muted variant (:data:`MUTED_ICONS`).
 
 Usage: ``uv run python scripts/render_icons.py``
 """
@@ -27,11 +27,10 @@ REPO = Path(__file__).resolve().parents[1]
 APP_ICON_SOURCE = REPO / "assets" / "icons" / "cheevos.svg"
 APP_ICON_OUTPUT = REPO / "app" / "cheevos.png"
 APP_ICON_SIZE = 105
-PIXEL_SOURCE_DIR = REPO / "assets" / "pixelarticons"
-PIXEL_OUTPUT_DIR = REPO / "src" / "cheevos" / "res" / "icons"
-PIXEL_GRID = 24
-# 24 px: bottom-bar status; 48 px: lists on 640-752 px wide screens; 72 px: lists above.
-PIXEL_SCALES = (1, 2, 3)
+UI_SOURCE_DIR = REPO / "assets" / "icons" / "ui"
+UI_OUTPUT_DIR = REPO / "src" / "cheevos" / "res" / "icons"
+# Below 1000 px wide: 24 px status, 96 px list sources; larger screens: 48 and 144 px.
+UI_SIZES = (24, 48, 96, 144)
 ACCENT = "#D7B45F"  # SPRUCE theme accent (sampled from its app icons)
 MUTED = "#7C6F64"  # SPRUCE's muted text (locked rows), like RA's grey locked badges
 # Extra renderings in the muted colour: source name -> output name. The grey lock stands in for
@@ -83,23 +82,22 @@ def render_svg(svg: str, size: int, output: Path) -> None:
         sdl2.SDL_FreeSurface(surface)
 
 
-def render_pixel_icons() -> int:
-    """Render every pixelarticons source at each scale in the accent colour.
+def render_ui_icons() -> int:
+    """Render every original UI icon at each size in the accent colour.
 
     Returns:
         Number of PNGs written.
     """
     count = 0
-    for source in sorted(PIXEL_SOURCE_DIR.glob("*.svg")):
+    for source in sorted(UI_SOURCE_DIR.glob("*.svg")):
         text = source.read_text(encoding="utf-8")
         outputs = [(source.stem, ACCENT)]
         if source.stem in MUTED_ICONS:
             outputs.append((MUTED_ICONS[source.stem], MUTED))
         for name, color in outputs:
             svg = text.replace("currentColor", color)
-            for scale in PIXEL_SCALES:
-                size = PIXEL_GRID * scale
-                render_svg(svg, size, PIXEL_OUTPUT_DIR / str(size) / f"{name}.png")
+            for size in UI_SIZES:
+                render_svg(svg, size, UI_OUTPUT_DIR / str(size) / f"{name}.png")
                 count += 1
     return count
 
@@ -112,8 +110,8 @@ def main() -> int:
     """
     render_svg(APP_ICON_SOURCE.read_text(encoding="utf-8"), APP_ICON_SIZE, APP_ICON_OUTPUT)
     print(f"App icon: {APP_ICON_OUTPUT.relative_to(REPO)} ({APP_ICON_SIZE}px)")
-    count = render_pixel_icons()
-    print(f"Pixel icons: {count} PNGs in {PIXEL_OUTPUT_DIR.relative_to(REPO)}")
+    count = render_ui_icons()
+    print(f"UI icons: {count} PNGs in {UI_OUTPUT_DIR.relative_to(REPO)}")
     return 0
 
 

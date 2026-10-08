@@ -1,13 +1,5 @@
 # Third-party notices
 
-## Bundled with the app
-
-### pixelarticons (list icons)
-- Source: https://github.com/halfmage/pixelarticons (v2.4.1). SVG sources are in
-  `assets/pixelarticons/`; the rendered PNGs ship in `cheevos/res/icons/`.
-- License: MIT, Copyright (c) 2019 Gerrit Halfmann. The full text is in
-  `assets/pixelarticons/LICENSE` and ships as `cheevos/res/icons/LICENSE-pixelarticons.txt`.
-
 ## Used at runtime, not bundled
 
 ### PyUI (SpruceOS user interface)

@@ -1,0 +1,8 @@
+<!-- Original Cheevos artwork, MIT (see LICENSE). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" viewBox="0 0 70 70">
+  <g fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="10" y="15" width="50" height="46" rx="5"/>
+    <path d="M10 28 H60 M23 9 V21 M47 9 V21"/>
+    <path d="M23 39 H27 M43 39 H47 M23 49 H27 M43 49 H47"/>
+  </g>
+</svg>

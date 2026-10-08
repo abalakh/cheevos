@@ -17,7 +17,12 @@ def test_device_package_includes_license_and_excludes_desktop(tmp_path) -> None:
         assert release.read("Cheevos/LICENSE") == (REPO / "LICENSE").read_bytes()
         assert "Cheevos/cheevos/__main__.py" in release.namelist()
         assert "Cheevos/config.json" in release.namelist()
-        assert "Cheevos/cheevos/res/icons/LICENSE-pixelarticons.txt" in release.namelist()
+        for size in (24, 48, 96, 144):
+            for icon in ("gamepad", "user", "trophy", "lock-muted", "reload", "check"):
+                assert f"Cheevos/cheevos/res/icons/{size}/{icon}.png" in release.namelist()
+        icon_files = [name for name in release.namelist() if "/res/icons/" in name]
+        assert all(name.endswith(("/", ".png")) for name in icon_files)
+        assert not any("/res/icons/72/" in name for name in icon_files)
         assert release.getinfo("Cheevos/launch.sh").external_attr >> 16 & 0o777 == 0o755
         assert not any("desktop/" in name or "__pycache__/" in name for name in release.namelist())
         assert "Cheevos/removed.py" not in release.namelist()

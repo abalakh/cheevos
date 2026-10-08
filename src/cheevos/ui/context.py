@@ -41,7 +41,7 @@ class AppContext:
         details: Fetches the achievements of games the user opens, when not cached.
         proxy: RAOfflineProxy reader.
         screenshots: Unlock screenshot index.
-        icons: Directory of pixel icons sized for this screen.
+        icons: Directory of outline icons sized for this screen.
         validate_key: Checks a Web API key with RA (``None`` result: unreachable).
         fetch_unlocks: Fetches the user's unlocks in a time window, blocking (``None``:
             offline or RA unreachable).
@@ -70,7 +70,7 @@ class AppContext:
     _on_device: set[int] | None = field(default=None, repr=False)
 
     def icon(self, name: str) -> Path:
-        """Return a bundled pixel icon.
+        """Return a bundled outline icon.
 
         Args:
             name: Icon name, e.g. ``"trophy"``.

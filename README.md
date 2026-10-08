@@ -50,5 +50,6 @@ start; if you try it, please open an issue with how it went and the log
 MIT, see [LICENSE](LICENSE). Data, badges and game icons come from
 [RetroAchievements.org](https://retroachievements.org); Cheevos isn't affiliated with it. Screens
 are drawn with PyUI (Copyright (c) 2025 Christopher Jacobs), which SpruceOS installs; it isn't
-bundled. List icons: [pixelarticons](https://github.com/halfmage/pixelarticons) (MIT). Details in
+bundled. App and UI icons are [original Cheevos artwork](assets/icons/README.md), under the same
+MIT license. Details in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
