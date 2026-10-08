@@ -1,6 +1,6 @@
 """Assemble the device package: ``dist/App/Cheevos/`` and ``dist/Cheevos-<version>.zip``.
 
-Contents: ``config.json``, ``launch.sh``, ``cheevos.png`` and the ``cheevos`` package without
+Contents: ``config.json``, ``launch.sh``, ``cheevos.png``, ``LICENSE`` and the package without
 the dev-only desktop shim and caches. The zip holds ``Cheevos/`` for copying into the SD card's
 ``App/`` folder; the release job in ``.github/workflows/ci.yml`` publishes it.
 """
@@ -35,6 +35,7 @@ def build(output: Path = OUTPUT) -> Path:
     output.mkdir(parents=True)
     for item in sorted(APP_FILES.iterdir()):
         shutil.copy2(item, output / item.name)
+    shutil.copy2(REPO / "LICENSE", output / "LICENSE")
     (output / "launch.sh").chmod(0o755)
     shutil.copytree(SOURCE_PACKAGE, output / "cheevos", ignore=EXCLUDED)
     return output

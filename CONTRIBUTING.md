@@ -31,6 +31,8 @@ How the app works inside, area by area (PyUI, RetroAchievements, sync and storag
 in [`.agents/`](.agents/), indexed by [AGENTS.md](AGENTS.md). It's written for coding agents,
 and it's also the best reference for people changing the code.
 
+CI and the maintainer's publishing workflow are in [RELEASING.md](RELEASING.md).
+
 ## Pull requests
 - One topic per pull request. Say what changed and why, and add screenshots for UI changes.
   If you tried it on a device, say which one.

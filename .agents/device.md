@@ -46,7 +46,8 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
   any platform.
 - The release is that zip; users copy its `Cheevos` folder into `App` on the SD card. Pushing a
   `v<version>` tag publishes it as a GitHub release (the `release` job in `ci.yml`; steps in
-  TESTING.md, under "Releases"). The description links merged PR titles and direct commit titles.
+  [RELEASING.md](../RELEASING.md), under "Releases"). The description links merged PR titles
+  and direct commit titles.
   Pre-releases start at the previous version tag; stable releases start at the previous stable tag.
   Game Nursery packaging follows whatever format the maintainers ask for.
 

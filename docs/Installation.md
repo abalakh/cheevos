@@ -12,7 +12,7 @@
 ## Install
 1. Download `Cheevos-<version>.zip` from the latest release on the repository's **Releases**
    page (not the "Source code" archives), or build it yourself with `make package` (see
-   `TESTING.md` in the repository).
+   `RELEASING.md` in the repository).
 2. Unzip it on your computer, then copy the `Cheevos` folder into `App` on your SD card.
    You should end up with `App/Cheevos/launch.sh`.
 3. Put the SD card back, open **Apps** in Spruce's main menu and start **Cheevos**.

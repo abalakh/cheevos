@@ -37,6 +37,7 @@ Python 3.10 with no third-party packages at runtime; the screens are drawn with 
 toolkit SpruceOS ships. A desktop runner shows the real app on a Mac or PC without a device.
 - [CONTRIBUTING.md](CONTRIBUTING.md): reporting bugs and devices, making changes, pull requests.
 - [TESTING.md](TESTING.md): setup, tests, the desktop runner, simulations, the device workflow.
+- [RELEASING.md](RELEASING.md): CI, releases, SpruceOS pull requests and wiki publication.
 - [AGENTS.md](AGENTS.md) and [.agents/](.agents/): how it works inside, area by area. Written for
   coding agents, and just as useful to people.
 

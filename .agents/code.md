@@ -87,7 +87,7 @@ scripts/                 check_conventions, record_fixtures, fetch_dev_media, fe
                          doc_screens, device.sh
 docs/                    the user guide, published as the GitHub wiki (images/ from doc_screens)
 .agents/                 docs for coding agents, by area (AGENTS.md is the entry point)
-README.md, CONTRIBUTING.md, TESTING.md
+README.md, CONTRIBUTING.md, TESTING.md, RELEASING.md
 ```
 
 On the device, everything is assembled into `/mnt/SDCARD/App/Cheevos/` ([device.md](device.md)).
