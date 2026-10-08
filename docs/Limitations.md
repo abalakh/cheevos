@@ -18,9 +18,9 @@ too, but those haven't been tried yet: expect rough edges, and please report the
 
 ## Data from RetroAchievements
 - **Achievements of games you don't play aren't kept by default:** only games on your SD card
-  and games played lately are downloaded, about a second each. Other games load when you open
-  them, which needs Wi-Fi. **Download every game** in Settings fetches the rest (close to an
-  hour for 3,000 games).
+  and games played lately are downloaded, spaced about 3 seconds apart. Other games load when
+  you open them, which needs Wi-Fi. **Download every game** in Settings fetches the rest
+  (about 2.5 hours for 3,000 games, plus images).
 - **Spoiler protection is coarse.** RetroAchievements has no spoiler flag. "Story only" uses the
   Progression and Win condition tags, which many older sets don't have. See [Settings](Settings.md).
 - **"Last active"** is when your rich presence last changed. RetroAchievements doesn't expose

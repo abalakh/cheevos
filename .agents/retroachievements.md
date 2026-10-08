@@ -47,11 +47,13 @@ look and counting rules come from the website's own source (RAWeb). The client l
 - **Politeness**:
   - API calls share one `Pacer` (`ra_client/pacer.py`) across the whole app: the sync, the
     game worker, "See more" and the key check. It's a token bucket: after an idle spell, up to
-    5 requests 0.3 s apart (RA's first 429 came after ~18 at that spacing), then 1 per second
-    (clean for 20 minutes). A sync with nothing new (4 requests) stays quick; game details
-    settle at 1/s. No burst after a 429 pause. The desktop runner's fixture mode doesn't pace.
-  - Images aren't paced. The sync downloads them itself, stored in batches of 25 per
-    transaction; images needed while browsing come from one background worker.
+    3 requests 1 s apart, then one every 3 s for extra headroom beyond the measured clean
+    1 request/s. A sync with nothing new (4 requests) stays quick. No burst after a 429 pause.
+  - Images use a separate pacer per client, with no burst and 0.25 s between starts. The sync
+    downloads them itself, stored in batches of 25 per transaction; images needed while
+    browsing come from one background worker. Disabling API pacing (`Pacer(0)` or a private
+    client's `min_interval=0`) disables media pacing too, so unit tests and the desktop
+    runner's recorded fixtures never wait for normal request slots.
   - HTTP 429 with a `Retry-After` of up to 10 s pauses every client, then retries (3 tries;
     exponential backoff without the header). A longer one fails at once with
     `RateLimitedError`: the sync stops, stores the time in `meta.rate_limited_until` and
