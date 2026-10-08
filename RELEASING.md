@@ -5,9 +5,10 @@ For local setup and validation, see [TESTING.md](TESTING.md).
 
 ## CI
 
-- **CI** (`.github/workflows/ci.yml`): on every push and pull request, checks out PyUI at
-  `pyui-tested-commit`, then runs lint, type check and tests. When a test fails, it uploads the
-  screen tests' captures (`screen-test-captures`).
+- **CI** (`.github/workflows/ci.yml`): on pull request creation and updates, pushes to `master`
+  and `v*` tags, checks out PyUI at `pyui-tested-commit`, then runs lint, type check and tests.
+  Feature branch pushes don't run CI separately; their pull requests test the merge result.
+  When a test fails, it uploads the screen tests' captures (`screen-test-captures`).
 - **PyUI drift** (`.github/workflows/pyui-drift.yml`): weekly, the same tests and `make screens`
   against SpruceOS's latest `Development` branch, as an early warning when PyUI changes. It
   uploads the screens either way. After re-verifying against a newer SpruceOS, bump
