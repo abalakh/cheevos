@@ -140,3 +140,85 @@ jobs:
             git commit -m "Docs: sync wiki for $GITHUB_REF_NAME"
             git push
           fi
+
+  # Propose the exact public-release package in SpruceOS after all preceding jobs pass.
+  # This job can be retried separately; a fixed branch per tag reuses its existing PR.
+  spruceos:
+    needs: [release, wiki]
+    if: github.event_name == 'push' && needs.release.outputs.stable == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    concurrency:
+      group: spruceos-release-pr
+      cancel-in-progress: false
+    env:
+      SPRUCEOS_FORK: ${{ vars.SPRUCEOS_FORK || 'abalakh/spruceOS' }}
+      SPRUCEOS_BASE_BRANCH: ${{ vars.SPRUCEOS_BASE_BRANCH || 'Development' }}
+    steps:
+      - name: Check upstream PR configuration
+        env:
+          GH_TOKEN: ${{ secrets.SPRUCEOS_PR_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Set the SPRUCEOS_PR_TOKEN Actions secret (see RELEASING.md)."
+            exit 1
+          fi
+          source=$(gh api "repos/$SPRUCEOS_FORK" --jq '.source.full_name')
+          if [ "$source" != "spruceUI/spruceOS" ]; then
+            echo "::error::SPRUCEOS_FORK must name a fork of spruceUI/spruceOS."
+            exit 1
+          fi
+
+      - name: Download the published device package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          archive="Cheevos-${GITHUB_REF_NAME#v}.zip"
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$archive" --dir build/spruce-release
+          unzip -q "build/spruce-release/$archive" -d build/spruce-release
+
+      - name: Check out the SpruceOS target branch
+        uses: actions/checkout@v5
+        with:
+          repository: spruceUI/spruceOS
+          ref: ${{ env.SPRUCEOS_BASE_BRANCH }}
+          token: ${{ secrets.SPRUCEOS_PR_TOKEN }}
+          path: build/spruceos
+          sparse-checkout: App/Cheevos
+
+      - name: Mirror the released app
+        run: |
+          mkdir -p build/spruceos/App/Cheevos
+          rsync --archive --delete build/spruce-release/Cheevos/ build/spruceos/App/Cheevos/
+          chmod 755 build/spruceos/App/Cheevos/launch.sh
+
+      - name: Prepare the SpruceOS pull request
+        id: pr
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ secrets.SPRUCEOS_PR_TOKEN }}
+          path: build/spruceos
+          push-to-fork: ${{ env.SPRUCEOS_FORK }}
+          base: ${{ env.SPRUCEOS_BASE_BRANCH }}
+          branch: cheevos/${{ github.ref_name }}
+          add-paths: App/Cheevos/
+          commit-message: "App: Update Cheevos to ${{ github.ref_name }}"
+          title: "App: Update Cheevos to ${{ github.ref_name }}"
+          body: |
+            Mirror Cheevos [${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) into `App/Cheevos/` for inclusion in SpruceOS.
+
+            The app is copied from the published device ZIP, including the launcher, icon, Python runtime code and MIT license. Removed app files are removed here too.
+
+            Validation: Cheevos lint, conventions, shellcheck, type check and the unit/screen test suite passed for the tagged commit. The stable release and wiki publication succeeded.
+
+      - name: Link the upstream pull request
+        env:
+          PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+        run: |
+          if [ -n "$PR_URL" ]; then
+            echo "SpruceOS PR: $PR_URL" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "SpruceOS App/Cheevos already matches $GITHUB_REF_NAME." >> "$GITHUB_STEP_SUMMARY"
+          fi

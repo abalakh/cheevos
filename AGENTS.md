@@ -21,6 +21,7 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
   regenerate their screenshots with `make doc-screens` after UI changes.
 - `TESTING.md`: tests, desktop runner, drills, headless screenshots, device tools.
   `CONTRIBUTING.md`: commit and pull request style.
+- `RELEASING.md`: CI, releases, SpruceOS pull requests and wiki publication.
 
 ## Commands (details in TESTING.md)
 - `make check`: lint, conventions, ty, and the test suite. Must be green before handing work back.

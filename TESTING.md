@@ -4,6 +4,8 @@ Most development needs no device: unit tests cover the logic, and a desktop runn
 real app on a Mac or PC, from recorded data or the live RetroAchievements API. A device is only
 needed for the last check (real SDL driver, fonts, speed, Wi-Fi).
 
+For CI, releases and publishing, see [RELEASING.md](RELEASING.md).
+
 | Layer | Covers | Command | Speed |
 |---|---|---|---|
 | Unit tests | API parsing, storage, sync planning, stats, settings, credentials, screenshots, proxy reader | `make test` | seconds |
@@ -200,59 +202,3 @@ and PyUI's core UI modules don't hard-code `/mnt/SDCARD`. So the runner needs no
   screens need a check on hardware.
 - FAT32 on the SD card (32 KB clusters, `dirsync`), the real RAOfflineProxy, Wi-Fi, and a clock
   that reads 1970 until it syncs.
-
-## CI
-- **CI** (`.github/workflows/ci.yml`): on every push and pull request, checks out PyUI at
-  `pyui-tested-commit`, then runs lint, type check and tests. When a test fails, it uploads the
-  screen tests' captures (`screen-test-captures`).
-- **PyUI drift** (`.github/workflows/pyui-drift.yml`): weekly, the same tests and `make screens`
-  against SpruceOS's latest `Development` branch, as an early warning when PyUI changes. It
-  uploads the screens either way. After re-verifying against a newer SpruceOS, bump
-  `pyui-tested-commit`.
-- CI has no `dev/media-host`, so badges, icons and avatars in CI screens are placeholders.
-
-## Releases
-`make package` builds `dist/App/Cheevos/` and `dist/Cheevos-<version>.zip`, which contains a
-`Cheevos` folder to copy into `App` on the SD card. To publish a release:
-
-1. Set the version in `pyproject.toml` and `src/cheevos/__init__.py` (a test checks that they
-   match). Use PEP 440: `0.1.0b1` for a pre-release, `0.1.0` for a release. Run `uv lock`, since
-   CI installs with `--locked`, then `make check`.
-2. Commit, tag `v<version>` and push both: `git tag v0.1.0b1 && git push origin master v0.1.0b1`.
-3. Once the checks pass, CI's `release` job publishes a GitHub release with the zip. Versions
-   with `a`, `b`, `rc` or `dev` in them are marked as pre-releases. A tag that doesn't match
-   the version fails the job. After a stable release, the `wiki` job publishes that release's
-   user guide; pre-releases leave the wiki as it is. Pre-release notes cover changes since the
-   previous version tag; stable-release notes cover changes since the previous stable tag,
-   including all intervening pre-releases. If there is no tag of the relevant kind yet, notes
-   cover the whole history.
-   The description links each merged PR title once and links direct commit titles.
-
-GitHub adds its own "Source code" archives to every release; they can't be removed. Testers
-need only the `Cheevos-<version>.zip`.
-
-## Publishing the wiki
-The [user guide](docs/Home.md) in `docs/` works when browsing the repository on GitHub or
-locally. Keep links between guide pages relative, with the `.md` extension (for example,
-`[Installation](Installation.md)`).
-
-The GitHub wiki is a separate repository (`<repo>.wiki.git`). To prepare its pages:
-
-1. Regenerate the screenshots with `make doc-screens` when screens have changed.
-2. Run `make wiki`. This copies the pages and `images/` into `build/wiki/`, converting guide
-   page links to the wiki's extensionless targets. Edit the sources in `docs/`, not the export.
-3. Copy the contents of `build/wiki/` into a clone of the wiki repository, then commit and push
-   there.
-
-CI does this automatically after each successful stable release, using the tagged commit's
-docs and checked-in screenshots. It doesn't regenerate screenshots: keep running
-`make doc-screens` when changing the UI and include the images in the release commit.
-
-**One-time setup:** enable **Wikis** in the repository settings and create an initial page
-in GitHub's Wiki tab. This creates the wiki Git repository so Actions can check it out.
-The job uses the built-in `GITHUB_TOKEN` with `contents: write`; no extra secret is needed.
-
-The published wiki mirrors the guide: deleted pages and images are removed too. Make changes
-in `docs/`; edits made directly in the wiki are replaced on the next stable release. Unchanged
-docs produce no wiki commit. If publishing fails after the release succeeds, rerun just the
-failed `wiki` job from Actions.
