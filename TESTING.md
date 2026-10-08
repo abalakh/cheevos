@@ -125,6 +125,14 @@ things that take time, like a sync).
 - `make doc-screens` renders the wiki's screenshots (`docs/images/`) from the `showcase`
   drill. Themes found in `dev/themes/` (MINIMAL, Pico-8) are included.
 
+## Icon assets
+
+The app and UI icons are original SVGs in `assets/icons/` (design rules in its `README.md`).
+After changing them, run `uv run python scripts/render_icons.py` to regenerate the bundled
+PNGs, then review `make screens` and refresh the wiki with `make doc-screens`. List and
+fallback icons use 96 or 144 px sources, while bottom-bar icons stay at 24 or 48 px. PyUI
+fits list icons into each theme's layout; all themes use the same gold and muted-lock colours.
+
 ## Recorded data
 - `uv run python scripts/record_fixtures.py <username> [--out tests/fixtures/ra]` records an
   account's API responses (profile, games, awards, every game's achievements) as fixtures. The

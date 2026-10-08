@@ -72,13 +72,13 @@ src/cheevos/
                          lists (recent unlocks), awards, settings, setup, status (bottom-bar sync
                          status), rows, common
     context.py           what screens share (AppContext)
-    media.py             image resolver with pixel-icon fallbacks
+    media.py             image resolver with outline-icon fallbacks
     strings.py           every user-facing string (ready for PyUI Language later)
   platform/
     paths.py             every path, from CHEEVOS_SDCARD_ROOT (default /mnt/SDCARD)
     desktop/             dev only: device shim, keyboard/script controller, headless capture,
                          fixture/live environments, drills
-  res/icons/             pixelarticons rendered at 24, 48 and 72 px
+  res/icons/             original outlines: 24/48 px status, 96/144 px lists and fallbacks
 app/                     packaging: config.json, launch.sh, cheevos.png
 assets/                  icon sources (SVG)
 tests/                   unit and screen tests, fixtures/

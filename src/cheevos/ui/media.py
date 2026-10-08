@@ -1,4 +1,4 @@
-"""Image paths for screens: cached RA images when available, pixel-icon fallbacks otherwise.
+"""Image paths for screens: cached RA images when available, outline-icon fallbacks otherwise.
 
 Screens ask on every render (PyUI's ``icon_searcher`` runs per frame), so a miss is memoized
 until the background fetcher stores something new or the rows on screen change; until then a
@@ -40,7 +40,7 @@ class MediaResolver:
 
     Args:
         media: Image cache (opened on the UI thread).
-        icons_dir: Directory of bundled pixel icons used as fallbacks.
+        icons_dir: Directory of bundled outline icons used as fallbacks.
         fetcher: Background downloader for missing images (a ``LazyMediaFetcher``), or ``None``
             (offline / no key).
         demand: What the views are drawing when they ask (``views.image_demand``).
@@ -85,7 +85,7 @@ class MediaResolver:
         Args:
             key: Image cache key.
             media_path: Path on the media host, or ``None`` if unknown (nothing is fetched).
-            fallback: Name of a bundled pixel icon, e.g. ``"lock"``.
+            fallback: Name of a bundled outline icon, e.g. ``"lock"``.
 
         Returns:
             A file path PyUI can load.

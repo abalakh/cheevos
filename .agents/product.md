@@ -166,7 +166,7 @@ Stored in `Saves/cheevos/settings.json`.
 | RAOfflineProxy | — | Read-only status, shown when the proxy is installed |
 | Auto-sync on open | On | On · Off |
 | Actions | — | Sync now · Download every game (every game's achievements; resumes until done; reads "Stop downloading every game" until then) · Re-enter API key · Clear image cache (shows size) |
-| About | — | Version, license (MIT), credits: PyUI (Copyright (c) 2025 Christopher Jacobs; its license requires this user-facing credit), pixelarticons (MIT), RetroAchievements as the data source |
+| About | — | Version, license (MIT), credits: PyUI (Copyright (c) 2025 Christopher Jacobs; its license requires this user-facing credit), RetroAchievements as the data source |
 
 The file also remembers `game_list_details` (the games list view).
 
@@ -203,12 +203,16 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
   - game icons in game lists;
   - colour badges for unlocked achievements and RA's `_lock` badges for locked ones;
   - the player's avatar on the profile row and profile screen.
-- **Menu and status icons**: pixelarticons (MIT), recoloured to the theme accent and
-  pre-rendered at exact 2× and 3× of their 24 px grid (48 px up to 752 px wide screens, 72 px
-  above), so pixels stay sharp. Every row gets an icon; a missing image falls back to a pixel
-  icon, so columns stay aligned. A badge not downloaded yet shows a gold trophy if unlocked and
-  a grey lock (`lock-muted`, rendered in SPRUCE's muted text colour) if locked, so the state
-  reads at a glance, as RA greys out locked badges.
+- **Menu and status icons**: original Cheevos outlines (MIT) in the SPRUCE theme's style,
+  from `assets/icons/ui/`: 70 px canvases, 4 px rounded strokes, caps and joins. All themes
+  use the same SPRUCE gold (`#D7B45F`); the theme still supplies the layout, fonts and
+  backgrounds. Pre-rendered list and fallback sources are 96 px below 1000 px screen width,
+  144 px above, so curves stay clean when PyUI fits them into the icon column. Bottom-bar
+  icons stay at 24/48 px because they are drawn at their natural size. Every row gets an icon;
+  a missing image falls back to an outline, so columns stay aligned. A badge not downloaded
+  yet shows a gold trophy if unlocked and a grey lock (`lock-muted`, rendered in SPRUCE's
+  muted text colour, `#7C6F64`) if locked, so the state reads at a glance, as RA greys out
+  locked badges. There is no third-party icon set.
 - **App icon**: an original trophy outline in the SPRUCE theme's app-icon style (4 px rounded
   stroke, 10 px padding, `#D7B45F`), from `assets/icons/cheevos.svg`, rendered at 105 px by
   `scripts/render_icons.py` and shipped as `cheevos.png`. Themes can override it with

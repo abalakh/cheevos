@@ -71,11 +71,12 @@ class AppEnvironment:
 
 
 def _icons_dir(*, bar: bool = False) -> Path:
-    """Pick the pixel-icon size for this screen.
+    """Pick the outline-icon size for this screen.
 
     Args:
-        bar: Bottom-bar icons (24 px up to 752 px wide, 48 px above) rather than list icons
-            (48 px, 72 px above).
+        bar: Bottom-bar icons (24 px below 1000 px screen width, 48 px above) rather than
+            list and fallback sources (96 px, 144 px above). PyUI fits the larger sources
+            into the theme's icon column so rounded outlines stay clean.
 
     Returns:
         The icon directory.
@@ -84,7 +85,7 @@ def _icons_dir(*, bar: bool = False) -> Path:
     large = width >= _LARGE_SCREEN_WIDTH
     if bar:
         return _RES / "icons" / ("48" if large else "24")
-    return _RES / "icons" / ("72" if large else "48")
+    return _RES / "icons" / ("144" if large else "96")
 
 
 def _validator(env: AppEnvironment, pacer: Pacer) -> Callable[[str, str], bool | None]:
