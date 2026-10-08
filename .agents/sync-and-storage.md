@@ -16,15 +16,14 @@ the app deletes it and starts fresh.
 | API key | `Saves/cheevos/apikey.txt` | User data | Plain text, user-editable |
 | Settings | `Saves/cheevos/settings.json` | User data | JSON, written atomically (temp file + rename). Unknown keys are ignored and invalid values fall back to defaults. |
 | PyUI view state | `Saves/cheevos/pyui-state.json` | Cache | PyUI's last selections, kept apart from the launcher's own state. |
-| RA data cache | `App/Cheevos/cache/data.db` | Cache | SQLite: profile, games, achievements, awards, sync state. Rebuildable from RA. |
-| Image cache | `App/Cheevos/cache/media.db` | Cache | SQLite blobs keyed `badge/<BadgeName>[_lock]`, `icon/<gameId>`, `avatar/<user>`. Kept separate so "Clear image cache" doesn't drop RA data. |
+| RA data cache | `Saves/cheevos/cache/data.db` | Cache | SQLite: profile, games, achievements, awards, sync state. Rebuildable from RA. |
+| Image cache | `Saves/cheevos/cache/media.db` | Cache | SQLite blobs keyed `badge/<BadgeName>[_lock]`, `icon/<gameId>`, `avatar/<user>`. Kept separate so "Clear image cache" doesn't drop RA data. |
 | Image scratch | `/tmp/cheevos/media/` | Cache | The images the current screen needs, extracted from `media.db` because PyUI loads images by path (~17 ms per 40 badges). tmpfs is RAM, so it's bounded: 4 MB, LRU, counted in whole 4 KB pages (a 3 KB badge takes a page). |
 | Drawing scratch | `/tmp/cheevos/scaled/` | Cache | Generated PNGs (swatches, award dots, button glyphs), and in `sharp/` the enlarged screenshots: only the newest 4 (up to 1.4 MB each). |
 | Log | `Saves/spruce/cheevos-$PLATFORM.log` | — | Spruce's convention. Rotating, 1 MB × 2. |
 
-- `Saves/` survives Spruce updates and app reinstalls, and Spruce's backup app includes it.
-  It therefore holds only small files: the two user files and PyUI's view state.
-  `App/Cheevos/cache/` can be wiped freely.
+- `Saves/` survives Spruce updates and app reinstalls, so the cache lives there too and an
+  update doesn't trigger a full resync. `Saves/cheevos/cache/` can be wiped freely.
 - Both databases use `journal_mode=DELETE` and `synchronous=NORMAL`. Writes are short
   transactions on the sync thread.
 - The pending proxy queue is **not** copied into our cache. We read it live

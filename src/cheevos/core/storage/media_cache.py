@@ -1,4 +1,4 @@
-"""The image cache (``App/Cheevos/cache/media.db``) and its RAM scratch directory.
+"""The image cache (``Saves/cheevos/cache/media.db``) and its RAM scratch directory.
 
 Badges, game icons and avatars are stored as SQLite blobs: on the SD card's FAT32 (32 KB
 clusters, mounted ``dirsync``), 200 badges as files took 0.70 s and 6.3 MB of disk on a Miyoo
