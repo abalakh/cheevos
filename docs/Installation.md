@@ -23,8 +23,7 @@ while it runs.
 
 ## Update
 Delete the old `App/Cheevos` folder, then copy in the new `Cheevos` folder as when installing.
-Your key and settings live in `Saves/cheevos/`, so they survive an update. The cache lives in
-`App/Cheevos/cache`, so the first start after an update syncs everything again.
+Your key, settings and synced data live in `Saves/cheevos/`, so they survive an update.
 
 ## Remove
 Delete `App/Cheevos`. To remove your key and settings too, delete `Saves/cheevos`.

@@ -72,8 +72,8 @@ class Paths:
 
     @property
     def cache_dir(self) -> Path:
-        """``App/Cheevos/cache``: everything here may be deleted at any time."""
-        return self.app_dir / "cache"
+        """``Saves/cheevos/cache``: everything here may be deleted at any time."""
+        return self.user_dir / "cache"
 
     @property
     def data_db(self) -> Path:
