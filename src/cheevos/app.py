@@ -1,17 +1,20 @@
 """Composition root: wire credentials, caches, sync, lazy media and screens, then run home.
 
-Shared by the device entry point (``cheevos.__main__``) and the desktop runner, which differ
+Shared by the PyUI entry point (``cheevos.ui.pyui.native_app``) and the desktop runner, which differ
 only in the :class:`AppEnvironment` they pass (real HTTPS vs. recorded fixtures).
 """
 
 from __future__ import annotations
 
+import contextlib
+import gc
 import logging
 import shutil
 import threading
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import TypeVar
 
@@ -22,6 +25,7 @@ from cheevos.core.net import is_online
 from cheevos.core.proxy import ProxyReader
 from cheevos.core.ra_client.client import RaClient
 from cheevos.core.ra_client.pacer import API_INTERVAL, Pacer
+from cheevos.core.ra_client.redact import scoped
 from cheevos.core.ra_client.transport import HttpTransport, Transport
 from cheevos.core.screenshots import ScreenshotIndex, screenshot_directory
 from cheevos.core.settings import load_settings
@@ -35,7 +39,7 @@ from cheevos.core.sync.session import Credentials, make_client, open_sync_deps
 from cheevos.platform.paths import Paths
 from cheevos.ui.context import AppContext
 from cheevos.ui.media import MediaResolver
-from cheevos.ui.pyui import generated, primitives, status_bar, title_bar, visible_images
+from cheevos.ui.pyui import generated, primitives, session, status_bar, title_bar, visible_images
 from cheevos.ui.screens.home import Home
 from cheevos.ui.screens.setup import change_key, ensure_credentials
 from cheevos.ui.screens.status import SyncBar
@@ -45,7 +49,6 @@ _T = TypeVar("_T")
 
 _RES = Path(__file__).resolve().parent / "res"
 _LARGE_SCREEN_WIDTH = 1000
-_SHUTDOWN_TIMEOUT = 3.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -246,13 +249,61 @@ def _sync_deps(
     return open_deps
 
 
-def run(*, started_at: float, env: AppEnvironment) -> None:
+@contextlib.contextmanager
+def _logging(log_file: Path) -> Iterator[None]:
+    """Log this session without changing the host's logging or standard streams."""
+    target = logging.getLogger("cheevos")
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    handler = RotatingFileHandler(log_file, maxBytes=1024 * 1024, backupCount=1, encoding="utf-8")
+    formatter = logging.Formatter(
+        "%(asctime)s.%(msecs)03dZ %(levelname)s %(name)s: %(message)s", "%Y-%m-%d %H:%M:%S"
+    )
+    formatter.converter = time.gmtime
+    handler.setFormatter(formatter)
+    previous = target.level
+    level = min(target.getEffectiveLevel(), logging.INFO)
+    target.addHandler(handler)
+    target.setLevel(level)
+    try:
+        yield
+    finally:
+        target.removeHandler(handler)
+        handler.close()
+        target.setLevel(previous)
+
+
+def run(*, started_at: float, env: AppEnvironment) -> int:
     """Run the app until the user leaves the home screen.
 
     Args:
         started_at: ``time.monotonic()`` at process start (for the start-up log line).
         env: App environment.
+
+    Returns:
+        Zero on success, one after a logged session error. Host shutdown signals propagate.
     """
+    paths = env.paths
+    with scoped(), _logging(paths.log_file):
+        try:
+            with session.installed(paths), contextlib.ExitStack() as cleanup:
+                cleanup.callback(shutil.rmtree, paths.media_scratch, ignore_errors=True)
+                cleanup.callback(shutil.rmtree, paths.scaled_scratch, ignore_errors=True)
+                generated.use_scratch(paths.scaled_scratch)
+                _run_session(started_at, env, cleanup)
+        except Exception:
+            logger.exception("Cheevos failed; returning to Apps")
+            return 1
+        finally:
+            gc.collect()
+    return 0
+
+
+def _run_session(
+    started_at: float,
+    env: AppEnvironment,
+    cleanup: contextlib.ExitStack,
+) -> None:
+    """Wire a session, registering resources before setup can fail."""
     paths = env.paths
     icons = _icons_dir()
     pacer = Pacer(env.api_interval)  # one per app run: every client shares the key's pace
@@ -267,15 +318,25 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
     on_demand = _OnDemand(env, ctx_ref, pacer)
     try:
         data = DataCache.open(paths.data_db, credentials.username)
+        cleanup.callback(data.close)
         media_cache = MediaCache.open(paths.media_db, paths.media_scratch)
+        cleanup.callback(media_cache.close)
     except CheevosError:
         logger.exception("Could not open the caches")
         return
     fetcher = LazyMediaFetcher(_media_session(env, ctx_ref, pacer))
+    cleanup.callback(fetcher.close, None)
     details = DetailFetcher(
         _detail_session(env, ctx_ref, pacer), clock=env.clock, online=env.online
     )
+    cleanup.callback(details.close, None)
     sync = BackgroundSync(_sync_deps(env, ctx_ref, pacer), online=env.online, clock=env.clock)
+    cleanup.callback(sync.join, None)
+    # Signal every worker before waiting for any of them, including after a UI error.
+    cleanup.callback(sync.cancel)
+    cleanup.callback(details.close, 0)
+    cleanup.callback(fetcher.close, 0)
+    cleanup.callback(visible_images.reset)
     ctx = AppContext(
         paths=paths,
         credentials=credentials,
@@ -298,19 +359,7 @@ def run(*, started_at: float, env: AppEnvironment) -> None:
     if settings.auto_sync if env.auto_sync is None else env.auto_sync:
         ctx.start_sync()
     logger.info("UI ready after %.2fs", time.monotonic() - started_at)
-    generated.use_scratch(paths.scaled_scratch)
     visible_images.track_images(lambda: ctx.media.version, ctx.media.new_window)
     bar = SyncBar(ctx, _icons_dir(bar=True), lambda: change_key(ctx))
-    try:
-        with status_bar.installed(bar.status, bar.press_start), title_bar.installed():
-            Home(ctx).run()
-    finally:
-        sync.cancel()
-        sync.join(_SHUTDOWN_TIMEOUT)
-        details.close()
-        fetcher.close()
-        data.close()
-        media_cache.close()
-        # Extracted and enlarged images live in RAM (tmpfs) on devices; give it back.
-        shutil.rmtree(paths.media_scratch, ignore_errors=True)
-        shutil.rmtree(paths.scaled_scratch, ignore_errors=True)
+    with status_bar.installed(bar.status, bar.press_start), title_bar.installed():
+        Home(ctx).run()

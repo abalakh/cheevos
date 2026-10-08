@@ -18,46 +18,18 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 
 ## Packaging
 
-```
-/mnt/SDCARD/App/Cheevos/
-  config.json     {"label": "Cheevos", "icon": "cheevos.png", "launch": "launch.sh",
-                   "description": "RetroAchievements hub"}   (no "devices": every device)
-  launch.sh       sources helperFunctions.sh, sets the per-platform SDL env (mirroring PyUI's
-                  launcher), runs Spruce's Python with -m cheevos; stderr to /tmp
-  cheevos.png     app icon
-  cheevos/        the Python package, with res/icons
-  cache/          created at runtime
-```
-
-- `make package` builds it into `dist/App/Cheevos/` (no desktop shim, no tests) and zips that
-  as `dist/Cheevos-<version>.zip`, with the `Cheevos/` prefix and no `App/` folder.
-- The Apps launcher discovers any `App/*/config.json`. PyUI exits fully while the app runs and
-  restarts when it quits.
-- **No `devices` list:** a `devices` list in an app's `config.json` hides it on every device not
-  named there. Cheevos ships without one, so the Apps menu shows it on every device.
-  `launch.sh` covers every platform PyUI's launcher does.
-- **Untested devices run the same code as the Mini.** Keep device-specific screens and code
-  paths out of the app: we can't test them, so on exactly the devices they're for they would
-  be the riskiest code. A one-time "untested device" note was removed for this reason (it also
-  gave users nothing to act on). Release notes say which devices are tested.
-- **Start-up failures:** when the app exits non-zero, `launch.sh` appends its stderr to the app
-  log and shows a message ([product.md](product.md), "Offline and error behaviour").
-  `/mnt/SDCARD/App/PyUI/launch.sh -msgDisplay "text" -msgDisplayTimeMs 5000` shows a message on
-  any platform.
-- The release is that zip; users copy its `Cheevos` folder into `App` on the SD card. Pushing a
-  `v<version>` tag publishes it as a GitHub release (the `release` job in `ci.yml`; steps in
-  [RELEASING.md](../RELEASING.md), under "Releases"). The description links merged PR titles
-  and direct commit titles.
-  Pre-releases start at the previous version tag; stable releases start at the previous stable tag.
-  Game Nursery packaging follows whatever format the maintainers ask for.
+`make package` builds `dist/App/PyUI/main-ui/cheevos/` and `dist/Cheevos-<version>.zip`.
+The ZIP contains the native Python package, icon, MIT license, a short install note and
+`spruceos-pyui.patch`. The patch adds Cheevos to Apps and preloads pure imports in the
+background. B on Home returns to the existing launcher. There is no separate app launcher.
+Desktop-only bootstrap code is excluded from the device package.
 
 ## Device gotchas (verified on a Miyoo Mini+, SpruceOS 4.5.0)
-- **Idle check:** a test once replaced the cache under an open session; hence the rule to check
-  that neither Cheevos nor a game is running first.
+- **Idle check:** inspect a screenshot and check for a running game before acting. Native
+  Cheevos shares PyUI's process.
 - **Stray taps:** once Cheevos exits (B on its home screen), further taps reach Spruce's menu,
-  where A starts a game. A blind tap loop once launched a game this way. `device.sh press` now
-  refuses on the device unless Cheevos is running, and stops at the first refusal. Still,
-  take a screenshot between screens rather than sending long sequences.
+  where A starts a game. Take a screenshot
+  between screens rather than sending long sequences.
 - **`pgrep -f` self-match:** a plain `pgrep -f` pattern also matches the remote shell's own
   command line. Use the `[x]` trick (`'[c]heevos'`).
 - **busybox limits:** busybox tar rejects pax/xattr headers, so deploy uses
@@ -69,9 +41,6 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 - **Input injection:** `send_event /dev/input/event0 CODE:1|0`. Codes: A=57, B=29, X=42,
   Y=56, Start=28, Select=97, L1=18, R1=20, D-pad 103/108/105/106. Never send MENU (1), power
   or combos.
-- **Launching an app remotely:** write `/tmp/cmd_to_run.sh` (PyUI's own format), then send
-  SIGTERM to PyUI; `principal.sh` runs the command and restarts PyUI afterwards. This also
-  records autoresume, exactly as launching from the Apps menu does.
 - **Graphics memory:** SDL textures come from the MMA pool (`mma_heap=…sz=0x1500000`, 21 MB),
   not from the RAM `MemAvailable` reports. The framebuffer and PyUI's screen-sized canvases
   take about 11.5 MB of it, leaving about 9 MB for textures. Free space:
@@ -91,7 +60,6 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 
 | Metric | Target | Measured |
 |---|---|---|
-| Launch to a cached home screen | ≤ 3 s | 2.9–3.4 s (PyUI ready after ~3 s) |
 | List navigation | ≤ 100 ms per move | Images load lazily; only visible rows resolve them |
 | Sync with no changes | ≤ 10 s | 1.4 s (12 games; 4 requests in the pacer's burst; 4.0 s at a flat 1/s) |
 | First sync | Home, games list and awards within ~15 s; recent games' achievements within ~2 min | 2,937 games (2026-10-06): list in 8 s (list and awards in 5.6 s with the burst, measured from a Mac); all data in ~68 s (a 58-game working set); 5,114 icons and badges 2.5 min more, in the background. Downloading every game would take ~51 min. |

@@ -1,0 +1,30 @@
+--- a/App/PyUI/main-ui/menus/app/app_menu.py
++++ b/App/PyUI/main-ui/menus/app/app_menu.py
+@@ -2,6 +2,7 @@
+ 
+ import os
+ from apps.pyui_app import PyUiAppConfig
++from cheevos.ui.pyui.native_app import append_entry
+ from controller.controller import Controller
+ from controller.controller_inputs import ControllerInput
+ from devices.device import Device
+@@ -74,6 +75,8 @@
+                 )
+ 
+                 
++        append_entry(app_list, show_all_apps=self.show_all_apps)
++
+     def run_app_selection(self) :
+         running = True
+     
+--- a/App/PyUI/main-ui/mainui.py
++++ b/App/PyUI/main-ui/mainui.py
+@@ -287,6 +287,8 @@
+     main_menu = MainMenu()
+ 
+     start_background_threads()
++    from cheevos.ui.pyui.native_app import preload_after_next_frame
++    preload_after_next_frame()
+     keep_running = True
+     PyUiLogger.get_logger().info("Entering main loop")
+     while(keep_running):

@@ -191,12 +191,17 @@ def installed() -> Iterator[None]:
         logger.warning("PyUI has no top-bar renderer; award dots stay hidden")
         yield
         return
+    previous_dot = _dot
+    previous_render = vars(target).get("render_top_bar")
     target.render_top_bar = _wrap_render(target, original)
     try:
         yield
     finally:
-        del target.render_top_bar  # back to the class method
-        _dot = None
+        if previous_render is None:
+            del target.render_top_bar  # back to the class method
+        else:
+            target.render_top_bar = previous_render
+        _dot = previous_dot
 
 
 def _wrap_render(bar: Any, original: Callable[..., Any]) -> Callable[..., Any]:  # noqa: ANN401

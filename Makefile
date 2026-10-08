@@ -11,7 +11,7 @@ SHELL_SCRIPTS := $(shell find app scripts -name '*.sh' 2>/dev/null)
 
 .DEFAULT_GOAL := help
 .PHONY: help sync pyui fmt lint conventions shellcheck typecheck test check run screens doc-screens wiki package \
-	deploy launch stop logs shot clean
+	logs shot clean
 
 help: ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -64,17 +64,8 @@ doc-screens: ## Render the wiki screenshots into docs/images (showcase drill)
 wiki: ## Export docs with wiki links into build/wiki (pages and images)
 	$(RUN) python scripts/build_wiki.py
 
-package: ## Build the device package: dist/App/Cheevos and dist/Cheevos-<version>.zip
+package: ## Build the native PyUI package and integration patch: dist/Cheevos-<version>.zip
 	$(RUN) python scripts/build_package.py
-
-deploy: package ## Copy the package to the device (DEVICE_HOST=<ip> or DEVICE_SSH=...)
-	scripts/device.sh deploy
-
-launch: ## Start Cheevos on the device remotely
-	scripts/device.sh launch
-
-stop: ## Ask Cheevos on the device to exit
-	scripts/device.sh stop
 
 logs: ## Show the device log
 	scripts/device.sh logs

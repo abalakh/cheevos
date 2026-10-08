@@ -40,6 +40,15 @@ _TOP_BAR_PAD = 10  # PyUI's spacing in the top bar (TopBar.render_top_bar_menu_n
 _title_rooms: dict[int, int] = {}  # screen width -> room for the title
 
 
+def reset() -> None:
+    """Forget measurements and glyph coverage before another session or theme."""
+    _title_rooms.clear()
+    _glyphs.clear()
+    _advances.clear()
+    _has_glyph.cache_clear()
+    _ellipsis.cache_clear()
+
+
 class Text(Enum):
     """Text roles, mapped to PyUI font purposes (and so to theme fonts and colours)."""
 

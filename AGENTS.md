@@ -16,7 +16,7 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
   | `retroachievements.md` | The RA client and API quirks; the website's rules we copy (colours, profile stats); secrets |
   | `sync-and-storage.md` | Caches, the sync engine, threads; FAT32, SQLite and RAM limits |
   | `integration.md` | What we read from Spruce, RetroArch and RAOfflineProxy: credentials, screenshots, on-device games |
-  | `device.md` | Target platform, packaging and `launch.sh`, device tooling quirks, performance |
+  | `device.md` | Target platform, native packaging, device tooling quirks, performance |
 - User docs: `docs/` (published as the GitHub wiki). Keep them in step with the app, and
   regenerate their screenshots with `make doc-screens` after UI changes.
 - `TESTING.md`: tests, desktop runner, drills, headless screenshots, device tools.
@@ -34,12 +34,11 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
 - `make doc-screens`: regenerate the wiki screenshots after UI changes.
 
 ## Devices
-- `make deploy launch shot logs stop` with `DEVICE_HOST=<ip>` (or `DEVICE_SSH="ssh user@ip"`).
-  `scripts/device.sh press down a b` taps buttons. Screenshots land in `build/device.png`.
-  Read them.
+- `make shot logs` with `DEVICE_HOST=<ip>` (or `DEVICE_SSH="ssh user@ip"`). Screenshots land in
+  `build/device.png`. Read them. Install the native package using `integration/README.md`.
 - **Device safety:**
-  - Write only inside `/mnt/SDCARD/App/Cheevos/`, `/mnt/SDCARD/Saves/cheevos/`, the app's log
-    `Saves/spruce/cheevos-*.log`, and `/tmp`.
+  - Write only inside `/mnt/SDCARD/App/PyUI/main-ui/cheevos/`, `/mnt/SDCARD/App/Cheevos/cache/`,
+    `/mnt/SDCARD/Saves/cheevos/`, the app's log `Saves/spruce/cheevos-*.log`, and `/tmp`.
   - Treat everything else (Spruce/RetroArch configs, other apps' data) as read-only unless a
     change has been agreed.
   - **Never touch `/mnt/SDCARD/Roms`.** A ROM library is usually irreplaceable: don't modify it,
@@ -47,8 +46,8 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
   - Only send single taps of A/B/X/Y/D-pad/L1/R1/Start/Select. Never MENU, power or combos:
     they trigger Spruce hotkeys.
   - **Check that the device is idle before acting.** Run
-    `pgrep -f 'python3[.]10 -m [c]heevos'` and `pgrep -f '[r]a32[.]'` first. If Cheevos or a
-    game is running, someone may be using the device: don't launch, tap, or replace files.
+    `pgrep -f '[r]a32[.]'` and inspect a screenshot first. Native Cheevos shares the launcher
+    process. If Cheevos or a game is open, don't tap or replace files.
     Ask first.
 
 ## Ground rules

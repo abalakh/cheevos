@@ -25,8 +25,8 @@ Works offline, follows your Spruce theme.
 1. You need **SpruceOS 4.5.0+**, signed in to RetroAchievements (Spruce Settings →
    RetroAchievements, or RetroArch). Tested on the Miyoo Mini family; other Spruce devices
    should work too, see below.
-2. Download the latest [release](../../releases) and copy the `Cheevos` folder into `App/` on
-   your SD card.
+2. Download the latest [release](../../releases) and follow the short
+   [install note](integration/README.md) to copy the native package and apply the PyUI patch.
 3. Open **Apps → Cheevos** and enter your **Web API key** when asked. Find it at
    retroachievements.org → Settings → Keys.
 

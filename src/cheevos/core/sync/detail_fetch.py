@@ -157,11 +157,11 @@ class DetailFetcher:
         with self._lock:
             return self._statuses.get(game_id)
 
-    def close(self, timeout: float = 2.0) -> None:
+    def close(self, timeout: float | None = 2.0) -> None:
         """Stop the worker (interrupting a wait for a request slot) and release its session.
 
         Args:
-            timeout: Seconds to wait for a request in flight.
+            timeout: Seconds to wait for a request in flight; ``None`` waits until it ends.
         """
         self._stop.set()
         self._wake.set()

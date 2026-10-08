@@ -14,6 +14,7 @@ before.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 from collections import OrderedDict
 from collections.abc import Callable, Iterator, ValuesView
@@ -142,3 +143,32 @@ def install(display: Any, screen_width: int, screen_height: int) -> None:  # noq
             lru[key] = entry
         cache.cache = lru  # ty: ignore[invalid-assignment] — PyUI's cache object is untyped
         logger.debug("%s: %d KB budget", name, lru.budget // 1024)
+
+
+@contextlib.contextmanager
+def installed(display: Any, width: int, height: int) -> Iterator[None]:  # noqa: ANN401
+    """Use bounded textures for a session, then restore the host's empty cache mappings.
+
+    Host textures are freed first: keeping them alongside Cheevos's textures would exhaust
+    the Mini's graphics pool. Never restore stale references to textures the LRU destroyed.
+
+    Args:
+        display: Initialized PyUI display.
+        width: Screen width.
+        height: Screen height.
+
+    Yields:
+        Nothing.
+    """
+    previous = []
+    try:
+        for name, _screens in _CACHES:
+            cache = getattr(display, name)
+            previous.append((cache, cache.cache))
+            cache.clear_cache()
+        install(display, width, height)
+        yield
+    finally:
+        for cache, mapping in previous:
+            cache.clear_cache()
+            cache.cache = mapping

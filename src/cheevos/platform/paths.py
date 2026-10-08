@@ -67,7 +67,7 @@ class Paths:
 
     @property
     def app_dir(self) -> Path:
-        """``App/Cheevos``: the installed app."""
+        """``App/Cheevos``: cache root; executable code ships inside PyUI."""
         return self.sdcard / "App" / "Cheevos"
 
     @property

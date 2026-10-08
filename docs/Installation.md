@@ -13,18 +13,20 @@
 1. Download `Cheevos-<version>.zip` from the latest release on the repository's **Releases**
    page (not the "Source code" archives), or build it yourself with `make package` (see
    `RELEASING.md` in the repository).
-2. Unzip it on your computer, then copy the `Cheevos` folder into `App` on your SD card.
-   You should end up with `App/Cheevos/launch.sh`.
-3. Put the SD card back, open **Apps** in Spruce's main menu and start **Cheevos**.
+2. Copy the ZIP's `App/` folder onto the SD card, merging with the existing folder.
+   Cheevos goes in `App/PyUI/main-ui/cheevos/`.
+3. Apply the included PyUI patch as described in the ZIP's `README.md`, then restart PyUI
+   and open **Apps → Cheevos**.
 
 The first start asks for your Web API key (see [Setup](Setup.md)), then syncs your account. That
 takes about a second per game the first time: a few minutes for a big library. You can browse
 while it runs.
 
 ## Update
-Delete the old `App/Cheevos` folder, then copy in the new `Cheevos` folder as when installing.
-Your key and settings live in `Saves/cheevos/`, so they survive an update. The cache lives in
-`App/Cheevos/cache`, so the first start after an update syncs everything again.
+Delete the old `App/PyUI/main-ui/cheevos` folder, then copy its replacement from the ZIP.
+Your key and settings live in `Saves/cheevos/`, so they survive an update. Cached data stays in
+`App/Cheevos/cache/` and is reused across updates.
 
 ## Remove
-Delete `App/Cheevos`. To remove your key and settings too, delete `Saves/cheevos`.
+Revert the included PyUI patch and remove `App/PyUI/main-ui/cheevos`.
+To remove your key and settings too, delete `Saves/cheevos`.

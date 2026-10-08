@@ -1,59 +1,57 @@
-"""Assemble the device package: ``dist/App/Cheevos/`` and ``dist/Cheevos-<version>.zip``.
-
-Contents: ``config.json``, ``launch.sh``, ``cheevos.png``, ``LICENSE`` and the package without
-the dev-only desktop shim and caches. The zip holds ``Cheevos/`` for copying into the SD card's
-``App/`` folder; the release job in ``.github/workflows/ci.yml`` publishes it.
-"""
+"""Package native Cheevos for PyUI with its upstream integration patch."""
 
 from __future__ import annotations
 
 import shutil
 import sys
 from pathlib import Path
+from zipfile import ZIP_DEFLATED, ZipFile
 
 from cheevos import __version__
 
 REPO = Path(__file__).resolve().parents[1]
 SOURCE_PACKAGE = REPO / "src" / "cheevos"
-APP_FILES = REPO / "app"
 DIST = REPO / "dist"
-OUTPUT = DIST / "App" / "Cheevos"
-EXCLUDED = shutil.ignore_patterns("__pycache__", "*.pyc", "desktop")
+OUTPUT = DIST / "App" / "PyUI" / "main-ui" / "cheevos"
+EXCLUDED = shutil.ignore_patterns("__pycache__", "*.pyc", "desktop", "bootstrap.py")
 
 
 def build(output: Path = OUTPUT) -> Path:
-    """Build the package directory from scratch.
+    """Build the native package directory from scratch.
 
     Args:
-        output: Destination ``App/Cheevos`` directory; it is replaced if it exists.
+        output: Destination ``App/PyUI/main-ui/cheevos`` directory; replaced if it exists.
 
     Returns:
         The output directory.
     """
     if output.exists():
         shutil.rmtree(output)
-    output.mkdir(parents=True)
-    for item in sorted(APP_FILES.iterdir()):
-        shutil.copy2(item, output / item.name)
+    shutil.copytree(SOURCE_PACKAGE, output, ignore=EXCLUDED)
+    shutil.copy2(REPO / "app" / "cheevos.png", output / "res" / "cheevos.png")
     shutil.copy2(REPO / "LICENSE", output / "LICENSE")
-    (output / "launch.sh").chmod(0o755)
-    shutil.copytree(SOURCE_PACKAGE, output / "cheevos", ignore=EXCLUDED)
     return output
 
 
 def archive(package: Path = OUTPUT, version: str = __version__) -> Path:
-    """Zip the package directory with its ``Cheevos/`` prefix.
+    """Zip the package with SD-card-relative paths, an install note and the PyUI patch.
 
     Args:
-        package: The built ``App/Cheevos`` directory.
+        package: The built ``App/PyUI/main-ui/cheevos`` directory.
         version: Version for the file name.
 
     Returns:
-        The zip file, next to the ``App`` directory.
+        The zip file in ``dist``.
     """
-    dist = package.parents[1]
-    base = dist / f"Cheevos-{version}"
-    return Path(shutil.make_archive(str(base), "zip", package.parent, package.name))
+    dist = package.parents[3]
+    destination = dist / f"Cheevos-{version}.zip"
+    with ZipFile(destination, "w", compression=ZIP_DEFLATED) as release:
+        for path in sorted(package.rglob("*")):
+            if path.is_file():
+                release.write(path, path.relative_to(dist))
+        release.write(REPO / "integration" / "README.md", "README.md")
+        release.write(REPO / "integration" / "spruceos-pyui.patch", "spruceos-pyui.patch")
+    return destination
 
 
 def main() -> int:
@@ -63,8 +61,7 @@ def main() -> int:
         Process exit code.
     """
     output = build()
-    files = sum(1 for path in output.rglob("*") if path.is_file())
-    print(f"Built {output.relative_to(REPO)} ({files} files)")
+    print(f"Built {output.relative_to(REPO)}")
     print(f"Built {archive(output).relative_to(REPO)}")
     return 0
 

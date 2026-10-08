@@ -43,6 +43,13 @@ class _ImageHooks:
 _hooks = _ImageHooks()
 
 
+def reset() -> None:
+    """Release callbacks holding the previous app context after a session."""
+    _hooks.version = lambda: 0
+    _hooks.new_window = lambda: None
+    _hooks.demand = ImageDemand.SHOWN
+
+
 def track_images(version: Callable[[], int], new_window: Callable[[], None]) -> None:
     """Connect the views to the app's images.
 

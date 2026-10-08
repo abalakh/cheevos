@@ -6,6 +6,8 @@ Templates use ``str.format`` named fields.
 from __future__ import annotations
 
 APP_TITLE = "Cheevos"
+APP_DESCRIPTION = "RetroAchievements hub"
+APP_HIDDEN_SUFFIX = "(Hidden)"
 
 # --- sync status (bottom bar) -----------------------------------------------------------------
 SYNC = "Sync"

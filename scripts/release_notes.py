@@ -106,8 +106,8 @@ def render_notes(
     """Render one linked entry per PR or direct mainline commit."""
     version = tag.removeprefix("v")
     lines = [
-        f"Install: unzip `Cheevos-{version}.zip`, then copy its `Cheevos` folder into "
-        "`App` on the SD card, so that `App/Cheevos/launch.sh` exists.",
+        f"Install: unzip `Cheevos-{version}.zip` and follow its `README.md` to install "
+        "Cheevos in PyUI and apply the included integration patch.",
         "",
         "## Changes",
         "",

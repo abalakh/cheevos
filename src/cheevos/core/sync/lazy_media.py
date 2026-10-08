@@ -147,11 +147,11 @@ class LazyMediaFetcher:
         self._waiting.insert(self._urgent, key)
         self._urgent += 1
 
-    def close(self, timeout: float = 2.0) -> None:
+    def close(self, timeout: float | None = 2.0) -> None:
         """Stop the worker and release its session.
 
         Args:
-            timeout: Seconds to wait for the worker to finish its current download.
+            timeout: Seconds to wait for the current download; ``None`` waits until it ends.
         """
         self._stop.set()
         self._wake.set()

@@ -1,3 +1,4 @@
+import contextlib
 import logging
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -88,6 +89,40 @@ def test_install_leaves_an_unexpected_pyui_alone(caplog):
         texture_budget.install(display, 640, 480)
     assert display._text_texture_cache.cache == []
     assert "unbounded" in caplog.text
+
+
+@pytest.mark.parametrize("fail", [False, True])
+def test_session_destroys_textures_once_and_restores_empty_host_dicts(monkeypatch, fail):
+    sdl2 = pytest.importorskip("sdl2")
+    destroyed = []
+    monkeypatch.setattr(sdl2, "SDL_DestroyTexture", destroyed.append)
+
+    class Cache:
+        def __init__(self, entries):
+            self.cache = entries
+
+        def clear_cache(self):
+            for value in self.cache.values():
+                destroyed.append(value.texture)
+            self.cache.clear()
+
+    host_text = {"host": entry("HOST")}
+    host_image = {}
+    display = SimpleNamespace(
+        _text_texture_cache=Cache(host_text), _image_texture_cache=Cache(host_image)
+    )
+    expected = pytest.raises(RuntimeError) if fail else contextlib.nullcontext()
+    with expected, texture_budget.installed(display, 10, 10):
+        images = display._image_texture_cache.cache
+        images["a"] = entry("A")
+        images["b"] = entry("B")
+        images["c"] = entry("C")  # A is evicted, and cannot be freed again on return.
+        if fail:
+            raise RuntimeError("screen failed")
+    assert destroyed == ["HOST", "A", "B", "C"]
+    assert display._text_texture_cache.cache is host_text
+    assert display._image_texture_cache.cache is host_image
+    assert host_text == host_image == {}
 
 
 def tiny_png(path, shade):

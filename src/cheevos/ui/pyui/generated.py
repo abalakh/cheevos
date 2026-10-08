@@ -25,6 +25,12 @@ RGB = tuple[int, int, int]
 _state: dict[str, Path] = {}
 
 
+def reset() -> None:
+    """Forget the session's scratch directory and cached theme colours."""
+    _state.clear()
+    average_color.cache_clear()
+
+
 def use_scratch(path: Path) -> None:
     """Write generated images into ``path`` from now on.
 

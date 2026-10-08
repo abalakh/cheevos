@@ -22,7 +22,7 @@ def test_render_notes_links_prs_once_and_direct_commits() -> None:
     notes = render_notes("v0.1.0b2", "owner/cheevos", "v0.1.0b1", commits, pr_for_commit)
 
     assert "Cheevos-0.1.0b2.zip" in notes
-    assert "copy its `Cheevos` folder into `App` on the SD card" in notes
+    assert "install Cheevos in PyUI and apply the included integration patch" in notes
     assert (
         "[Core: direct \\[change\\]](https://github.com/owner/cheevos/commit/" + "a" * 40 in notes
     )

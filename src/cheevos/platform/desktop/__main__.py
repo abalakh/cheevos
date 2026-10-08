@@ -247,7 +247,9 @@ def run(options: RunnerOptions) -> int:
         live_environment(options.sd_root) if options.live else fixture_environment(options.sd_root)
     )
     try:
-        app.run(started_at=started_at, env=env)
+        result = app.run(started_at=started_at, env=env)
+        if result:
+            return result
     except SystemExit as exc:  # DesktopQuit / ScriptFinished end the run normally
         return int(exc.code or 0)
     if unplayed := controller.unplayed:

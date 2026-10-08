@@ -8,10 +8,11 @@ logger when that is preferred.
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import re
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 
 MASK = "***"
 _QUERY_KEY = re.compile(r"(?<![A-Za-z0-9_])y=[^&\s'\"]+")
@@ -101,3 +102,26 @@ def install_redaction(api_key: str) -> None:
 
         logging.setLogRecordFactory(factory)
         _installed = True
+
+
+@contextlib.contextmanager
+def scoped() -> Iterator[None]:
+    """Restore the host's record factory and registered secrets after a native session.
+
+    Stop all session workers before leaving this scope so no later app log can contain a
+    key that has already been unregistered.
+
+    Yields:
+        Nothing. Register session keys with :func:`install_redaction` as usual.
+    """
+    global _installed  # noqa: PLW0603 — restore the process-wide hook's installation state
+    with _lock:
+        previous = logging.getLogRecordFactory(), _installed, _secrets.copy()
+    try:
+        yield
+    finally:
+        with _lock:
+            logging.setLogRecordFactory(previous[0])
+            _installed = previous[1]
+            _secrets.clear()
+            _secrets.update(previous[2])

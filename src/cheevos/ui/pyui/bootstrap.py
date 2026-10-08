@@ -1,9 +1,4 @@
-"""Start PyUI's subsystems from outside PyUI.
-
-Mirrors the start-up order of PyUI's ``mainui.py`` (config, device, state, theme, display,
-controller) without the parts that belong to the launcher itself: menu loops, background
-threads, theme conversion and the stdout/stderr redirection done by ``PyUiLogger.init``.
-"""
+"""Initialize PyUI for the desktop development runner."""
 
 from __future__ import annotations
 
@@ -125,48 +120,3 @@ def bootstrap(setup: PyUiSetup, device_factory: Callable[[], object]) -> None:
     texture_budget.install(Display, device.screen_width(), device.screen_height())
     Display.present()
     Controller.init()
-
-
-def hardware_device(name: str) -> object:
-    """Create PyUI's device object for real hardware, exactly as PyUI's launcher does.
-
-    Reuses ``mainui.initialize_device`` so every device Spruce supports works without a copy
-    of its device table. Importing ``mainui`` does not start PyUI (its ``main()`` is guarded).
-
-    Args:
-        name: PyUI device name as passed to ``mainui.py -device``, e.g. ``"MIYOO_MINI_PLUS"``.
-
-    Returns:
-        The initialised device, also registered with PyUI's ``Device`` holder.
-    """
-    from devices.device import Device
-    from mainui import initialize_device
-
-    # main_ui_mode=False: none of the launcher-only background services.
-    initialize_device(name, main_ui_mode=False)
-    device = Device.get_device()
-    _enable_backlight_control(device)
-    return device
-
-
-def _enable_backlight_control(device: object) -> None:
-    """Give Miyoo Mini devices the backlight helper PyUI only creates in launcher mode.
-
-    PyUI's screensaver dims and restores the backlight through
-    ``miyoo_mini_flip_shared_memory_writer``; outside launcher mode that attribute is missing,
-    so the screensaver failed to dim ("object has no attribute ...") and the screen stayed at
-    full brightness while idle in Cheevos.
-
-    Args:
-        device: The PyUI device object.
-    """
-    if hasattr(device, "miyoo_mini_flip_shared_memory_writer"):
-        return
-    if not hasattr(type(device), "_set_lumination_to_config"):
-        return  # not a Miyoo Mini family device
-    from devices.miyoo.mini.miyoo_mini_flip_shared_memory_writer import (
-        MiyooMiniFlipSharedMemoryWriter,
-    )
-
-    writer = MiyooMiniFlipSharedMemoryWriter()
-    setattr(device, "miyoo_mini_flip_shared_memory_writer", writer)  # noqa: B010 — PyUI device attr

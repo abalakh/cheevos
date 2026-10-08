@@ -228,13 +228,18 @@ def installed(source: StatusSource, on_start: Callable[[], None]) -> Iterator[No
         yield
         return
     glyphs.reset()
+    previous_bar = _bar
+    previous_render = vars(target).get("render_bottom_bar")
     _bar = _Bar(source, on_start)
     target.render_bottom_bar = _wrap_render(_bar, original)
     try:
         yield
     finally:
-        del target.render_bottom_bar  # back to the class method
-        _bar = None
+        if previous_render is None:
+            del target.render_bottom_bar  # back to the class method
+        else:
+            target.render_bottom_bar = previous_render
+        _bar = previous_bar
 
 
 @contextlib.contextmanager

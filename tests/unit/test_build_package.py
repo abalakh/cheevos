@@ -1,42 +1,32 @@
-"""Verify the release archive layout seen by users."""
+"""Verify the native distribution's install paths and required resources."""
 
 from zipfile import ZipFile
 
 from build_package import REPO, archive, build
 
 
-def test_device_package_includes_license_and_excludes_desktop(tmp_path) -> None:
-    package = tmp_path / "dist" / "App" / "Cheevos"
+def test_native_package_layout(tmp_path):
+    package = tmp_path / "dist/App/PyUI/main-ui/cheevos"
     package.mkdir(parents=True)
     (package / "removed.py").write_text("old release", encoding="utf-8")
-
     build(package)
     zip_path = archive(package, "1.2.3")
-
+    assert zip_path == tmp_path / "dist/Cheevos-1.2.3.zip"
+    prefix = "App/PyUI/main-ui/cheevos/"
     with ZipFile(zip_path) as release:
-        assert release.read("Cheevos/LICENSE") == (REPO / "LICENSE").read_bytes()
-        assert "Cheevos/cheevos/__main__.py" in release.namelist()
-        assert "Cheevos/config.json" in release.namelist()
+        files = set(release.namelist())
+        assert release.read(prefix + "LICENSE") == (REPO / "LICENSE").read_bytes()
+        assert release.read(prefix + "res/cheevos.png") == (REPO / "app/cheevos.png").read_bytes()
+        assert prefix + "app.py" in files
+        assert prefix + "ui/pyui/native_app.py" in files
+        assert "README.md" in files
+        assert "spruceos-pyui.patch" in files
         for size in (24, 48, 96, 144):
             for icon in ("gamepad", "user", "trophy", "lock-muted", "reload", "check"):
-                assert f"Cheevos/cheevos/res/icons/{size}/{icon}.png" in release.namelist()
-        icon_files = [name for name in release.namelist() if "/res/icons/" in name]
-        assert all(name.endswith(("/", ".png")) for name in icon_files)
-        assert not any("/res/icons/72/" in name for name in icon_files)
-        assert release.getinfo("Cheevos/launch.sh").external_attr >> 16 & 0o777 == 0o755
-        assert not any("desktop/" in name or "__pycache__/" in name for name in release.namelist())
-        assert "Cheevos/removed.py" not in release.namelist()
-
-
-def test_archive_contains_cheevos_folder_without_app_prefix(tmp_path) -> None:
-    package = tmp_path / "dist" / "App" / "Cheevos"
-    package.mkdir(parents=True)
-    (package / "launch.sh").write_text("#!/bin/sh\n", encoding="utf-8")
-
-    zip_path = archive(package, "1.2.3")
-
-    assert zip_path == tmp_path / "dist" / "Cheevos-1.2.3.zip"
-    with ZipFile(zip_path) as release:
-        files = {name for name in release.namelist() if not name.endswith("/")}
-        assert files == {"Cheevos/launch.sh"}
-        assert release.read("Cheevos/launch.sh") == b"#!/bin/sh\n"
+                assert f"{prefix}res/icons/{size}/{icon}.png" in files
+        assert not any("desktop/" in name or "__pycache__/" in name for name in files)
+        assert not any(
+            name.endswith(("launch.sh", "bootstrap.py", "config.json")) for name in files
+        )
+        assert prefix + "__main__.py" not in files
+        assert prefix + "removed.py" not in files

@@ -11,7 +11,7 @@ For CI, releases and publishing, see [RELEASING.md](RELEASING.md).
 | Unit tests | API parsing, storage, sync planning, stats, settings, credentials, screenshots, proxy reader | `make test` | seconds |
 | Screen tests | The real app, headless, on recorded data and drills | `make test` (needs PyUI, below) | ~1 min |
 | Desktop runner | Any screen, any resolution or theme, by keyboard or gamepad | `make run` | instant |
-| Device | The real thing | `make deploy launch shot` | ~30 s per round |
+| Device | The real thing | `make package shot` | ~30 s per round |
 
 ## Setup
 1. Install [uv](https://docs.astral.sh/uv/). It provides Python 3.10, the version SpruceOS ships
@@ -149,38 +149,11 @@ CHEEVOS_SDCARD_ROOT=$PWD/dev/sdcard CHEEVOS_SCRATCH=$PWD/dev/scratch uv run pyth
 ```
 
 ## On a device
-The device tools work over SSH. Turn SSH on in Spruce's settings and connect the device to the
-same network.
 
-```sh
-export DEVICE_HOST=<device ip>     # or DEVICE_SSH="ssh user@ip" for a full ssh command
-make package deploy                # build dist/App/Cheevos and copy it to App/Cheevos
-make launch                        # start Cheevos, as the Apps menu would
-make shot                          # screenshot into build/device.png
-make logs                          # the app log and the last stderr
-make stop                          # ask Cheevos to exit
-scripts/device.sh press down a b   # tap buttons
-```
-
-Password prompts work; an SSH key saves typing. The only thing `deploy` deletes is the old
-`App/Cheevos/cheevos` package before copying the new one.
-
-**Be careful with a device that's in use:**
-- Check that it's idle before launching, tapping or deploying: neither Cheevos nor a game should
-  be running (`pgrep -f 'python3[.]10 -m [c]heevos'`, `pgrep -f '[r]a32[.]'`).
-- `press` sends single taps, and only while Cheevos is running: a tap after it exits would reach
-  Spruce's menu, where A starts a game. Don't send MENU, power or button combinations: they
-  trigger Spruce hotkeys.
-- Treat everything outside `App/Cheevos/`, `Saves/cheevos/` and `/tmp` as read-only, and leave
-  `Roms/` alone entirely. A ROM library is usually irreplaceable.
-
-To run a sync on the device without the UI, over SSH:
-
-```sh
-cd /mnt/SDCARD/App/Cheevos && PLATFORM=MiyooMini \
-  SSL_CERT_FILE=/mnt/SDCARD/spruce/etc/ca-certificates.crt \
-  /mnt/SDCARD/spruce/bin/python/bin/python3.10 -m cheevos.core.sync
-```
+Build with `make package` and follow the [install note](integration/README.md).
+Open Apps → Cheevos on the device. With `DEVICE_HOST=<ip>` (or `DEVICE_SSH="ssh user@ip"`),
+`make shot` saves `build/device.png` and `make logs` reads the app log.
+Use only single button taps; leave ROMs and unrelated files untouched.
 
 ## How the desktop runner works
 PyUI has no desktop mode, but its parts are pluggable: `Controller` takes its input from the

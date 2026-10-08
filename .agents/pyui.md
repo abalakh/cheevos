@@ -5,23 +5,15 @@ PyUI is SpruceOS's Python/SDL2 UI toolkit. Cheevos imports it at runtime from
 weekly). Only `cheevos.ui.pyui` (the bridge) and `cheevos.platform.desktop` (dev shim) may import
 it ([code.md](code.md), "Layers"). Read this file before touching either.
 
-Both early questions have a yes: PyUI can be started from a separate app (`app/launch.sh` mirrors
-the platform branch of PyUI's own launcher; about 3 s to a usable screen on the Mini), and its
-views draw what the app needs (lists with icons and right-aligned values, badge grids, popups,
-custom screens). Progress bars, frames and the bottom-bar status are drawn by the bridge on top
-of PyUI's views, without patching PyUI.
+Cheevos runs inside the launcher's initialized PyUI runtime. It borrows the host display,
+controller and theme, and restores their state after each visit. Only the desktop runner
+bootstraps a runtime of its own.
 
 ## The bridge
-- **Bootstrap**: mirror `mainui.py` start-up:
+- **Desktop bootstrap**: mirror `mainui.py` start-up:
   1. `PyUiConfig.init`, `UserConfig.reload_config`, `CfwSystemConfig.init`, `Language.init`;
-  2. `initialize_device(<name>, main_ui_mode=False)`, `PyUiState.init`;
+  2. Create `DesktopDevice`, then `PyUiState.init`;
   3. `Theme.init`, `Display.init`, `Controller.init`.
-- **Device name**: the same `-device` value PyUI's `launch.sh` would pass, e.g.
-  `MIYOO_MINI_PLUS`. `app/launch.sh` gets it from Spruce (`get_miyoo_mini_variant` on the Mini
-  family) and passes `CHEEVOS_PYUI_DEVICE`; the bridge creates the device with PyUI's own
-  `mainui.initialize_device(..., main_ui_mode=False)` (the mode Spruce's `-msgDisplay` helpers
-  use), so every Spruce device works without copying PyUI's device table. Importing `mainui`
-  doesn't start PyUI.
 - **Standard views** (`ViewCreator.create_view`): lists (`ICON_AND_DESC`, `TEXT_AND_IMAGE`) and
   grids (`GRID`), through `views.choose()`, or a `views.PreparedView` that a screen keeps to
   show again ("Showing a view again", below).
@@ -44,6 +36,13 @@ of PyUI's views, without patching PyUI.
   `.spruceos/`. The weekly `pyui-drift` workflow tests the latest `Development`. Bump the commit
   after re-verifying against a newer SpruceOS.
 
+## Native sessions
+
+`native_app` registers the Apps entry and imports app modules on a worker after the first
+menu frame. `app.run` scopes logging/redaction; `session.installed` restores host UI state
+and releases textures and screen callbacks. Stop workers and close caches before removing
+image scratch. PyUI/SDL calls belong on the UI thread, including during preload.
+
 ## Start-up gotchas
 - **Import path:** PyUI must sit at `sys.path[0]`; `Language` finds `lang/` relative to it
   (`bootstrap.add_pyui_to_path`).
@@ -57,9 +56,6 @@ of PyUI's views, without patching PyUI.
   so the desktop bootstrap overrides it.
 - **Timezone:** call `device.restore_saved_timezone()` after creating the device, or every
   clock shows UTC. PyUI's launcher does this; we must too.
-- **Screensaver:** in non-launcher mode (`main_ui_mode=False`) the Mini lacks
-  `miyoo_mini_flip_shared_memory_writer`, so the screensaver can't dim the backlight. The
-  bridge creates it (`bootstrap._enable_backlight_control`).
 - **Fullscreen window:** PyUI opens a fullscreen window at the monitor's size. On the desktop,
   `window.windowed()` swaps `sdl2.ext.Window` while the display starts.
 

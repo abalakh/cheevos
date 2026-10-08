@@ -43,7 +43,6 @@ in an upstream PR.
 
 ```
 src/cheevos/
-  __main__.py            device entry point: python -m cheevos
   app.py                 composition root: credentials, caches, sync, media, then home
   core/
     models.py            dataclasses: UserProfile, GameProgress, Achievement, Award, Unlock, ...
@@ -67,7 +66,8 @@ src/cheevos/
                          input), text (fitting, glyph fallbacks), status_bar, bar_layout, glyphs,
                          generated (PNG swatches, dots), row_bars, bar_colors, grid_frames,
                          texture_budget (bounded PyUI texture caches), title_bar (a game's
-                         top-bar title and award dot)
+                         top-bar title and award dot), native_app (entry point/preload frame
+                         hook), session (borrow and restore the host runtime)
     screens/             home, profile, page (scrolling pages), games, game_detail, achievement,
                          lists (recent unlocks), awards, settings, setup, status (bottom-bar sync
                          status), rows, common
@@ -79,7 +79,7 @@ src/cheevos/
     desktop/             dev only: device shim, keyboard/script controller, headless capture,
                          fixture/live environments, drills
   res/icons/             original outlines: 24/48 px status, 96/144 px lists and fallbacks
-app/                     packaging: config.json, launch.sh, cheevos.png
+app/                     packaging: cheevos.png
 assets/                  icon sources (SVG)
 tests/                   unit and screen tests, fixtures/
 scripts/                 check_conventions, record_fixtures, fetch_dev_media, fetch_pyui.sh,
@@ -90,7 +90,7 @@ docs/                    the user guide, published as the GitHub wiki (images/ f
 README.md, CONTRIBUTING.md, TESTING.md, RELEASING.md
 ```
 
-On the device, everything is assembled into `/mnt/SDCARD/App/Cheevos/` ([device.md](device.md)).
+On the device, the package lives in `/mnt/SDCARD/App/PyUI/main-ui/cheevos/` ([device.md](device.md)).
 
 ## Python version and dependencies
 - **Target: Python 3.10.** The device runs CPython 3.10.18. Develop locally on 3.10 too
@@ -115,7 +115,7 @@ On the device, everything is assembled into `/mnt/SDCARD/App/Cheevos/` ([device.
 | `ty check` | Type checking | CI fails on any error |
 | `pytest` | Tests | CI fails; core coverage ≥ 85% |
 | `scripts/check_conventions.py` | Rules ruff can't express (below) | CI fails |
-| `shellcheck` | `app/launch.sh`, `scripts/*.sh` (POSIX sh: devices run busybox ash) | CI fails |
+| `shellcheck` | `scripts/*.sh` (POSIX sh: devices run busybox ash) | CI fails |
 
 `make check` runs all of these locally; `make fmt` formats and auto-fixes. Per-file ignores worth
 knowing about:
@@ -221,7 +221,7 @@ Tooling gotchas:
 
 How to run all of this: [TESTING.md](../TESTING.md).
 
-## Shell (`launch.sh`, scripts)
+## Shell scripts
 - POSIX `sh`, compatible with busybox ash, checked with `shellcheck -s sh`.
 - Start by sourcing `/mnt/SDCARD/spruce/scripts/helperFunctions.sh` and `appEnv.sh`. Read only
   `SPRUCE_*` / `PLATFORM` variables from them.

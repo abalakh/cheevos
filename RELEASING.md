@@ -14,14 +14,14 @@ For local setup and validation, see [TESTING.md](TESTING.md).
   uploads the screens either way. After re-verifying against a newer SpruceOS, bump
   `pyui-tested-commit`.
 - **SpruceOS PR** (the `spruceos` job in `ci.yml`): after a stable release and wiki publication
-  succeed, mirrors the published device ZIP into SpruceOS's `App/Cheevos/` and opens an upstream
+  succeed, mirrors the published device ZIP into SpruceOS's `App/PyUI/main-ui/cheevos/` and opens an upstream
   PR. See the one-time setup below.
 - CI has no `dev/media-host`, so badges, icons and avatars in CI screens are placeholders.
 
 ## Releases
 
-`make package` builds `dist/App/Cheevos/` and `dist/Cheevos-<version>.zip`, which contains a
-`Cheevos` folder to copy into `App` on the SD card. To publish a release:
+`make package` builds `dist/App/PyUI/main-ui/cheevos/` and `dist/Cheevos-<version>.zip`.
+The ZIP includes SD-card-relative paths, the PyUI patch and a short install note. To publish a release:
 
 1. Set the version in `pyproject.toml` and `src/cheevos/__init__.py` (a test checks that they
    match). Use PEP 440: `0.1.0b1` for a pre-release, `0.1.0` for a release. Run `uv lock`, since
@@ -44,9 +44,8 @@ need only the `Cheevos-<version>.zip`.
 
 ## Mirroring releases to SpruceOS
 
-The `spruceos` job replaces only `App/Cheevos/` in an upstream checkout, removing files that
-are no longer in the device package. It preserves the launcher's executable bit and includes
-Cheevos's MIT license. Source docs, tests and the desktop runner are not part of the package.
+The `spruceos` job mirrors `App/PyUI/main-ui/cheevos/` and applies the two PyUI hooks if
+needed. The package includes Cheevos's MIT license and excludes the desktop runner.
 The PR links the Cheevos release and records the checks that passed.
 
 **One-time setup** in the Cheevos repository:

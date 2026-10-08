@@ -188,13 +188,18 @@ jobs:
           ref: ${{ env.SPRUCEOS_BASE_BRANCH }}
           token: ${{ secrets.SPRUCEOS_PR_TOKEN }}
           path: build/spruceos
-          sparse-checkout: App/Cheevos
+          sparse-checkout: App/PyUI/main-ui
 
       - name: Mirror the released app
         run: |
-          mkdir -p build/spruceos/App/Cheevos
-          rsync --archive --delete build/spruce-release/Cheevos/ build/spruceos/App/Cheevos/
-          chmod 755 build/spruceos/App/Cheevos/launch.sh
+          mkdir -p build/spruceos/App/PyUI/main-ui/cheevos
+          rsync --archive --delete build/spruce-release/App/PyUI/main-ui/cheevos/ build/spruceos/App/PyUI/main-ui/cheevos/
+          patch="$GITHUB_WORKSPACE/build/spruce-release/spruceos-pyui.patch"
+          if git -C build/spruceos apply --check --ignore-space-change "$patch"; then
+            git -C build/spruceos apply --ignore-space-change "$patch"
+          else
+            git -C build/spruceos apply --reverse --check --ignore-space-change "$patch"
+          fi
 
       - name: Prepare the SpruceOS pull request
         id: pr
@@ -205,13 +210,16 @@ jobs:
           push-to-fork: ${{ env.SPRUCEOS_FORK }}
           base: ${{ env.SPRUCEOS_BASE_BRANCH }}
           branch: cheevos/${{ github.ref_name }}
-          add-paths: App/Cheevos/
+          add-paths: |
+            App/PyUI/main-ui/cheevos/
+            App/PyUI/main-ui/mainui.py
+            App/PyUI/main-ui/menus/app/app_menu.py
           commit-message: "App: Update Cheevos to ${{ github.ref_name }}"
           title: "App: Update Cheevos to ${{ github.ref_name }}"
           body: |
-            Mirror Cheevos [${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) into `App/Cheevos/` for inclusion in SpruceOS.
+            Mirror Cheevos [${{ github.ref_name }}](https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}) into `App/PyUI/main-ui/cheevos/` for inclusion in SpruceOS.
 
-            The app is copied from the published device ZIP, including the launcher, icon, Python runtime code and MIT license. Removed app files are removed here too.
+            The app is copied from the published device ZIP, including the icon, Python runtime code and MIT license, with the native Apps and preload hooks. Removed app files are removed here too.
 
             Validation: Cheevos lint, conventions, shellcheck, type check and the unit/screen test suite passed for the tagged commit. The stable release and wiki publication succeeded.
 
@@ -222,5 +230,5 @@ jobs:
           if [ -n "$PR_URL" ]; then
             echo "SpruceOS PR: $PR_URL" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "SpruceOS App/Cheevos already matches $GITHUB_REF_NAME." >> "$GITHUB_STEP_SUMMARY"
+            echo "SpruceOS native Cheevos already matches $GITHUB_REF_NAME." >> "$GITHUB_STEP_SUMMARY"
           fi
