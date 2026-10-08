@@ -27,7 +27,7 @@ from cheevos.core.models import (
     UserProfile,
 )
 from cheevos.core.ra_client import parse
-from cheevos.core.ra_client.pacer import API_INTERVAL, LONG_PAUSE, Pacer
+from cheevos.core.ra_client.pacer import API_INTERVAL, LONG_PAUSE, MEDIA_INTERVAL, Pacer
 from cheevos.core.ra_client.redact import install_redaction
 from cheevos.core.ra_client.transport import API_HOST, MEDIA_HOST, Response, Transport
 
@@ -94,7 +94,7 @@ class RaClient:
     """Typed access to the Web API endpoints Cheevos uses.
 
     API requests take their slots from a :class:`Pacer`, which the app shares between all its
-    clients so their combined pace stays within RA's limit. Media downloads are not paced.
+    clients so their combined pace stays within RA's limit. Media downloads have their own pacer.
 
     Args:
         username: RA username whose data is requested.
@@ -131,6 +131,7 @@ class RaClient:
         self._transport = transport
         self._headers = {"User-Agent": user_agent, "Accept": "application/json"}
         self._pacer = pacer if pacer is not None else Pacer(min_interval, burst=1, clock=clock)
+        self._media_pacer = Pacer(MEDIA_INTERVAL, burst=1, clock=clock)
         self._cancel = cancel
         self._sleep = sleep
         self._max_retries = max_retries
@@ -284,6 +285,7 @@ class RaClient:
         """
         if not path.startswith("/"):
             raise ApiPayloadError(f"invalid media path {path!r}")
+        self._wait(self._media_pacer.reserve())
         response = self._transport.get(MEDIA_HOST, path, self._headers)
         if response.status == _HTTP_OK:
             return response.body
