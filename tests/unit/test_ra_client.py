@@ -202,6 +202,38 @@ def test_api_requests_are_throttled():
     assert clock.sleeps == [0.5]
 
 
+def test_media_requests_are_paced_separately_from_api():
+    clock = FakeClock()
+    transport = ScriptedTransport(
+        ok({"User": "a"}),
+        *[Response(200, body=b"img")] * 3,
+        ok({"User": "a"}),
+    )
+    client = make(transport, clock)
+    client.validate_key()
+    for _ in range(3):
+        client.media("/Badge/1.png")
+    client.validate_key()
+    assert clock.sleeps == [0.25, 0.25, 2.5]
+
+
+@pytest.mark.parametrize("shared", [False, True])
+def test_disabled_pacing_skips_api_and_media_waits(shared):
+    clock = FakeClock()
+    transport = ScriptedTransport(
+        *[ok({"User": "a"})] * 2,
+        *[Response(200, body=b"img")] * 3,
+    )
+    # Unit sync tests use min_interval=0; the desktop pre-sync and app share Pacer(0).
+    options = {"pacer": Pacer(0.0, clock=clock)} if shared else {"min_interval": 0}
+    client = make(transport, clock, **options)
+    client.validate_key()
+    client.validate_key()
+    for _ in range(3):
+        client.media("/Badge/1.png")
+    assert clock.sleeps == []
+
+
 def test_no_throttle_wait_when_enough_time_passed():
     clock = FakeClock()
     transport = ScriptedTransport(ok({"User": "a"}), ok({"User": "a"}))

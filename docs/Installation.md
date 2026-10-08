@@ -18,7 +18,7 @@
 3. Put the SD card back, open **Apps** in Spruce's main menu and start **Cheevos**.
 
 The first start asks for your Web API key (see [Setup](Setup.md)), then syncs your account. That
-takes about a second per game the first time: a few minutes for a big library. You can browse
+spaces game downloads about 3 seconds apart: a few minutes for a big library. You can browse
 while it runs.
 
 ## Update

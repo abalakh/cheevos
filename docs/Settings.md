@@ -10,7 +10,7 @@
 | **Sync when the app opens** | On (default) or off. Off means syncs only run when you press Start. |
 | **RAOfflineProxy** | Shown only when the proxy is installed: whether it's on, online, how many unlocks wait to sync, how many games it has cached. Press A for an explanation. See [Sync and offline play](Sync-and-Offline-Play.md). |
 | **Sync now** | Same as pressing Start. |
-| **Download every game** | Downloads every game's achievements, for offline use: about a second per game. It carries on in later syncs until it's done; meanwhile this row reads **Stop downloading every game**. |
+| **Download every game** | Downloads every game's achievements, for offline use: downloads are spaced about 3 seconds apart. It carries on in later syncs until it's done; meanwhile this row reads **Stop downloading every game**. |
 | **Web API key** | Shows the end of the current key; press A to enter a new one. |
 | **Clear image cache** | Deletes downloaded badges and icons (shows how much space they use). They download again when needed. |
 | **About** | Version, license and credits. |

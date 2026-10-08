@@ -94,7 +94,8 @@ class RaClient:
     """Typed access to the Web API endpoints Cheevos uses.
 
     API requests take their slots from a :class:`Pacer`, which the app shares between all its
-    clients so their combined pace stays within RA's limit. Media downloads have their own pacer.
+    clients so their combined pace stays within RA's limit. Media downloads have their own
+    pacer. Disabling API pacing also disables media pacing for recorded fixtures.
 
     Args:
         username: RA username whose data is requested.
@@ -102,11 +103,12 @@ class RaClient:
         transport: HTTP transport (keep-alive HTTPS, or fixtures in tests).
         user_agent: User-Agent header value.
         pacer: Shared request pacer; a private one spacing every request ``min_interval``
-            apart (no burst) when ``None``.
-        min_interval: Seconds between API requests for a private pacer.
+            apart (no burst) when ``None``. A zero interval disables media pacing too.
+        min_interval: Seconds between API requests for a private pacer; zero disables both
+            API and media pacing when no shared pacer is given.
         cancel: When set, waits for a slot or a retry stop with
             :class:`~cheevos.core.errors.RequestCancelledError`.
-        clock: Monotonic clock for a private pacer (injectable for tests).
+        clock: Monotonic clock for private pacers (injectable for tests).
         sleep: Sleep function, used when there is no ``cancel`` event (injectable for tests).
         max_retries: Retries for HTTP 429 and 5xx responses.
     """
@@ -131,7 +133,8 @@ class RaClient:
         self._transport = transport
         self._headers = {"User-Agent": user_agent, "Accept": "application/json"}
         self._pacer = pacer if pacer is not None else Pacer(min_interval, burst=1, clock=clock)
-        self._media_pacer = Pacer(MEDIA_INTERVAL, burst=1, clock=clock)
+        media_interval = MEDIA_INTERVAL if self._pacer.enabled else 0.0
+        self._media_pacer = Pacer(media_interval, burst=1, clock=clock)
         self._cancel = cancel
         self._sleep = sleep
         self._max_retries = max_retries

@@ -2,11 +2,11 @@
 
 RA limits requests per key (.agents/retroachievements.md, "Rate limit"). Measured on 2026-10-06:
 requests 0.3 s apart (about 2.6 per second) drew HTTP 429 after about 18 of them, then
-``Retry-After: 600``; one request per second drew none in 20 minutes. So a pacer allows a short
-burst, then keeps to one per second. It's a token bucket (in GCRA form): after an idle spell up
-to ``burst`` requests start ``spacing`` apart, and the bucket refills at one request per
-``interval``. Short exchanges (a sync with nothing new: 4 requests) stay quick, and long runs
-(game details) settle at the measured-safe pace.
+``Retry-After: 600``; one request per second drew none in 20 minutes. The current defaults
+allow a short burst, then keep to one request every three seconds for extra headroom. It's a
+token bucket (in GCRA form): after an idle spell up to ``burst`` requests start ``spacing``
+apart, and the bucket refills at one request per ``interval``. Media uses a separate pacer
+with no burst. An interval of zero disables normal pacing for recorded fixtures.
 
 The sync, on-demand fetches and the key check each have their own client, so they share one
 :class:`Pacer` that keeps their combined pace. A pacer only schedules: :meth:`Pacer.reserve`
@@ -60,6 +60,11 @@ class Pacer:
         self._due: float | None = None  # when the bucket would be full again (GCRA's "TAT")
         self._last_start: float | None = None
         self._paused_until: float | None = None
+
+    @property
+    def enabled(self) -> bool:
+        """Whether normal request spacing is enabled (429 pauses still apply)."""
+        return self._interval > 0.0
 
     def reserve(self) -> float:
         """Take the next request slot.

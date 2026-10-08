@@ -86,9 +86,9 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
    HighestAwardKind)`.
 4. **Awards**: `GetUserAwards`. One request, before the details, so the awards wall and the
    home screen are complete as early as the games list.
-5. **Plan detail fetches.** A game's details take one request, about a second at RA's pace,
-   so a sync doesn't fetch every game: 2,937 games would take ~51 min. It keeps a **working
-   set**: games on this device (`local_games`) and games played or unlocked within the "Recent
+5. **Plan detail fetches.** A game's details take one request, spaced 3 s apart at the steady
+   pace, so a sync doesn't fetch every game: 2,937 games would take about 2.5 hours. It keeps a
+   **working set**: games on this device (`local_games`) and games played or unlocked within the "Recent
    games" window (30 days by default). Other games are fetched when opened (the game worker,
    below). Planned:
    - never fetched, for a game in the working set;
@@ -104,7 +104,8 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
      newest 100 cached unlocks (`RECENT_UNLOCK_COUNT`, what Recent unlocks shows) are newer than
      the next game's last unlock. Usually nothing: recent games are in the working set. A
      player with no activity lately gets their last few games.
-   - The test account (2,937 games) has 60 games in a 30-day working set: about a minute.
+   - The test account (2,937 games) has 60 games in a 30-day working set: about 3 minutes
+     for its details at the current pace, plus media downloads spaced 0.25 s apart.
 7. **Badges** (the "Badge downloads" setting):
    - On-device + recent: games in `local_games` plus games played or unlocked within the recent
      window.
@@ -152,5 +153,5 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
   It reads no table, so the games list checks it on every visit and reads the games again only
   when it changed.
 - **Request pacing**: every thread that calls the Web API takes its slots from the app's one
-  `Pacer`, so together they stay within a short burst, then 1 request/s
+  `Pacer`, so together they stay within a short burst, then one request every 3 s
   ([retroachievements.md](retroachievements.md), "Politeness").

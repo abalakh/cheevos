@@ -12,17 +12,18 @@ updates it:
 4. Your awards.
 5. Badges and game icons (see **Badge downloads** in [Settings](Settings.md)).
 
-**The first sync** takes about a second per game it downloads: seconds for most libraries, and
-about a minute for one with thousands of games, because only the games you play are downloaded.
+**The first sync** spaces game downloads about 3 seconds apart: seconds for small libraries,
+and a few minutes for one with thousands of games, because only the games you play are downloaded.
+Image downloads are spaced a quarter of a second apart and can take longer for large sets.
 Your games list, profile and awards are complete either way. You can browse while syncing. If a
 sync is interrupted (you leave the app, the device sleeps, the battery runs out), the next one
 carries on where it stopped.
 
 **Other games** are downloaded when you open them: "Loading achievements…" for a second or two,
 then they stay on the card. To have every game's achievements on the card, for example before a
-trip without Wi-Fi, use **Settings → Download every game**. It takes about a second per game
-(close to an hour for 3,000 games), carries on in later syncs until it's done, and can be stopped
-from the same place.
+trip without Wi-Fi, use **Settings → Download every game**. It spaces downloads about 3 seconds
+apart (about 2.5 hours for 3,000 games, plus images), carries on in later syncs until it's done,
+and can be stopped from the same place.
 
 **When it runs:** when you open Cheevos (unless you turn that off in Settings), and whenever you
 press **Start**. Press Start again to cancel.
