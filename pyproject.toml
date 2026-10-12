@@ -1,6 +1,6 @@
 [project]
 name = "cheevos"
-version = "0.1.5"
+version = "0.1.6"
 description = "On-device RetroAchievements hub for SpruceOS"
 readme = "README.md"
 license = "MIT"
