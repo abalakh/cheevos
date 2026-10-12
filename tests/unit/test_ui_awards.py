@@ -1,5 +1,10 @@
+from types import SimpleNamespace
+from typing import cast
+
 from cheevos.core.models import Award, AwardKind, UserProfile
-from cheevos.ui.screens.awards import _View, arrange, highest_per_game
+from cheevos.ui.context import AppContext
+from cheevos.ui.pyui.image_frames import Frame
+from cheevos.ui.screens.awards import _tiles, _View, arrange, highest_per_game
 from cheevos.ui.screens.profile import rank_text
 
 
@@ -36,6 +41,12 @@ def test_arrange_filters_and_sorts():
     assert [a.game_id for a in arrange(awards, _View(sort="console"))] == [2, 3, 1]
     assert [a.game_id for a in arrange(awards, _View(filter="mastery"))] == [3, 1]
     assert [a.game_id for a in arrange(awards, _View(filter="beaten"))] == [2]
+
+
+def test_mastered_tiles_are_gold_and_completed_tiles_are_plain():
+    ctx = cast(AppContext, SimpleNamespace())
+    tiles = _tiles(ctx, [award(index, kind) for index, kind in enumerate(AwardKind)])
+    assert [tile.frame for tile in tiles] == [Frame.GOLD, None, Frame.SILVER, Frame.SILVER_THIN]
 
 
 def profile(rank, total):

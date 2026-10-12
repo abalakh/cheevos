@@ -54,6 +54,8 @@ recognised on your SD card (see [Limitations](Limitations.md)).
 Every achievement with its badge, points, type and unlock date, or how rare it is if you haven't
 unlocked it yet. "screenshot" means there's an unlock screenshot for it. The top bar shows how
 many you've unlocked, with a smaller version of the game's award circle if it has one.
+Hardcore badges have a **gold outline** in both the list and grid. Casual unlocks and pending
+offline unlocks have plain colour badges; locked badges are grey.
 
 ![Achievements](images/game.png)
 
@@ -67,7 +69,8 @@ If a game has no achievements, Cheevos says so. Press **A** or **B** to return t
 
 ## An achievement
 The badge, title, points, type, when you unlocked it, how many players have it, and the
-description. If RetroArch saved a screenshot when you unlocked it, it's shown too: press **A**
+description. Hardcore badges have the same **gold outline** here. If RetroArch saved a
+screenshot when you unlocked it, it's shown too: press **A**
 for full screen.
 
 ![Achievement](images/achievement.png)
@@ -83,13 +86,15 @@ full achievement list hasn't been downloaded. Unlocks still waiting in RAOffline
 first, marked "Pending sync". Press **A** to open one. The card's title, description and unlock
 date work offline; missing player statistics load in the background when you're online.
 Until those statistics are available, rarity shows **—**.
+Hardcore unlocks have a **gold outline** around their badges. Casual and pending unlocks stay
+plain.
 
 ![Recent unlocks](images/recent.png)
 
 ## Awards
 Your mastered, completed and beaten games, one tile per game with its highest award. The frame
-follows RetroAchievements' colours: **gold** for mastered (thick) and completed (thin),
-**silver** for beaten in hardcore (thick) and in casual (thin). Press **A** to open the game,
+follows RetroAchievements' colours: **gold** for mastered, with plain icons for completed games.
+Beaten games have **silver** frames, thick in hardcore and thin in casual. Press **A** to open the game,
 **Y** to filter or sort, including your own order from the RetroAchievements site.
 
 ![Awards](images/awards.png)

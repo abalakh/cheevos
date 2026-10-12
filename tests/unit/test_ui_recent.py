@@ -8,6 +8,7 @@ from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.recent_feed import RecentFeed, RecentFeedCache
 from cheevos.ui import strings
 from cheevos.ui.context import AppContext
+from cheevos.ui.pyui.image_frames import Frame
 from cheevos.ui.pyui.primitives import Area, Button
 from cheevos.ui.screens import achievement, lists
 
@@ -56,6 +57,7 @@ def test_recent_list_works_offline_without_a_library_row_or_game_set(tmp_path, m
     lists.show_recent(cast(AppContext, ctx))
     assert len(shown) == 1
     assert shown[0].title == "Win the race"
+    assert shown[0].frame is Frame.GOLD
     assert "An uncached game" in shown[0].description
     assert data.game_detail(519) is None
     data.close()

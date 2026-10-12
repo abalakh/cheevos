@@ -11,8 +11,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from cheevos.core.models import AwardKind
-from cheevos.ui.pyui import grid_frames, row_bars, status_bar, title_bar
+from cheevos.ui.pyui import grid_frames, image_frames, row_bars, status_bar, title_bar
+from cheevos.ui.pyui.image_frames import Frame
 from cheevos.ui.pyui.primitives import (
     Button,
     Text,
@@ -59,7 +59,7 @@ class MenuItem:
         value: Right-aligned text, e.g. ``"2/138"`` (lists only; may be empty).
         key: Caller-defined identifier, returned unchanged on selection.
         progress: A progress bar shown instead of the description (lists only).
-        frame: An award frame around the tile's image (grids only; RA's colours).
+        frame: Outline outside the image (lists and grids; RA's colours).
     """
 
     title: str
@@ -68,7 +68,7 @@ class MenuItem:
     value: str = ""
     key: str = ""
     progress: Progress | None = None
-    frame: AwardKind | None = None
+    frame: Frame | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -379,12 +379,14 @@ class PreparedView:
             )
         if layout is Layout.LIST and any(item.progress is not None for item in items):
             row_bars.attach(self._view)
+        if layout is Layout.LIST:
+            image_frames.attach_list(self._view)
         self._images = (
             None
             if layout is Layout.POPUP
             else VisibleImages(self._view, self._entries, grid=columns > 0)
         )
-        if layout is Layout.GRID and any(item.frame is not None for item in items):
+        if layout is Layout.GRID:
             grid_frames.attach(self._view)
         self._shown = False
         elapsed_ms = (time.monotonic() - started) * 1000

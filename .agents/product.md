@@ -82,7 +82,8 @@ Settings.
   smaller between them (including mastery glow); without
   one, a space separates them (a plain dot there would look like an award).
 - **Row**:
-  - badge: colour when unlocked, `_lock` variant when locked;
+  - badge: colour with a gold outline in hardcore, plain colour in casual or pending offline,
+    `_lock` variant when locked; the same outline applies in the grid, card and Recent unlocks;
   - title, points, and a type tag (Progression / Win / Missable);
   - an unlock marker: Hardcore, Casual or Pending sync;
   - "screenshot" if an unlock screenshot exists.
@@ -91,7 +92,7 @@ Settings.
 - **Filter**: All · Locked · Unlocked · Missable · Progression and Win.
 
 ## Achievement card
-- Large badge, title, points with RetroRatio (`TrueRatio`), and type.
+- Large badge (gold outline in hardcore), title, points with RetroRatio (`TrueRatio`), and type.
 - **Description**: the card's main text, in the title font behind an accent rule (the body
   font when the title font would overflow). The "Hide locked descriptions" setting can hide it
   for locked achievements; X reveals it once ("[X] Reveal" in the bottom bar). RA has no
@@ -121,7 +122,7 @@ first, marked; already-online entries are not duplicated. A row opens the achiev
   A mastered game usually holds a Beaten award too.
 - Tiles: the game icon framed in RA's colours. RA draws mastered icons with a 2 px gold border
   (`goldimage`); we extend that with its award-indicator colours. Mastered: thick gold.
-  Completed: thin gold. Beaten: thick silver. Beaten (casual): thin silver. The caption is the
+  Completed: plain. Beaten: thick silver. Beaten (casual): thin silver. The caption is the
   game title.
 - Y: filter (all / mastered and completed, RA's own showcase / beaten) and sort (newest first,
   site order = the player's own `DisplayOrder` on RA, title, console). The top bar shows the
@@ -210,7 +211,8 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
   theme through PyUI.
 - **RA pixel art carries the screens**:
   - game icons in game lists;
-  - colour badges for unlocked achievements and RA's `_lock` badges for locked ones;
+  - colour badges for unlocked achievements, a gold outline for hardcore unlocks, and RA's
+    `_lock` badges for locked ones; pending offline unlocks stay plain and coloured;
   - the player's avatar on the profile row and profile screen.
 - **Menu and status icons**: original Cheevos outlines (MIT) in the SPRUCE theme's style,
   from `assets/icons/ui/`: 70 px canvases, 4 px rounded strokes, caps and joins. All themes

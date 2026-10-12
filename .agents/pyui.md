@@ -109,9 +109,22 @@ of PyUI's views, without patching PyUI.
   still waiting, asks the visible rows again (front of the queue) and queues one more screenful
   in the scroll direction (`ImageDemand.NEXT`, back of the queue). Sizes come from the view, so
   they scale with the screen (5 rows at 640x480, 9 at 480x800).
+- **Badge outlines** (`image_frames.py`): hardcore achievements have a gold border; casual,
+  pending and locked ones stay plain. Mastered award tiles use the same gold border; completed
+  tiles stay plain. A transparent PNG frame surrounds the fitted image, with a 1 px black
+  outer edge so gold stays gold and readable on bright themes. Thickness scales with the
+  image, at least 2 px. Generate once per style and rendered size in the RAM scratch, shared
+  across badges: one texture draw per border, with no per-badge image copies. PyUI's bounded
+  texture cache includes these assets. Lists wrap `_render` before the list presents and
+  mirror the icon column and row geometry; only visible framed icons are measured, in a
+  bounded cache. Cache the fitted rectangles until the visible window, options identity or
+  media revision changes, so scrolling, on-tick updates and lazy downloads stay correct.
 - **Grid overlays:** `GridView._render` ends with `present()`, so anything drawn after it is
-  lost. Wrap the per-tile `_render_cell` instead (`grid_frames.py`); PyUI calls it with keyword
-  arguments (`visible_index=`, `imageTextPair=`).
+  lost. Wrap the per-tile `_render_cell` (`grid_frames.py`) to select its outline; PyUI calls
+  it with keyword arguments (`visible_index=`, `imageTextPair=`). A `_render_primary_image`
+  wrapper draws the border using the returned image dimensions and the actual centre,
+  including the fallback. This also handles rectangular images and single-row grids without
+  reproducing the theme's offsets.
 - **Row bars:** progress bars in list rows wrap one view's `_render` (`row_bars.py`) and
   replicate `DescriptiveListView._render`'s geometry (icon column = 1/8 of the selected-row
   background, description at `text_offset_y + title height`). An item with `progress` gets an

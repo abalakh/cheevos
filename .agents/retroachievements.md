@@ -99,7 +99,8 @@ look and counting rules come from the website's own source (RAWeb). The client l
 - hardcore progress amber→gold, casual-only `neutral-500`;
 - award dots gold (mastery family) or silver (beaten family), filled = hardcore, hollow = casual;
   RA draws them as CSS circles, not images;
-- mastered game icons get a 2 px gold border (`goldimage`);
+- hardcore achievement badges and mastered game icons get a 2 px gold border (`goldimage`);
+  casual achievement badges and completed game icons stay plain;
 - light mode swaps gold for `yellow-600`.
 
 `ui/pyui/bar_colors.py` mirrors this and judges a row's background from the theme's background
