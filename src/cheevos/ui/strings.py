@@ -123,6 +123,7 @@ HINT_REVEAL = "Reveal"
 HINT_FULL_SCREEN = "Full screen"
 MODE_HARDCORE = "Hardcore"
 MODE_CASUAL = "Casual"
+MODE_PENDING = "Pending sync"
 
 # --- profile / awards / offline ---------------------------------------------------------------
 PROFILE = "Profile"

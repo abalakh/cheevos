@@ -202,6 +202,16 @@ def test_games_list_is_kept_while_its_games_are_unchanged(tmp_path):
     assert stderr.count("game rows in") == 2
 
 
+def test_badge_grid_wraps_to_the_last_page_and_comes_back_to_it_from_a_card(tmp_path):
+    # Fire Emblem (87 badges): up from the first wraps to the last, partial page.
+    run_app(tmp_path, "down,a,a,select,shot:first,up,shot:last,a,shot:card,b,shot:back")
+    assert_shots(tmp_path, ["first", "last", "card", "back"])
+    shots = tmp_path / "shots" / "640x480"
+    below_clock = [png_rows(shots / f"{name}.png", 480)[1][64:] for name in ("first", "last")]
+    assert below_clock[0] != below_clock[1]
+    assert png_rows(shots / "back.png", 480)[1][64:] == below_clock[1]
+
+
 def test_view_preferences_survive_exit_and_restart(tmp_path):
     run_app(tmp_path, "down,a,select,shot:details,down,a,select,shot:grid,b,b,b")
     settings_file = tmp_path / "sdcard/Saves/cheevos/settings.json"

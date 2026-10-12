@@ -66,7 +66,8 @@ src/cheevos/
     pyui/                bridge: bootstrap, views (lists, grids, popups), primitives (drawing,
                          input), text (fitting, glyph fallbacks), status_bar, bar_layout, glyphs,
                          generated (PNG swatches, button glyphs), award_images (static awards),
-                         row_bars, bar_colors, grid_frames,
+                         row_bars, bar_colors, grid_frames, image_frames (shared outlines),
+                         badge_grid (a game's compact badge grid),
                          texture_budget (bounded PyUI texture caches), title_bar (a game's
                          top-bar title and award dot)
     screens/             home, profile, page (scrolling pages), games, game_detail, achievement,

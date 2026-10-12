@@ -63,6 +63,13 @@ Press **Select** for a badge grid, and **Y** to filter (locked, unlocked, missab
 and win) or sort (points, rarity, unlocked first, and more). Cheevos remembers your list/grid
 choice for all games, including games opened from Awards.
 
+The grid packs the badges close together, like the achievement wall on a RetroAchievements
+profile. The selected badge is drawn larger, with a white frame. Under the grid you'll see its
+title and points, its description, whether you unlocked it (hardcore, casual, pending sync or
+locked) and its type. Long text is shortened; press **A** for the full card. "Hide locked
+descriptions" hides descriptions here too. **L1**/**R1** move a screen at a time, and a scrollbar
+on the right shows where you are. Back from a card, you're on the same page.
+
 ![Achievement grid of a mastered game](images/game-grid.png)
 
 If a game has no achievements, Cheevos says so. Press **A** or **B** to return to the games list.

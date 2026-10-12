@@ -94,13 +94,28 @@ of PyUI's views, without patching PyUI.
   a Mac. It also extracted hundreds of images through the 4 MB scratch LRU, which evicted files
   whose paths PyUI had already cached; loading those failed, and PyUI blacklisted them for the
   session. `PreparedView` always passes a tile size.
-- **Grid shape** (`views.grid_shape`): PyUI's `GridView` splits the screen into the `cols`×`rows`
-  we pass. Tiles and columns scale like the theme's list rows (155 px columns at 640x480, a
+- **Grid shape** (`views.grid_shape`, the awards wall): PyUI's `GridView` splits the screen into
+  the `cols`×`rows` we pass. Tiles and columns scale like the theme's list rows (155 px columns at 640x480, a
   quarter narrower allowed). Rows are as tall as `GridView._render_cell` needs: the image moved
   by `gridMultiRowImageYOffset`, then a caption one line up from the row's bottom, moved by
   `multiRowGridTextYOffset`. SPRUCE's 480x800 config moves both, so a fixed row height put
   captions on the badges there. Result: 4x2 on 4:3 and 3:2 screens, 5x2 at 1280x720, 4x3
-  (badges) at 720x720, 3x3 at 480x800.
+  at 720x720, 3x3 at 480x800.
+- **Badge grid** (`badge_grid.py`, a game's achievements, `Layout.BADGES`): a `GridView`
+  subclass that keeps PyUI's input, wraparound, L1/R1 paging and touch, and replaces `_render`
+  (and `cell_at_touch_point`). It draws the visible tiles every frame, as PyUI's grid does; the
+  selected tile last, enlarged, so it covers its neighbours; then the details, scrollbar and
+  index. `layout()` is pure: cells are a badge, its gold frame and a gap; room is kept around
+  the grid for the enlarged selection and its focus ring (`Frame.FOCUS`, whose inner black band
+  is exactly a gold frame, drawn after it). Text is fitted only when the selection changes. A
+  new view starts with the selection on its first visible row (PyUI's puts it last). Measured
+  on a Mini+ (640×480, 12 frames/s even when idle): 59 draw calls, 16.5 ms to draw plus 10 ms to
+  present; every badge framed (a mastered set) 89 calls, 21 + 13 ms. The games list is 52 calls,
+  22 + 10 ms. D-pad moves take 40–65 ms, a new row ~100 ms, R1 to an unseen page ~160 ms
+  (decoding 32 badges), and back to a seen page ~65 ms. Caching the composed page in a texture
+  would only save ~10 ms per idle frame, so it isn't done.
+  - The strip's title uses the normal text colour: the "selected" colour is meant for a
+    highlight bar and disappears on MINIMAL's and ART_BOOK_NEXT's plain background.
 - **Grid tiles cache their image path:** `GridOrListEntry` drops its searchers after one call.
   `visible_images.VisibleImages` re-arms the visible tiles' searchers when `MediaResolver.version` changes,
   so lazily downloaded icons appear. List rows use `icon_searcher`, which PyUI calls every frame.
@@ -119,8 +134,9 @@ of PyUI's views, without patching PyUI.
   mirror the icon column and row geometry; only visible framed icons are measured, in a
   bounded cache. Cache the fitted rectangles until the visible window, options identity or
   media revision changes, so scrolling, on-tick updates and lazy downloads stay correct.
-- **Grid overlays:** `GridView._render` ends with `present()`, so anything drawn after it is
-  lost. Wrap the per-tile `_render_cell` (`grid_frames.py`) to select its outline; PyUI calls
+- **Grid overlays** (the awards wall): `GridView._render` ends with `present()`, so anything
+  drawn after it is lost. Wrap the per-tile `_render_cell` (`grid_frames.py`) to select its
+  outline; PyUI calls
   it with keyword arguments (`visible_index=`, `imageTextPair=`). A `_render_primary_image`
   wrapper draws the border using the returned image dimensions and the actual centre,
   including the fallback. This also handles rectangular images and single-row grids without

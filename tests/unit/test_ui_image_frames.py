@@ -75,6 +75,29 @@ def test_award_frames_preserve_style_on_rectangular_artwork(images, frame, color
     assert rgba[width * 4 + 4 : width * 4 + 8] == bytes((*color, 255))
 
 
+@pytest.mark.parametrize("size", [70, 106])
+def test_focus_ring_leaves_room_for_the_gold_frame_inside(images, size):
+    drawn, assets = images
+    image_frames.draw(Frame.FOCUS, (100, 100, size, size))
+    image_frames.draw(Frame.GOLD, (100, 100, size, size))
+    (focus, x, _y), (_gold, gold_x, _) = drawn
+    width, _height, rgba = assets[focus.rsplit("/", 1)[1]]
+    gold = image_frames.padding(Frame.GOLD, size, size)
+    assert 100 - gold_x == gold
+    ring = image_frames.padding(Frame.FOCUS, size, size)
+    assert 100 - x == ring > gold + 2
+
+    def pixel(px):
+        return rgba[(ring * width + px) * 4 : (ring * width + px + 1) * 4]  # the middle row
+
+    white = bytes((255, 255, 255, 255))
+    assert pixel(0) == bytes((*BLACK, 255))
+    assert pixel(1) == white
+    assert pixel(ring - gold - 1) == white
+    assert {pixel(px) for px in range(ring - gold, ring)} == {bytes((*BLACK, 255))}
+    assert pixel(ring) == bytes(4)
+
+
 def test_failed_images_get_no_outline(images):
     image_frames.draw(Frame.GOLD, (20, 65, 0, 0))
     assert images == ([], {})

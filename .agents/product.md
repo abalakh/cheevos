@@ -87,7 +87,20 @@ Settings.
   - title, points, and a type tag (Progression / Win / Missable);
   - an unlock marker: Hardcore, Casual or Pending sync;
   - "screenshot" if an unlock screenshot exists.
-- **View**: list or badge grid (Select).
+- **View**: list or badge grid (Select). Going into a card and back returns to the same view and
+  page; so does a Y menu left unchanged. A new filter or sort starts at the top.
+- **Badge grid**: badges packed close together, like the achievement wall on RA profiles: 8×4
+  at 640×480, 11×4 at 1280×720, 8×6 at 720×720, 6×8 at 480×800 (whole rows and columns at the
+  theme's badge size, never shrunk to fit more). Every cell has room for a gold outline, so no
+  badge moves with its unlock mode.
+  - The selected badge is drawn last, about 10% larger, over its neighbours, inside a white
+    focus ring with a black edge (a hardcore badge keeps its gold outline inside the ring).
+  - Under the grid, two lines for the selection: title | points, then description | unlock mode
+    (Hardcore, Casual, Pending sync or Locked) and type tag. Each part is shortened with "…"
+    when needed, right-hand parts first; the card (A) has the full text. The description follows
+    the card's spoiler setting ("Description hidden").
+  - A thin scrollbar on the right when the set is longer than a screen; PyUI's `selected/total`
+    counter stays in the bottom bar. D-pad, wraparound and L1/R1 (a screenful) are PyUI's.
 - **Sort**: display order (default) · Unlocked first · Locked first · Points · Rarity.
 - **Filter**: All · Locked · Unlocked · Missable · Progression and Win.
 

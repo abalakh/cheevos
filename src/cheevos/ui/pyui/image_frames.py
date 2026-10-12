@@ -8,7 +8,7 @@ from enum import Enum
 from typing import Any
 
 from cheevos.ui.pyui import generated
-from cheevos.ui.pyui.bar_colors import BLACK, GOLD, ZINC_300, ZINC_400
+from cheevos.ui.pyui.bar_colors import BLACK, GOLD, RGB, WHITE, ZINC_300, ZINC_400
 from cheevos.ui.pyui.visible_images import image_version
 
 logger = logging.getLogger(__name__)
@@ -19,11 +19,13 @@ Bounds = tuple[int, int, int, int]
 
 
 class Frame(Enum):
-    """Image borders shared by achievements and the awards wall."""
+    """Image borders shared by achievements and the awards wall, and the badge grid's focus."""
 
     GOLD = "gold"
     SILVER = "silver"
     SILVER_THIN = "silver-thin"
+    # The badge grid's selection: a white ring with room inside for a gold frame drawn after it.
+    FOCUS = "focus"
 
 
 def draw(frame: Frame, bounds: Bounds) -> None:
@@ -46,6 +48,42 @@ def draw(frame: Frame, bounds: Bounds) -> None:
     Display.render_image(path, x - padding, y - padding)
 
 
+def padding(frame: Frame, width: int, height: int) -> int:
+    """Return how far a frame reaches outside the image on each side.
+
+    Args:
+        frame: Border style.
+        width: Image width.
+        height: Image height.
+
+    Returns:
+        Pixels outside each edge.
+    """
+    return sum(thickness for _color, thickness in _bands(frame, width, height))
+
+
+def _bands(frame: Frame, width: int, height: int) -> tuple[tuple[RGB, int], ...]:
+    """Return a frame's bands from the outside in: colour and thickness.
+
+    Every style has a 1 px black outer edge. The focus ring's inner black band is exactly
+    a gold frame's size, so a gold frame drawn after it fits inside the white ring.
+
+    Args:
+        frame: Border style.
+        width: Image width.
+        height: Image height.
+
+    Returns:
+        The bands.
+    """
+    line = max(round(min(width, height) * _LINE_SHARE), 2)
+    if frame is Frame.FOCUS:
+        return ((BLACK, 1), (WHITE, line), (BLACK, line + 1))
+    if frame is Frame.SILVER_THIN:
+        return ((BLACK, 1), (ZINC_400, max(line // 2, 1)))
+    return ((BLACK, 1), (GOLD if frame is Frame.GOLD else ZINC_300, line))
+
+
 @functools.lru_cache(maxsize=32)
 def _image(frame: Frame, width: int, height: int) -> tuple[str, int]:
     """Generate a shared frame once per style and size, in the RAM scratch directory.
@@ -58,21 +96,28 @@ def _image(frame: Frame, width: int, height: int) -> tuple[str, int]:
     Returns:
         PNG path and the padding around its transparent artwork area.
     """
-    line = max(round(min(width, height) * _LINE_SHARE), 2)
-    color = GOLD if frame is Frame.GOLD else ZINC_300
-    if frame is Frame.SILVER_THIN:
-        line, color = max(line // 2, 1), ZINC_400
-    padding = line + 1
-    outer_width, outer_height = width + 2 * padding, height + 2 * padding
-    black, colored = bytes((*BLACK, 255)), bytes((*color, 255))
-    edge = black * outer_width
-    rim = black + colored * (outer_width - 2) + black
-    middle = black + colored * line + bytes(width * 4) + colored * line + black
-    pixels = edge + rim * line + middle * height + rim * line + edge
+    bands = _bands(frame, width, height)
+    outer = sum(thickness for _color, thickness in bands)
+    outer_width, outer_height = width + 2 * outer, height + 2 * outer
+    pixels = bytearray(outer_width * outer_height * 4)
+    inset = 0
+    # Nested rectangles from the outside in; the artwork area stays transparent.
+    for color, thickness in bands:
+        row = bytes((*color, 255)) * (outer_width - 2 * inset)
+        start = (inset * outer_width + inset) * 4
+        for _ in range(outer_height - 2 * inset):
+            pixels[start : start + len(row)] = row
+            start += outer_width * 4
+        inset += thickness
+    clear = bytes(width * 4)
+    start = (outer * outer_width + outer) * 4
+    for _ in range(height):
+        pixels[start : start + len(clear)] = clear
+        start += outer_width * 4
     path = generated.write(
-        f"frame-{frame.value}-{width}x{height}.png", outer_width, outer_height, pixels
+        f"frame-{frame.value}-{width}x{height}.png", outer_width, outer_height, bytes(pixels)
     )
-    return str(path), padding
+    return str(path), outer
 
 
 @functools.lru_cache(maxsize=128)
