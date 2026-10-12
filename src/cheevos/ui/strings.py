@@ -102,7 +102,7 @@ ACH_FILTERS = {
     "key": "Progression and win",
 }
 ACH_SORTS = {
-    "order": "Default order",
+    "order": "RA display order",
     "unlocked": "Unlocked first",
     "locked": "Locked first",
     "points": "Points",

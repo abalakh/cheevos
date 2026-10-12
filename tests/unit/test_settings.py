@@ -18,7 +18,8 @@ def test_missing_file_gives_defaults(tmp_path):
     assert Settings(BadgeScope.ON_DEVICE_AND_RECENT, 30, DescriptionHiding.OFF, True) == DEFAULTS
 
 
-def test_round_trip(tmp_path):
+@pytest.mark.parametrize("sort", ["order", "unlocked", "locked", "points", "rarity"])
+def test_round_trip(tmp_path, sort):
     path = tmp_path / "cheevos" / "settings.json"
     settings = Settings(
         BadgeScope.ALL,
@@ -27,6 +28,7 @@ def test_round_trip(tmp_path):
         False,
         game_list_details=True,
         achievement_grid=True,
+        achievement_sort=sort,
     )
     save_settings(path, settings)
     assert load_settings(path) == settings
@@ -43,6 +45,7 @@ def test_saved_json_has_stable_key_order(tmp_path):
         "auto_sync",
         "game_list_details",
         "achievement_grid",
+        "achievement_sort",
     ]
 
 
@@ -65,6 +68,7 @@ def test_each_invalid_key_falls_back_alone(tmp_path):
                 "auto_sync": False,
                 "game_list_details": "details",
                 "achievement_grid": "grid",
+                "achievement_sort": "title",
                 "unknown_key": 1,
             }
         )
@@ -81,6 +85,13 @@ def test_older_file_defaults_the_new_view_without_resetting_existing_choices(tmp
     path = tmp_path / "settings.json"
     path.write_text(json.dumps({"auto_sync": False, "game_list_details": True}))
     assert load_settings(path) == Settings(auto_sync=False, game_list_details=True)
+
+
+@pytest.mark.parametrize("sort", [None, True, 3, "title", ["points"], {"sort": "rarity"}])
+def test_invalid_achievement_sort_keeps_other_preferences(tmp_path, sort):
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"achievement_grid": True, "achievement_sort": sort}))
+    assert load_settings(path) == Settings(achievement_grid=True)
 
 
 def test_unknown_fields_are_ignored_and_dropped_on_save(tmp_path):

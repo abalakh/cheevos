@@ -213,22 +213,30 @@ def test_badge_grid_wraps_to_the_last_page_and_comes_back_to_it_from_a_card(tmp_
 
 
 def test_view_preferences_survive_exit_and_restart(tmp_path):
-    run_app(tmp_path, "down,a,select,shot:details,down,a,select,shot:grid,b,b,b")
+    run_app(
+        tmp_path,
+        "down,a,select,shot:details,down,a,select,y,down,down,a,down,down,down,a,shot:grid,b,b,b",
+    )
     settings_file = tmp_path / "sdcard/Saves/cheevos/settings.json"
-    assert load_settings(settings_file) == Settings(game_list_details=True, achievement_grid=True)
+    assert load_settings(settings_file) == Settings(
+        game_list_details=True, achievement_grid=True, achievement_sort="points"
+    )
 
     # Restart on the same card, then change the layout through Y. Exhausting the script raises
     # SystemExit, which must save the final choice just like B on Home in the first run.
     run_app(
         tmp_path,
-        "down,a,shot:restored_details,down,a,shot:restored_grid,y,a,up,a,shot:list",
+        "down,a,shot:restored_details,down,a,shot:restored_grid,y,a,up,a,shot:list,"
+        "y,down,down,a,down,a,shot:rarity",
     )
     shots = tmp_path / "shots" / "640x480"
     for name in ("details", "grid"):
         # Ignore the top-bar clock when comparing the views before and after restart.
         expected = png_rows(shots / f"{name}.png", 480)[1][64:]
         assert png_rows(shots / f"restored_{name}.png", 480)[1][64:] == expected
-    assert load_settings(settings_file) == Settings(game_list_details=True, achievement_grid=False)
+    assert load_settings(settings_file) == Settings(
+        game_list_details=True, achievement_grid=False, achievement_sort="rarity"
+    )
 
 
 def test_game_without_an_achievement_set_returns_to_the_list(tmp_path):

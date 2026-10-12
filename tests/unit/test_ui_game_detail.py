@@ -81,7 +81,8 @@ def test_empty_set_returns_after_dismissal(monkeypatch, message_ui, button, cach
 @pytest.mark.parametrize("layout", ["list", "grid"])
 def test_empty_filter_recovers_the_full_set(monkeypatch, message_ui, button, layout):
     achievement = Achievement(1, 1, "Locked", "", 5, 5, "1", 0, None, 0, 0, None, None)
-    detail = GameDetail(1, "Game", "Console", "", 1, 1, 0, (achievement,))
+    higher_points = replace(achievement, achievement_id=2, title="More points", points=10)
+    detail = GameDetail(1, "Game", "Console", "", 1, 1, 0, (achievement, higher_points))
     ctx = context(detail)
     built = fake_views(monkeypatch, iter([Button.Y, None]))
     presses = iter([button])
@@ -95,8 +96,44 @@ def test_empty_filter_recovers_the_full_set(monkeypatch, message_ui, button, lay
     game_detail.show_game(ctx, detail.game_id)
     expected = Layout.BADGES if layout == "grid" else Layout.LIST
     shown = [(view.items, view.layout) for view in built]
-    assert shown == [([MenuItem("Locked")], Layout.LIST), ([MenuItem("Locked")], expected)]
+    assert shown == [
+        ([MenuItem("Locked"), MenuItem("More points")], Layout.LIST),
+        ([MenuItem("More points"), MenuItem("Locked")], expected),
+    ]
     assert message_ui == [strings.NO_ACHIEVEMENTS]
+    assert ctx.settings.achievement_sort == "points"
+
+
+@pytest.mark.parametrize("grid", [False, True])
+@pytest.mark.parametrize(
+    ("sort", "titles"),
+    [
+        ("order", ["Locked", "Unlocked"]),
+        ("unlocked", ["Unlocked", "Locked"]),
+        ("locked", ["Locked", "Unlocked"]),
+        ("points", ["Unlocked", "Locked"]),
+        ("rarity", ["Unlocked", "Locked"]),
+    ],
+)
+def test_sort_choice_carries_to_reopened_and_other_games(monkeypatch, grid, sort, titles):
+    locked = Achievement(1, 1, "Locked", "", 5, 5, "1", 0, None, 20, 0, None, None)
+    unlocked = replace(
+        locked, achievement_id=2, title="Unlocked", points=10, num_awarded=10, earned_at=1
+    )
+    detail = GameDetail(1, "Game", "Console", "", 100, 100, 0, (locked, unlocked))
+    ctx = context(detail)
+    ctx.update_settings(Settings(achievement_grid=grid, game_list_details=True))
+    built = fake_views(monkeypatch, iter([Button.Y, None, None, None]))
+    monkeypatch.setattr(game_detail, "_row", lambda _ctx, a, *_args: MenuItem(a.title))
+    monkeypatch.setattr(game_detail, "_options", lambda view: replace(view, sort=sort))
+
+    game_detail.show_game(ctx, 1)
+    game_detail.show_game(ctx, 1)
+    game_detail.show_game(ctx, 2)
+    assert [[item.title for item in view.items] for view in built[-3:]] == [titles] * 3
+    assert ctx.settings == Settings(
+        achievement_grid=grid, game_list_details=True, achievement_sort=sort
+    )
 
 
 @pytest.mark.parametrize("initial_grid", [False, True])

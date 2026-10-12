@@ -99,7 +99,10 @@ def _browse(ctx: AppContext, detail: GameDetail, title: Title, pending: dict) ->
         title: Top-bar title.
         pending: Pending unlocks by achievement ID.
     """
-    view = _View(layout="grid" if ctx.settings.achievement_grid else "list")
+    view = _View(
+        layout="grid" if ctx.settings.achievement_grid else "list",
+        sort=ctx.settings.achievement_sort,
+    )
     selected = 0
     shown: list[Achievement] = []
     prepared: PreparedView | None = None  # kept while the card is open: back to the same page
@@ -112,7 +115,7 @@ def _browse(ctx: AppContext, detail: GameDetail, title: Title, pending: dict) ->
             )
             if not shown:
                 message(detail.title, [strings.NO_ACHIEVEMENTS])
-                view = _View(layout=view.layout)
+                view = replace(view, filter="all")
                 continue
             items = [_row(ctx, a, detail, pending) for a in shown]
             layout = Layout.BADGES if view.layout == "grid" else Layout.LIST
@@ -127,7 +130,13 @@ def _browse(ctx: AppContext, detail: GameDetail, title: Title, pending: dict) ->
             changed = _options(view)
             if changed != view:
                 view, selected, prepared = changed, 0, None
-                ctx.update_settings(replace(ctx.settings, achievement_grid=view.layout == "grid"))
+                ctx.update_settings(
+                    replace(
+                        ctx.settings,
+                        achievement_grid=view.layout == "grid",
+                        achievement_sort=view.sort,
+                    )
+                )
             continue
         selected = choice.index
         if choice.button is Button.SELECT:  # list <-> grid, like PyUI's game lists

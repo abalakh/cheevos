@@ -101,7 +101,10 @@ Settings.
     the card's spoiler setting ("Description hidden").
   - A thin scrollbar on the right when the set is longer than a screen; PyUI's `selected/total`
     counter stays in the bottom bar. D-pad, wraparound and L1/R1 (a screenful) are PyUI's.
-- **Sort**: display order (default) · Unlocked first · Locked first · Points · Rarity.
+- **Sort**: RA display order (default, `DisplayOrder` then achievement ID) · Unlocked first ·
+  Locked first · Points (highest first) · Rarest first. The choice is shared by all games,
+  including games opened from Awards, and saved in settings on app exit, like the list/grid view.
+  An empty filter resets only the filter to All, keeping the chosen view and sort.
 - **Filter**: All · Locked · Unlocked · Missable · Progression and Win.
 
 ## Achievement card
@@ -191,7 +194,10 @@ Stored in `Saves/cheevos/settings.json`.
 | Actions | — | Sync now · Download every game (every game's achievements; resumes until done; reads "Stop downloading every game" until then) · Re-enter API key · Clear image cache (shows size) |
 | About | — | Version, license (MIT), credits: PyUI (Copyright (c) 2025 Christopher Jacobs; its license requires this user-facing credit), RetroAchievements as the data source |
 
-The file also remembers `game_list_details` (the games list view).
+The file also remembers `game_list_details` (the games list view), `achievement_grid` (the
+achievement list/grid view) and `achievement_sort` (the achievement sort, initially `"order"`
+for RA display order). Achievement preferences are shared by all games. Changes take effect in
+memory immediately and are written once on app exit, only if they changed.
 
 ## Controls
 These follow the conventions of Spruce's own menus (see [pyui.md](pyui.md), "Buttons"): X acts

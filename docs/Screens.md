@@ -60,8 +60,10 @@ offline unlocks have plain colour badges; locked badges are grey.
 ![Achievements](images/game.png)
 
 Press **Select** for a badge grid, and **Y** to filter (locked, unlocked, missable, progression
-and win) or sort (points, rarity, unlocked first, and more). Cheevos remembers your list/grid
-choice for all games, including games opened from Awards.
+and win) or sort (**RA display order**, points, rarest first, unlocked first or locked first).
+RA display order is the default: the set's display order on RetroAchievements, with achievement
+ID breaking ties. Cheevos remembers your sort and list/grid choice for all games, including games
+opened from Awards, and saves them when you exit the app.
 
 The grid packs the badges close together, like the achievement wall on a RetroAchievements
 profile. The selected badge is drawn larger, with a white frame. Under the grid you'll see its

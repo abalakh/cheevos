@@ -18,6 +18,7 @@ from cheevos.core.files import write_text_atomic
 logger = logging.getLogger(__name__)
 
 RECENT_DAYS_CHOICES = (7, 30, 90)
+ACHIEVEMENT_SORT_CHOICES = ("order", "unlocked", "locked", "points", "rarity")
 
 
 class DescriptionHiding(Enum):
@@ -53,6 +54,7 @@ class Settings:
         game_list_details: The games list shows console and last activity instead of
             progress bars (toggled with Select).
         achievement_grid: Show every game's achievements as a badge grid instead of a list.
+        achievement_sort: Sort used for every game's achievements.
     """
 
     badge_scope: BadgeScope = BadgeScope.ON_DEVICE_AND_RECENT
@@ -61,6 +63,7 @@ class Settings:
     auto_sync: bool = True
     game_list_details: bool = False
     achievement_grid: bool = False
+    achievement_sort: str = "order"
 
 
 DEFAULTS = Settings()
@@ -108,6 +111,15 @@ def _flag(raw: object, *, default: bool) -> bool:
     return raw if isinstance(raw, bool) else default
 
 
+def _achievement_sort(raw: object) -> str:
+    """Parse the achievement sort, defaulting missing or invalid choices to RA display order."""
+    return (
+        raw
+        if isinstance(raw, str) and raw in ACHIEVEMENT_SORT_CHOICES
+        else DEFAULTS.achievement_sort
+    )
+
+
 def _hiding(data: dict[str, Any]) -> DescriptionHiding:
     """Parse the spoiler setting, accepting the older on/off form.
 
@@ -143,6 +155,7 @@ def settings_from_dict(data: dict[str, Any]) -> Settings:
         auto_sync=_flag(data.get("auto_sync"), default=DEFAULTS.auto_sync),
         game_list_details=_flag(data.get("game_list_details"), default=DEFAULTS.game_list_details),
         achievement_grid=_flag(data.get("achievement_grid"), default=DEFAULTS.achievement_grid),
+        achievement_sort=_achievement_sort(data.get("achievement_sort")),
     )
 
 
@@ -162,6 +175,7 @@ def settings_to_dict(settings: Settings) -> dict[str, Any]:
         "auto_sync": settings.auto_sync,
         "game_list_details": settings.game_list_details,
         "achievement_grid": settings.achievement_grid,
+        "achievement_sort": settings.achievement_sort,
     }
 
 
