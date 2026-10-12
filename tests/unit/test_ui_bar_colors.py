@@ -10,6 +10,7 @@ from cheevos.ui.pyui.bar_colors import (
     Marker,
     Paint,
     palette,
+    stands_out,
 )
 
 DARK = (43, 43, 43)  # SPRUCE's page
@@ -49,3 +50,10 @@ def test_average_composites_translucent_pixels_over_the_background():
     assert generated.average_pixels(clear, under=(100, 100, 100)) == (100, 100, 100)
     half = bytes((200, 200, 200, 128))
     assert generated.average_pixels(half, under=(0, 0, 0)) == (100, 100, 100)
+
+
+def test_colours_stand_out_by_brightness():
+    assert stands_out(CREAM, DARK)
+    assert stands_out(DARK, WHITE)
+    assert not stands_out((0, 0, 0), (0, 0, 0))  # MINIMAL's selected text on its page
+    assert not stands_out((200, 40, 40), (40, 140, 40))  # different hues, similar brightness

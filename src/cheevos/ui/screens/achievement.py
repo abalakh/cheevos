@@ -150,7 +150,7 @@ class _Card:
             )
         width = self._area.width - self._x - PADDING
         for line in ui.wrap(achievement.title, Text.TITLE, width)[:2]:
-            ui.text(line, self._x, self._y, Text.TITLE, selected=True)
+            ui.text(line, self._x, self._y, Text.TITLE, accent=True)
             self._y += ui.line_height(Text.TITLE)
         meta = strings.DETAIL_META.format(
             points=fmt.points(achievement.points), retro=fmt.number(achievement.retro_points)

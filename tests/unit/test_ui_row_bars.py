@@ -108,3 +108,25 @@ def test_awards_overlay_the_track_and_use_the_selected_row_background(drawing, m
     view.selected = 3
     row_bars._draw(view, cache)
     assert drawing.fills[-1][0].color == (73, 66, 62)  # the grey ring now covers the highlight
+
+
+@pytest.mark.parametrize(
+    ("page", "selected", "text", "accent"),
+    [
+        ((40, 40, 40), (251, 241, 199), (251, 241, 199), (251, 241, 199)),  # SPRUCE: cream
+        ((17, 29, 53), (255, 204, 170), (255, 241, 232), (255, 204, 170)),  # Pico-8: peach on navy
+        ((0, 0, 0), (0, 0, 0), (255, 255, 255), (255, 255, 255)),  # MINIMAL: black for a white bar
+        ((235, 235, 235), (255, 255, 255), (20, 20, 20), (20, 20, 20)),  # a light page
+    ],
+)
+def test_page_accent_is_the_selected_colour_only_where_it_reads(
+    monkeypatch, page, selected, text, accent
+):
+    theme = SimpleNamespace(
+        text_color_selected=lambda _font: [*selected, 255], text_color=lambda _font: list(text)
+    )
+    font = SimpleNamespace(FontPurpose=SimpleNamespace(LIST="list"))
+    monkeypatch.setitem(sys.modules, "themes.theme", SimpleNamespace(Theme=theme))
+    monkeypatch.setitem(sys.modules, "display.font_purpose", font)
+    monkeypatch.setattr(row_bars, "page_color", lambda: page)
+    assert row_bars.page_accent() == accent

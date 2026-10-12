@@ -242,6 +242,14 @@ of PyUI's views, without patching PyUI.
   `icon-START.png` (48×26 "START" badge). There is no Select icon, and SPRUCE's A/B icons are
   640 px-wide transparent images. `glyphs.py` generates missing ones from the START badge's
   colours, height and the theme font (bold).
+- **Selected-text colour is for the highlight bar:** themes pick `selectedcolor` to read on their
+  selection background. SPRUCE uses its normal cream, Pico-8 a peach, but MINIMAL and
+  ART_BOOK_NEXT use black for a white bar, so on their black page it vanished: the card title,
+  the profile name and headings, and the whole "Games by console" table. Titles and rules on
+  the page use `primitives.accent_color()` (`ui.text(..., accent=True)`): the selected colour
+  where it stands out from the page's average colour (`bar_colors.stands_out`, the bars'
+  contrast rule), otherwise the theme's text colour. Only rows drawn on the highlight bar
+  itself use `Theme.text_color_selected` directly (`row_bars.py`).
 - **Layout differences:** some themes replace the top bar (ART_BOOK_NEXT shows tabs instead
   of our title), and some have line metrics that make PyUI's own rows overlap (Pico-8). Both
   are theme or PyUI behaviour, not ours.
