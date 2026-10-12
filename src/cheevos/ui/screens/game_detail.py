@@ -86,7 +86,7 @@ def show_game(ctx: AppContext, game_id: int) -> None:
     earned = sum(1 for a in detail.achievements if a.unlocked)
     count = f"{earned}/{len(detail.achievements)}"
     title = Title(detail.title, count, game.highest_award if game else None)
-    view = _View()
+    view = _View(layout="grid" if ctx.settings.achievement_grid else "list")
     selected = 0
     while True:
         shown = _sorted(
@@ -110,11 +110,13 @@ def show_game(ctx: AppContext, game_id: int) -> None:
             return
         if choice.button is Button.Y:
             view = _options(view)
+            ctx.update_settings(replace(ctx.settings, achievement_grid=view.layout == "grid"))
             selected = 0
             continue
         selected = choice.index
         if choice.button is Button.SELECT:  # list <-> grid, like PyUI's game lists
             view = replace(view, layout="list" if view.layout == "grid" else "grid")
+            ctx.update_settings(replace(ctx.settings, achievement_grid=view.layout == "grid"))
             continue
         achievement = shown[choice.index]
         show_achievement(

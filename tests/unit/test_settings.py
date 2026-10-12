@@ -20,7 +20,14 @@ def test_missing_file_gives_defaults(tmp_path):
 
 def test_round_trip(tmp_path):
     path = tmp_path / "cheevos" / "settings.json"
-    settings = Settings(BadgeScope.ALL, 90, DescriptionHiding.STORY, False, game_list_details=True)
+    settings = Settings(
+        BadgeScope.ALL,
+        90,
+        DescriptionHiding.STORY,
+        False,
+        game_list_details=True,
+        achievement_grid=True,
+    )
     save_settings(path, settings)
     assert load_settings(path) == settings
     assert not path.with_name("settings.json.tmp").exists()
@@ -35,6 +42,7 @@ def test_saved_json_has_stable_key_order(tmp_path):
         "hide_descriptions",
         "auto_sync",
         "game_list_details",
+        "achievement_grid",
     ]
 
 
@@ -56,6 +64,7 @@ def test_each_invalid_key_falls_back_alone(tmp_path):
                 "hide_descriptions": "yes",
                 "auto_sync": False,
                 "game_list_details": "details",
+                "achievement_grid": "grid",
                 "unknown_key": 1,
             }
         )
@@ -66,6 +75,21 @@ def test_each_invalid_key_falls_back_alone(tmp_path):
         hide_descriptions=DEFAULTS.hide_descriptions,
         auto_sync=False,
     )
+
+
+def test_older_file_defaults_the_new_view_without_resetting_existing_choices(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"auto_sync": False, "game_list_details": True}))
+    assert load_settings(path) == Settings(auto_sync=False, game_list_details=True)
+
+
+def test_unknown_fields_are_ignored_and_dropped_on_save(tmp_path):
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"achievement_grid": True, "removed_setting": "old"}))
+    settings = load_settings(path)
+    assert settings == Settings(achievement_grid=True)
+    save_settings(path, settings)
+    assert "removed_setting" not in json.loads(path.read_text())
 
 
 def test_bool_is_not_a_valid_recent_days(tmp_path):

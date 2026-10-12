@@ -22,4 +22,8 @@ Recent unlocks, even for games whose full achievement lists aren't downloaded.
 tags set developers add (Progression, Win condition, Missable). Tagging started in 2023, so many
 older sets have no tags, and "Story only" hides nothing there. Use **All** for those games.
 
-Settings are saved in `Saves/cheevos/settings.json`.
+Settings take effect immediately and are saved in `Saves/cheevos/settings.json` when you exit
+Cheevos, only if they changed. The file also remembers the Games progress/details view and the
+achievement list/grid view (shared by all games). A power cut or forced kill before exit loses
+changes from that session. Older settings files work as usual: missing settings use their
+defaults, and unknown fields are ignored.

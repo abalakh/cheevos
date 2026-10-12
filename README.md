@@ -28,7 +28,7 @@ Works offline, follows your Spruce theme.
 2. Download the latest [release](../../releases) and copy the `Cheevos` folder into `App/` on
    your SD card.
 3. Open **Apps → Cheevos** and enter your **Web API key** when asked. Find it at
-   retroachievements.org → Settings → Keys.
+   retroachievements.org → Settings → Applications.
 
 The [user guide](docs/Home.md) explains every screen, setting and limitation.
 

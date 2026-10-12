@@ -58,7 +58,8 @@ many you've unlocked, with a smaller version of the game's award circle if it ha
 ![Achievements](images/game.png)
 
 Press **Select** for a badge grid, and **Y** to filter (locked, unlocked, missable, progression
-and win) or sort (points, rarity, unlocked first, and more).
+and win) or sort (points, rarity, unlocked first, and more). Cheevos remembers your list/grid
+choice for all games, including games opened from Awards.
 
 ![Achievement grid of a mastered game](images/game-grid.png)
 

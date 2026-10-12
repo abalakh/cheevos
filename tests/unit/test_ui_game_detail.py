@@ -8,6 +8,7 @@ import pytest
 
 from cheevos.core.models import Achievement, GameDetail
 from cheevos.core.ra_client.parse import parse_game_detail
+from cheevos.core.settings import Settings
 from cheevos.ui import strings
 from cheevos.ui.context import AppContext
 from cheevos.ui.pyui.primitives import Area, Button
@@ -27,13 +28,17 @@ def message_ui(monkeypatch):
 
 
 def context(detail):
-    return cast(
-        AppContext,
-        SimpleNamespace(
-            data=SimpleNamespace(game_detail=lambda _id: detail, game=lambda _id: None),
-            pending_awards=dict,
-        ),
+    ctx = SimpleNamespace(
+        data=SimpleNamespace(game_detail=lambda _id: detail, game=lambda _id: None),
+        pending_awards=dict,
+        settings=Settings(),
     )
+
+    def update_settings(settings):
+        ctx.settings = settings
+
+    ctx.update_settings = update_settings
+    return cast(AppContext, ctx)
 
 
 @pytest.mark.parametrize("button", [Button.A, Button.B])
@@ -81,3 +86,34 @@ def test_empty_filter_recovers_the_full_set(monkeypatch, message_ui, button, lay
     expected = Layout.GRID if layout == "grid" else Layout.LIST
     assert shown == [([MenuItem("Locked")], Layout.LIST), ([MenuItem("Locked")], expected)]
     assert message_ui == [strings.NO_ACHIEVEMENTS]
+
+
+@pytest.mark.parametrize("initial_grid", [False, True])
+@pytest.mark.parametrize("button", [Button.SELECT, Button.Y])
+def test_layout_choice_carries_to_reopened_and_other_games(monkeypatch, initial_grid, button):
+    achievement = Achievement(1, 1, "Locked", "", 5, 5, "1", 0, None, 0, 0, None, None)
+    detail = GameDetail(1, "Game", "Console", "", 1, 1, 0, (achievement,))
+    ctx = context(detail)
+    ctx.update_settings(Settings(achievement_grid=initial_grid, game_list_details=True))
+    shown = []
+    choices = iter([button, None, None, None])
+
+    def choose(_title, items, **kwargs):
+        shown.append(kwargs["layout"])
+        pressed = next(choices)
+        return Choice(items[0], 0, pressed) if pressed else None
+
+    monkeypatch.setattr(game_detail, "choose", choose)
+    monkeypatch.setattr(game_detail, "_row", lambda _ctx, a, *_args: MenuItem(a.title))
+    monkeypatch.setattr(
+        game_detail,
+        "_options",
+        lambda view: replace(view, layout="list" if initial_grid else "grid"),
+    )
+    game_detail.show_game(ctx, 1)
+    game_detail.show_game(ctx, 1)
+    game_detail.show_game(ctx, 2)
+    initial = Layout.GRID if initial_grid else Layout.LIST
+    toggled = Layout.LIST if initial_grid else Layout.GRID
+    assert shown == [initial, toggled, toggled, toggled]
+    assert ctx.settings == Settings(achievement_grid=not initial_grid, game_list_details=True)

@@ -52,6 +52,7 @@ class Settings:
         auto_sync: Sync automatically when the app opens and the network is up.
         game_list_details: The games list shows console and last activity instead of
             progress bars (toggled with Select).
+        achievement_grid: Show every game's achievements as a badge grid instead of a list.
     """
 
     badge_scope: BadgeScope = BadgeScope.ON_DEVICE_AND_RECENT
@@ -59,6 +60,7 @@ class Settings:
     hide_descriptions: DescriptionHiding = DescriptionHiding.OFF
     auto_sync: bool = True
     game_list_details: bool = False
+    achievement_grid: bool = False
 
 
 DEFAULTS = Settings()
@@ -140,6 +142,7 @@ def settings_from_dict(data: dict[str, Any]) -> Settings:
         hide_descriptions=_hiding(data),
         auto_sync=_flag(data.get("auto_sync"), default=DEFAULTS.auto_sync),
         game_list_details=_flag(data.get("game_list_details"), default=DEFAULTS.game_list_details),
+        achievement_grid=_flag(data.get("achievement_grid"), default=DEFAULTS.achievement_grid),
     )
 
 
@@ -158,6 +161,7 @@ def settings_to_dict(settings: Settings) -> dict[str, Any]:
         "hide_descriptions": settings.hide_descriptions.value,
         "auto_sync": settings.auto_sync,
         "game_list_details": settings.game_list_details,
+        "achievement_grid": settings.achievement_grid,
     }
 
 
