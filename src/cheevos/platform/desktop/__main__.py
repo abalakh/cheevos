@@ -8,8 +8,8 @@ Headless capture (scripted input, PNGs in ``build/screens/<WxH>/``)::
 
     python -m cheevos.platform.desktop --headless --res 752x560 --script "shot:home,down,shot:games"
 
-Keyboard (RetroArch defaults): arrows = D-pad, X = A, Z = B, S = X, A = Y, Q/W = L1/R1,
-1/2 = L2/R2, Enter = Start, Right Shift = Select, Esc = quit.
+Keyboard (RetroArch layout plus Menu): arrows = D-pad, X = A, Z = B, S = X, A = Y, Q/W = L1/R1,
+1/2 = L2/R2, Enter = Start, Right Shift = Select, M = Menu, Esc = quit.
 """
 
 from __future__ import annotations

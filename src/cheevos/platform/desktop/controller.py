@@ -16,7 +16,7 @@ from cheevos.platform.desktop.script import Capture, Press, Step, Wait
 
 logger = logging.getLogger(__name__)
 
-# RetroArch's default keyboard layout, by scancode so it is independent of the OS key layout.
+# RetroArch layout plus M for Menu, by scancode so it is independent of the OS key layout.
 KEYBOARD: dict[int, ControllerInput] = {
     sdl2.SDL_SCANCODE_UP: ControllerInput.DPAD_UP,
     sdl2.SDL_SCANCODE_DOWN: ControllerInput.DPAD_DOWN,
@@ -32,6 +32,7 @@ KEYBOARD: dict[int, ControllerInput] = {
     sdl2.SDL_SCANCODE_2: ControllerInput.R2,
     sdl2.SDL_SCANCODE_RETURN: ControllerInput.START,
     sdl2.SDL_SCANCODE_RSHIFT: ControllerInput.SELECT,
+    sdl2.SDL_SCANCODE_M: ControllerInput.MENU,
 }
 
 # SDL reports Xbox positions; Spruce devices use the Nintendo layout, so map by position.
@@ -88,6 +89,7 @@ class DesktopControllerInterface(ControllerInterface):
     ) -> None:
         self._script: deque[Step] = deque(script or ())
         self._scripted = bool(self._script)
+        self._polling_hotkey = False
         self._on_capture = on_capture
         self._exit_when_script_ends = exit_when_script_ends
         self._event = sdl2.SDL_Event()
@@ -154,6 +156,10 @@ class DesktopControllerInterface(ControllerInterface):
             ScriptFinished: The script is consumed and ``exit_when_script_ends`` is set.
         """
         if self._scripted:
+            if self._polling_hotkey:
+                # Menu chord polling must not consume the next single tap (.agents/pyui.md).
+                time.sleep((max(timeout, 0) + 1) / 1000)
+                return None
             return self._next_scripted(timeout)
         if not sdl2.SDL_WaitEventTimeout(ctypes.byref(self._event), max(timeout, 1)):
             return None
@@ -234,7 +240,9 @@ class DesktopControllerInterface(ControllerInterface):
             sdl2.SDL_FlushEvent(event_type)
 
     def cache_last_event(self) -> None:
-        """No-op: only needed by PyUI's SDL interface internals."""
+        """Pause scripted steps while PyUI checks for a Menu button combination."""
+        self._polling_hotkey = True
 
     def restore_cached_event(self) -> None:
-        """No-op: only needed by PyUI's SDL interface internals."""
+        """Resume scripted steps after PyUI finishes checking for a button combination."""
+        self._polling_hotkey = False

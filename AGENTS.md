@@ -26,7 +26,7 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
 ## Commands (details in TESTING.md)
 - `make check`: lint, conventions, ty, and the test suite. Must be green before handing work back.
 - `make run [RES=752x560] [SCALE=1]`: desktop window on recorded fixtures. Keys: arrows,
-  X=A, Z=B, S=X, A=Y, Q/W=L1/R1, Enter=Start, RShift=Select, Esc=quit.
+  X=A, Z=B, S=X, A=Y, Q/W=L1/R1, Enter=Start, RShift=Select, M=Menu, Esc=quit.
 - Drills: `CHEEVOS_SIMULATE=offline|clock|auth|empty|proxy|showcase|awards|setup make run`.
 - `make screens`: headless PNGs in `build/screens/<WxH>/`. Read them to check UI changes.
 - Ad hoc: `uv run python -m cheevos.platform.desktop --headless --res 640x480 --script "shot:a,down,shot:b"`

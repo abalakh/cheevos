@@ -209,7 +209,7 @@ on the highlighted item, Start is free in lists, Select switches the view.
 | A | Open / confirm |
 | B | Back |
 | Start | Sync, or cancel the running sync, on every screen except popups and the keyboard. After "API key rejected": enter a new key |
-| Y | Options popup: filter and sort (games); view, filter and sort (a game's achievements) |
+| Y / MENU (tap) | Options popup: filter and sort (games, awards); view, filter and sort (a game's achievements) |
 | X | Reveal a hidden (spoiler) description on the achievement card (per-item, like PyUI); "See more" on the profile |
 | Select | Games: progress bars ↔ details. A game's achievements: list ↔ grid (like PyUI's game lists) |
 | L1 / R1 | Page up / down (PyUI default) |

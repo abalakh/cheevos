@@ -269,7 +269,11 @@ device; themes: theme options) and Start means "confirm" (on-screen keyboard, RA
 menu). Our mapping (the full table is in [product.md](product.md), "Controls"):
 - **Start**: sync / cancel, on every screen. `choose()` and `wait_for()` route it to
   `status_bar.press_start()`; popups and the keyboard (`ask_text` hides the status) don't.
-- **Y**: filter/sort/view popup.
+- **Y / Menu (tap)**: filter/sort/view popup. Screens accept both buttons as separate inputs;
+  desktop M maps to Menu.
+  PyUI polls for combinations for 0.3 s before passing Menu to a view. The desktop controller
+  pauses scripted steps with `cache_last_event` / `restore_cached_event` during that check,
+  so a following capture or tap waits for the popup instead of becoming a hotkey.
 - **X**: contextual: reveal a hidden description, "See more" on the profile. That fits PyUI's
   per-item convention.
 - **Select**: switch the view (games: bars/details; a game's achievements: list/grid).

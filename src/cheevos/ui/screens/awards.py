@@ -110,7 +110,7 @@ def _tiles(ctx: AppContext, awards: Sequence[Award]) -> list[MenuItem]:
 
 
 def show_awards(ctx: AppContext) -> None:
-    """Show the awards wall until B; A opens the game, Y filters and sorts.
+    """Show the awards wall until B; A opens the game, Y or Menu filters and sorts.
 
     Args:
         ctx: App context.
@@ -136,14 +136,14 @@ def show_awards(ctx: AppContext) -> None:
             title,
             items,
             selected=selected,
-            buttons=frozenset({Button.A, Button.Y}),
+            buttons=frozenset({Button.A, Button.Y, Button.MENU}),
             layout=Layout.GRID,
             tile=ICON_TILE,
             hints=[(Button.Y, strings.HINT_FILTER)],
         )
         if choice is None:
             return
-        if choice.button is Button.Y:
+        if choice.button in (Button.Y, Button.MENU):
             changed = _options(view)
             if changed != view:
                 view, selected = changed, 0

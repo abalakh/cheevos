@@ -123,10 +123,33 @@ def assert_shots(tmp_path: Path, names, res: str = "640x480") -> None:
         assert png_size(path) == (width, height)
 
 
-def test_full_walkthrough(tmp_path):
-    run_app(tmp_path, WALKTHROUGH)
+@pytest.mark.parametrize("options_button", ["y", "menu"])
+def test_full_walkthrough(tmp_path, options_button):
+    script = ",".join(options_button if step == "y" else step for step in WALKTHROUGH.split(","))
+    run_app(tmp_path, script)
     names = [token[5:] for token in WALKTHROUGH.split(",") if token.startswith("shot:")]
     assert_shots(tmp_path, names)
+
+
+@pytest.mark.parametrize(
+    "open_screen",
+    ["down,a", "down,a,a", "down,a,a,select", "down,down,down,a"],
+    ids=["games", "achievements", "badge_grid", "awards"],
+)
+def test_options_popups_accept_y_and_menu(tmp_path, open_screen):
+    run_app(
+        tmp_path,
+        f"{open_screen},y,shot:y_popup,b,menu,shot:menu_popup",
+        simulate="showcase",
+    )
+    shots = tmp_path / "shots/640x480"
+    bpp_y, rows_y = png_rows(shots / "y_popup.png", 300)
+    bpp_menu, rows_menu = png_rows(shots / "menu_popup.png", 300)
+    assert bpp_y == bpp_menu
+    # Compare the popup panel, leaving out the clock and the live background beside it.
+    assert [row[: 320 * bpp_y] for row in rows_y[56:]] == [
+        row[: 320 * bpp_menu] for row in rows_menu[56:]
+    ]
 
 
 def test_unlock_screenshot(tmp_path):

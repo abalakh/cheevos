@@ -51,9 +51,10 @@ make run RES=752x560 SCALE=1  # any resolution Spruce supports
 uv run python -m cheevos.platform.desktop --res 1280x720 --theme SPRUCE
 ```
 
-**Keys** (RetroArch's default keyboard layout): arrows = D-pad, X = A, Z = B, S = X, A = Y,
-Q / W = L1 / R1, Enter = Start, Right Shift = Select, Esc = quit. A USB or Bluetooth gamepad
-works too.
+**Keys** (RetroArch layout plus Menu): arrows = D-pad, X = A, Z = B, S = X, A = Y,
+Q / W = L1 / R1, Enter = Start, Right Shift = Select, M = Menu, Esc = quit. A USB or Bluetooth
+gamepad works too. Cheevos accepts Y and Menu as separate inputs for its options popups, so
+either A or M opens them on the desktop.
 
 **Resolutions:** pass any of Spruce's: 640x480, 720x480, 752x560, 720x720, 960x720, 1024x768,
 1280x720, 480x800.
@@ -115,7 +116,7 @@ uv run python -m cheevos.platform.desktop --headless --res 640x480 \
     --script "shot:home,down,a,shot:games,y,shot:options"
 ```
 
-Script tokens: `up down left right a b x y l1 r1 l2 r2 start select`, `shot:<name>` (save
+Script tokens: `up down left right a b x y l1 r1 l2 r2 start select menu`, `shot:<name>` (save
 `build/screens/<WxH>/<name>.png`, or `--out <dir>`), and `wait:N` (N idle ticks of 1/12 s, for
 things that take time, like a sync).
 

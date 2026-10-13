@@ -137,7 +137,7 @@ def test_sort_choice_carries_to_reopened_and_other_games(monkeypatch, grid, sort
 
 
 @pytest.mark.parametrize("initial_grid", [False, True])
-@pytest.mark.parametrize("button", [Button.SELECT, Button.Y])
+@pytest.mark.parametrize("button", [Button.SELECT, Button.Y, Button.MENU])
 def test_layout_choice_carries_to_reopened_and_other_games(monkeypatch, initial_grid, button):
     achievement = Achievement(1, 1, "Locked", "", 5, 5, "1", 0, None, 0, 0, None, None)
     detail = GameDetail(1, "Game", "Console", "", 1, 1, 0, (achievement,))

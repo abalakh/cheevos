@@ -62,3 +62,21 @@ def test_wait_ticks_return_to_the_ui_before_the_next_capture(
     assert clock.now >= 30 * tick_seconds
     assert poll().name == "A"
     assert captures == ["loaded"]
+
+
+def test_menu_hotkey_polling_keeps_later_taps_and_captures_queued(monkeypatch, desktop_controller):
+    clock, captures = Clock(), []
+    monkeypatch.setattr(desktop_controller.time, "sleep", clock.sleep)
+    controller = desktop_controller.DesktopControllerInterface(
+        [Press("MENU"), Capture("popup"), Press("A")], captures.append
+    )
+    assert controller.get_input(50).name == "MENU"
+    controller.cache_last_event()
+    for _ in range(6):
+        assert controller.get_input(50) is None
+    assert clock.now >= 0.3
+    assert captures == []
+    assert controller.unplayed == [Capture("popup"), Press("A")]
+    controller.restore_cached_event()
+    assert controller.get_input(50).name == "A"
+    assert captures == ["popup"]
