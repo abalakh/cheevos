@@ -20,7 +20,7 @@ in an upstream PR.
 │ core/      models · storage · ra_client · sync · settings ·
 │            credentials · screenshots · proxy · local_games
 ├─────────────────────────────────────────────────────────────┤
-│ platform/  paths · env detection · device bootstrap · desktop shim (dev only)
+│ platform/  paths · env detection · device bootstrap · desktop runner (dev only)
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -29,7 +29,8 @@ in an upstream PR.
 - `ui/pyui/` is the **only** package allowed to import PyUI. It gives the rest of the code a
   small typed API, so when PyUI changes, the breakage stays in one place ([pyui.md](pyui.md)).
 - `platform` resolves paths from a single root, `CHEEVOS_SDCARD_ROOT`, defaulting to
-  `/mnt/SDCARD`. It also detects the device and initialises PyUI (or the desktop shim).
+  `/mnt/SDCARD`. It also detects the device and initialises PyUI (on a desktop, PyUI's
+  `DESKTOP` device).
 
 | Package | May import | Must not import |
 |---|---|---|
@@ -78,8 +79,8 @@ src/cheevos/
     strings.py           every user-facing string (ready for PyUI Language later)
   platform/
     paths.py             every path, from CHEEVOS_SDCARD_ROOT (default /mnt/SDCARD)
-    desktop/             dev only: device shim, keyboard/script controller, headless capture,
-                         fixture/live environments, drills
+    desktop/             dev only: runner CLI on PyUI's DESKTOP device, fixture/live
+                         environments, drills
   res/icons/             original outlines: 24/48 px status, 96/144 px lists and fallbacks
   res/awards/            pre-rendered awards: dark/light and black/white contrast variants
 app/                     packaging: config.json, launch.sh, cheevos.png

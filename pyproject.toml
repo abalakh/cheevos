@@ -26,8 +26,8 @@ requires = ["uv_build>=0.10,<0.11"]
 build-backend = "uv_build"
 
 [tool.cheevos]
-# SpruceOS commit the PyUI bridge and desktop shim were last verified against.
-pyui-tested-commit = "2c5638375c5998ebd7480970bb55e3d2b2629c58"
+# SpruceOS commit the PyUI bridge and the desktop runner were last verified against.
+pyui-tested-commit = "346b4092dd1bdfbd40b0991f3a630b601e4cdfaf"
 
 [tool.ruff]
 line-length = 100
@@ -71,7 +71,7 @@ extra-paths = ["scripts"]
 
 [tool.ty.analysis]
 # PyUI is untyped and only importable at runtime (on the device, or from a SpruceOS checkout
-# for the desktop shim). Treat it as an opaque dependency: everything from it is Any, and the
+# for the desktop runner). Treat it as an opaque dependency: everything from it is Any, and the
 # bridge is responsible for exposing typed values.
 replace-imports-with-any = [
   "apps", "apps.**", "audio", "audio.**", "controller", "controller.**", "devices", "devices.**",

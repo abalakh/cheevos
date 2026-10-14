@@ -26,7 +26,7 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
 ## Commands (details in TESTING.md)
 - `make check`: lint, conventions, ty, and the test suite. Must be green before handing work back.
 - `make run [RES=752x560] [SCALE=1]`: desktop window on recorded fixtures. Keys: arrows,
-  X=A, Z=B, S=X, A=Y, Q/W=L1/R1, Enter=Start, RShift=Select, M=Menu, Esc=quit.
+  X=A, Z=B, S=X, A=Y, Q/W=L1/R1, Enter=Start, RShift=Select, M=Menu, F8=screenshot, Esc=quit.
 - Drills: `CHEEVOS_SIMULATE=offline|clock|auth|empty|proxy|showcase|awards|setup make run`.
 - `make screens`: headless PNGs in `build/screens/<WxH>/`. Read them to check UI changes.
 - Ad hoc: `uv run python -m cheevos.platform.desktop --headless --res 640x480 --script "shot:a,down,shot:b"`
@@ -56,7 +56,7 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
 - `.spruceos/` is a sparse SpruceOS checkout with PyUI and the SPRUCE theme (`make pyui`), for
   the desktop runner and screen tests. It's git-ignored; never edit it.
 - PyUI may be imported only in `cheevos.ui.pyui` (the bridge) and `cheevos.platform.desktop`
-  (dev shim). `scripts/check_conventions.py` enforces this.
+  (the desktop runner). `scripts/check_conventions.py` enforces this.
 - The device runs CPython 3.10.18, so use no 3.11+ features and no third-party runtime
   dependencies.
 - The PyUI commit the bridge was verified against is `[tool.cheevos] pyui-tested-commit` in

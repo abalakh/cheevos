@@ -29,7 +29,7 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
   cache/          created at runtime
 ```
 
-- `make package` builds it into `dist/App/Cheevos/` (no desktop shim, no tests) and zips that
+- `make package` builds it into `dist/App/Cheevos/` (no desktop runner, no tests) and zips that
   as `dist/Cheevos-<version>.zip`, with the `Cheevos/` prefix and no `App/` folder.
 - The Apps launcher discovers any `App/*/config.json`. PyUI exits fully while the app runs and
   restarts when it quits.

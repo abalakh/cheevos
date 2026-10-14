@@ -1,6 +1,6 @@
-"""Desktop (macOS/Linux) shim that runs PyUI screens in a window or headless.
+"""Run Cheevos on a desktop, on PyUI's ``DESKTOP`` device: recorded fixtures, drills, the CLI.
 
-Development only: excluded from the device package. Modules here other than ``__main__`` and
-``script`` import PyUI at the top level, so import them only after
-:func:`cheevos.ui.pyui.bootstrap.add_pyui_to_path` has run.
+Development only: excluded from the device package. The window, input, scripts and screenshots
+belong to PyUI's desktop device (SpruceOS ``App/PyUI/docs/desktop_readme.txt``); ``__main__``
+imports PyUI only after :func:`cheevos.ui.pyui.bootstrap.add_pyui_to_path` has run.
 """

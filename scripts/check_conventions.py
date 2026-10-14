@@ -5,7 +5,7 @@ Checks:
     CV002  module longer than the hard cap (800 lines)
     CV003  function, method or class without a docstring (private and nested ones included;
            ``__init__`` is documented on the class; tests are exempt)
-    CV004  PyUI or sdl2 imported outside the bridge (``cheevos.ui.pyui``) and desktop shim
+    CV004  PyUI or sdl2 imported outside the bridge (``cheevos.ui.pyui``) and desktop runner
     CV005  ``cheevos.core`` importing ``cheevos.ui``
     CV006  ``cheevos.platform.desktop`` imported from code that ships to devices
 
@@ -203,7 +203,7 @@ def check_layers(path: Path, tree: ast.Module) -> Iterator[Violation]:
             yield Violation(path, line, "CV005", "cheevos.core must not depend on cheevos.ui")
         if _within(imported, DESKTOP_PACKAGE) and not _within(owner, DESKTOP_PACKAGE):
             yield Violation(
-                path, line, "CV006", "the desktop shim is dev-only and must not be imported here"
+                path, line, "CV006", "the desktop runner is dev-only and must not be imported here"
             )
 
 

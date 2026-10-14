@@ -2,8 +2,8 @@
 
 PyUI is SpruceOS's Python/SDL2 UI toolkit. Cheevos imports it at runtime from
 `/mnt/SDCARD/App/PyUI/main-ui` and never vendors it (Spruce is CC BY-NC, and PyUI changes
-weekly). Only `cheevos.ui.pyui` (the bridge) and `cheevos.platform.desktop` (dev shim) may import
-it ([code.md](code.md), "Layers"). Read this file before touching either.
+weekly). Only `cheevos.ui.pyui` (the bridge) and `cheevos.platform.desktop` (the desktop runner)
+may import it ([code.md](code.md), "Layers"). Read this file before touching either.
 
 Both early questions have a yes: PyUI can be started from a separate app (`app/launch.sh` mirrors
 the platform branch of PyUI's own launcher; about 3 s to a usable screen on the Mini), and its
@@ -50,8 +50,6 @@ of PyUI's views, without patching PyUI.
 - **Logging:** never call `PyUiLogger.init`. It replaces stdout/stderr. Inject our logger into
   `PyUiLogger._logger` instead (`bootstrap.install_logger`). Skip
   `Theme.convert_theme_if_needed` (PyUI already did it at its own start-up).
-- **Device object:** any device object must give the top bar real battery and charge numbers: a
-  stub returning `None` crashes it.
 - **Configs:** PyUI's and Spruce's configs are read, never written. PyUI's view state goes to
   our own `Saves/cheevos/pyui-state.json`. `UserConfig.FILEPATH` is hard-coded to the SD card,
   so the desktop bootstrap overrides it.
@@ -60,8 +58,8 @@ of PyUI's views, without patching PyUI.
 - **Screensaver:** in non-launcher mode (`main_ui_mode=False`) the Mini lacks
   `miyoo_mini_flip_shared_memory_writer`, so the screensaver can't dim the backlight. The
   bridge creates it (`bootstrap._enable_backlight_control`).
-- **Fullscreen window:** PyUI opens a fullscreen window at the monitor's size. On the desktop,
-  `window.windowed()` swaps `sdl2.ext.Window` while the display starts.
+- **Fullscreen window:** PyUI opens a fullscreen window at the monitor's size, through
+  `device.create_window()`; its `DESKTOP` device opens a normal window instead.
 
 ## View gotchas
 - **Timeouts:** `view.get_selection()` never returns `None`. On a timeout or cursor move it

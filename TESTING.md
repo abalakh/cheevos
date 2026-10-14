@@ -52,9 +52,9 @@ uv run python -m cheevos.platform.desktop --res 1280x720 --theme SPRUCE
 ```
 
 **Keys** (RetroArch layout plus Menu): arrows = D-pad, X = A, Z = B, S = X, A = Y,
-Q / W = L1 / R1, Enter = Start, Right Shift = Select, M = Menu, Esc = quit. A USB or Bluetooth
-gamepad works too. Cheevos accepts Y and Menu as separate inputs for its options popups, so
-either A or M opens them on the desktop.
+Q / W = L1 / R1, Enter = Start, Right Shift = Select, M = Menu, F8 = screenshot (into
+`build/screens/<WxH>/`), Esc = quit. A USB or Bluetooth gamepad works too. Cheevos accepts Y
+and Menu as separate inputs for its options popups, so either A or M opens them on the desktop.
 
 **Resolutions:** pass any of Spruce's: 640x480, 720x480, 752x560, 720x720, 960x720, 1024x768,
 1280x720, 480x800.
@@ -218,23 +218,23 @@ cd /mnt/SDCARD/App/Cheevos && PLATFORM=MiyooMini \
 ```
 
 ## How the desktop runner works
-PyUI has no desktop mode, but its parts are pluggable: `Controller` takes its input from the
-device object, `Display` and `Theme` ask the device only for the screen size and a few flags,
-and PyUI's core UI modules don't hard-code `/mnt/SDCARD`. So the runner needs no PyUI patches
-(`src/cheevos/platform/desktop/`):
-- **Device:** `DesktopDevice` subclasses PyUI's `DeviceCommon`. Its abstract methods become
-  logging no-ops (`abc.update_abstractmethods`), and `__getattr__` turns calls PyUI makes
-  outside the abstract interface into no-ops too, so the shim keeps up as PyUI grows. Real
-  overrides: screen size, state path, controller, battery and charge (PyUI's top bar needs
-  numbers), Wi-Fi off.
-- **Input:** keyboard by scancode (RetroArch's default layout), the first SDL gamepad, or a
-  script. `still_held_down()` reports real key state, so PyUI's own hold/turbo logic works.
-- **Window:** PyUI opens a fullscreen window at the monitor's size; the runner swaps
-  `sdl2.ext.Window` for a plain window while the display starts.
-- **Capture:** after `present()`, PyUI's off-screen canvas is still the render target, so
-  `SDL_RenderReadPixels` gives the exact logical frame. `shot:` steps run when PyUI waits for
-  input, i.e. after the frame is complete. Headless runs use `SDL_VIDEODRIVER=dummy` and the
+The window, keyboard, gamepad, scripts and screenshots are PyUI's own `DESKTOP` device
+(SpruceOS `App/PyUI/main-ui/devices/desktop/`, documented in `App/PyUI/docs/desktop_readme.txt`;
+in a SpruceOS checkout, `python3 App/PyUI/main-ui/desktop.py` runs Spruce's whole launcher the
+same way). Cheevos starts it the way it starts a handheld, with PyUI's own `initialize_device`
+(`bootstrap.pyui_device("DESKTOP")`). `src/cheevos/platform/desktop/` adds only Cheevos' side:
+the command line, recorded fixtures or the live API, and the drills.
+- **Configuration:** the runner passes its options to PyUI as `PYUI_DESKTOP_*` variables (size,
+  zoom, headless, script, capture folder). The fake card is PyUI's data folder, so the device's
+  own settings land in its `Saves/desktop-system.json`.
+- **Device:** battery fixed at 87% and Wi-Fi off, so screenshots are stable. Display and volume
+  settings are saved but not applied.
+- **Scripts:** a `shot:` step runs when PyUI next waits for input, i.e. after the frame is
+  complete, and saves the logical frame whatever the zoom. While PyUI checks whether Menu starts
+  a button combination, scripted steps wait. Headless runs use SDL's dummy video driver and the
   software renderer.
+- **PyUI version:** a SpruceOS checkout from before the `DESKTOP` device (October 2026) stops
+  the runner with "has no DESKTOP device"; `make pyui` fetches the pinned commit.
 - **SDL** comes from `pysdl2-dll` (SDL2, SDL2_ttf, SDL2_image); PySDL2 is pinned to the
   device's 0.9.17.
 

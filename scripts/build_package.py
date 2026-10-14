@@ -1,7 +1,7 @@
 """Assemble the device package: ``dist/App/Cheevos/`` and ``dist/Cheevos-<version>.zip``.
 
 Contents: ``config.json``, ``launch.sh``, ``cheevos.png``, ``LICENSE`` and the package without
-the dev-only desktop shim and caches. The zip holds ``Cheevos/`` for copying into the SD card's
+the dev-only desktop runner and caches. The zip holds ``Cheevos/`` for copying into the SD card's
 ``App/`` folder; the release job in ``.github/workflows/ci.yml`` publishes it.
 """
 

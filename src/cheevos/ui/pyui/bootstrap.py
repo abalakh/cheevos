@@ -86,9 +86,9 @@ def bootstrap(setup: PyUiSetup, device_factory: Callable[[], object]) -> None:
 
     Args:
         setup: Paths and theme to use.
-        device_factory: Creates the PyUI device object (a real device class on hardware, the
-            desktop shim during development). Called after configs are loaded, because device
-            constructors read them.
+        device_factory: Creates the PyUI device object (the handheld's, or PyUI's
+            ``DESKTOP`` device during development). Called after configs are loaded, because
+            device constructors read them.
     """
     from controller.controller import Controller
     from devices.device import Device
@@ -127,11 +127,13 @@ def bootstrap(setup: PyUiSetup, device_factory: Callable[[], object]) -> None:
     Controller.init()
 
 
-def hardware_device(name: str) -> object:
-    """Create PyUI's device object for real hardware, exactly as PyUI's launcher does.
+def pyui_device(name: str) -> object:
+    """Create PyUI's device object, exactly as PyUI's launcher does.
 
     Reuses ``mainui.initialize_device`` so every device Spruce supports works without a copy
-    of its device table. Importing ``mainui`` does not start PyUI (its ``main()`` is guarded).
+    of its device table, including ``DESKTOP``, the development window (configured by
+    ``PYUI_DESKTOP_*`` variables). Importing ``mainui`` does not start PyUI (its ``main()`` is
+    guarded).
 
     Args:
         name: PyUI device name as passed to ``mainui.py -device``, e.g. ``"MIYOO_MINI_PLUS"``.

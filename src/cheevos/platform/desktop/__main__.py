@@ -1,5 +1,10 @@
 """Run Cheevos screens on a desktop: ``python -m cheevos.platform.desktop``.
 
+The app runs on PyUI's ``DESKTOP`` device, as it runs on a handheld's: PyUI provides the window,
+keyboard, gamepad and scripted input, and the screenshots (SpruceOS
+``App/PyUI/docs/desktop_readme.txt``). This module adds Cheevos' side: recorded fixtures or the
+live API, the drills, and the command line.
+
 Interactive (window, keyboard/gamepad)::
 
     python -m cheevos.platform.desktop --res 640x480
@@ -9,7 +14,7 @@ Headless capture (scripted input, PNGs in ``build/screens/<WxH>/``)::
     python -m cheevos.platform.desktop --headless --res 752x560 --script "shot:home,down,shot:games"
 
 Keyboard (RetroArch layout plus Menu): arrows = D-pad, X = A, Z = B, S = X, A = Y, Q/W = L1/R1,
-1/2 = L2/R2, Enter = Start, Right Shift = Select, M = Menu, Esc = quit.
+1/2 = L2/R2, Enter = Start, Right Shift = Select, M = Menu, F8 = screenshot, Esc = quit.
 """
 
 from __future__ import annotations
@@ -24,12 +29,11 @@ import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
-from cheevos.platform.desktop.script import Capture, ScriptError, Step, parse_script
-
 logger = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _SPRUCE_CHECKOUT = _REPO_ROOT / ".spruceos"  # scripts/fetch_pyui.sh
+_DEVICE = "DESKTOP"
 
 
 @dataclass(frozen=True, slots=True)
@@ -42,7 +46,7 @@ class RunnerOptions:
         theme: Theme folder name.
         headless: Render with SDL's dummy video driver (no window).
         scale: Integer zoom for the desktop window (ignored when headless).
-        script: Scripted input steps (empty for interactive use).
+        script: Scripted input, e.g. ``"shot:home,down,shot:games"`` (empty for interactive use).
         quit_after_script: Exit once the script is consumed (always true when headless).
         out_dir: Root directory for captured PNGs.
         pyui_dir: PyUI ``main-ui`` directory.
@@ -57,7 +61,7 @@ class RunnerOptions:
     theme: str
     headless: bool
     scale: int
-    script: list[Step]
+    script: str
     quit_after_script: bool
     out_dir: Path
     pyui_dir: Path
@@ -103,6 +107,8 @@ def _env_path(name: str, default: Path) -> Path:
 def parse_options(argv: list[str] | None = None) -> RunnerOptions:
     """Parse command-line arguments.
 
+    The script itself is checked by PyUI's desktop device, once PyUI is importable.
+
     Args:
         argv: Arguments without the program name; ``None`` reads ``sys.argv``.
 
@@ -124,11 +130,7 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
         "--live", action="store_true", help="real RA API with dev/sdcard (default: fixtures)"
     )
     args = parser.parse_args(argv)
-    try:
-        script = parse_script(args.script)
-    except ScriptError as exc:
-        parser.error(str(exc))
-    if args.headless and not script:
+    if args.headless and not args.script.strip(", "):
         parser.error("--headless needs --script (otherwise it would wait for input forever)")
     width, height = args.res
     return RunnerOptions(
@@ -137,7 +139,7 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
         theme=args.theme,
         headless=args.headless,
         scale=1 if args.headless else args.scale,
-        script=script,
+        script=args.script,
         quit_after_script=args.headless or args.quit_after_script,
         out_dir=args.out,
         pyui_dir=_env_path("CHEEVOS_PYUI_DIR", _SPRUCE_CHECKOUT / "App" / "PyUI" / "main-ui"),
@@ -149,6 +151,27 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
         live=args.live,
         verbose=args.verbose,
     )
+
+
+def desktop_environment(options: RunnerOptions) -> dict[str, str]:
+    """Return the ``PYUI_DESKTOP_*`` variables that configure PyUI's desktop device.
+
+    Args:
+        options: Runner options.
+
+    Returns:
+        Variable names and values.
+    """
+    return {
+        "PYUI_DESKTOP_RES": f"{options.width}x{options.height}",
+        "PYUI_DESKTOP_SCALE": str(options.scale),
+        "PYUI_DESKTOP_HEADLESS": "1" if options.headless else "",
+        "PYUI_DESKTOP_SCRIPT": options.script,
+        "PYUI_DESKTOP_EXIT_AFTER_SCRIPT": "1" if options.quit_after_script else "",
+        # Where PyUI writes (its device config): the fake card, as before the device moved.
+        "PYUI_DESKTOP_DATA": str(options.sd_root),
+        "PYUI_DESKTOP_SHOTS": str(options.out_dir / f"{options.width}x{options.height}"),
+    }
 
 
 def _write_pyui_config(options: RunnerOptions) -> Path:
@@ -186,8 +209,33 @@ def _configure_logging(*, verbose: bool) -> logging.Logger:
     return pyui_logger
 
 
+def _check_desktop_device(options: RunnerOptions) -> str | None:
+    """Check that PyUI has a desktop device and accepts the options.
+
+    Call after PyUI is on ``sys.path``.
+
+    Args:
+        options: Runner options.
+
+    Returns:
+        What is wrong, or ``None`` when the device can start.
+    """
+    if not (options.pyui_dir / "devices" / "desktop").is_dir():
+        return (
+            f"PyUI at {options.pyui_dir} has no {_DEVICE} device (SpruceOS predates it); "
+            "run `make pyui`"
+        )
+    from devices.desktop.desktop_options import DesktopOptions
+
+    try:
+        DesktopOptions.from_environ()
+    except ValueError as exc:  # also a malformed script (ScriptError)
+        return str(exc)
+    return None
+
+
 def run(options: RunnerOptions) -> int:
-    """Bring up PyUI with the desktop device and run the app.
+    """Bring up PyUI on its desktop device and run the app.
 
     Args:
         options: Runner options.
@@ -196,9 +244,7 @@ def run(options: RunnerOptions) -> int:
         Process exit code.
     """
     started_at = time.monotonic()
-    if options.headless:
-        os.environ["SDL_VIDEODRIVER"] = "dummy"
-        os.environ["SDL_RENDER_DRIVER"] = "software"
+    os.environ.update(desktop_environment(options))
     os.environ.setdefault("SDL_AUDIODRIVER", "dummy")
     # pysdl2-dll is exactly what the desktop should use; its import-time notice is noise.
     warnings.filterwarnings("ignore", message="Using SDL2 binaries from pysdl2-dll")
@@ -208,23 +254,10 @@ def run(options: RunnerOptions) -> int:
     pyui_logger = _configure_logging(verbose=options.verbose)
     bootstrap.add_pyui_to_path(options.pyui_dir)
     bootstrap.install_logger(pyui_logger)
+    if problem := _check_desktop_device(options):
+        logger.error("%s", problem)
+        return 2
 
-    from cheevos.platform.desktop.capture import capture_frame
-    from cheevos.platform.desktop.controller import DesktopControllerInterface
-    from cheevos.platform.desktop.device import DesktopDevice
-    from cheevos.platform.desktop.window import windowed
-
-    shots_dir = options.out_dir / f"{options.width}x{options.height}"
-
-    def on_capture(name: str) -> None:
-        """Save the current frame as ``<shots_dir>/<name>.png``."""
-        path = shots_dir / f"{name}.png"
-        capture_frame(path)
-        logger.info("Captured %s", path)
-
-    controller = DesktopControllerInterface(
-        options.script, on_capture, exit_when_script_ends=options.quit_after_script
-    )
     setup = bootstrap.PyUiSetup(
         main_ui_dir=options.pyui_dir,
         config_path=_write_pyui_config(options),
@@ -232,14 +265,7 @@ def run(options: RunnerOptions) -> int:
         theme=options.theme,
         user_config_path=options.sd_root / "Saves" / "pyui-common.json",
     )
-    saves_dir = options.sd_root / "Saves"
-    with windowed(options.width, options.height, options.scale):
-        bootstrap.bootstrap(
-            setup,
-            lambda: DesktopDevice(
-                options.width, options.height, saves_dir, options.pyui_dir, controller
-            ),
-        )
+    bootstrap.bootstrap(setup, lambda: bootstrap.pyui_device(_DEVICE))
     from cheevos import app
     from cheevos.platform.desktop.environments import fixture_environment, live_environment
 
@@ -248,9 +274,21 @@ def run(options: RunnerOptions) -> int:
     )
     try:
         app.run(started_at=started_at, env=env)
-    except SystemExit as exc:  # DesktopQuit / ScriptFinished end the run normally
+    except SystemExit as exc:  # Esc, closing the window, or the end of a headless script
         return int(exc.code or 0)
-    if unplayed := controller.unplayed:
+    return _check_script_finished()
+
+
+def _check_script_finished() -> int:
+    """Fail the run if the app exited before its script ended.
+
+    Returns:
+        Process exit code: 1 if script steps were left, else 0.
+    """
+    from devices.desktop.desktop_script import Capture
+    from devices.device import Device
+
+    if unplayed := Device.get_device().get_controller_interface().unplayed:
         # Usually a B too many: the script drifted from the screens and left the app early.
         captures = [step.name for step in unplayed if isinstance(step, Capture)]
         logger.error(

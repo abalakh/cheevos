@@ -77,7 +77,7 @@ def test_pyui_imports_only_in_bridge_and_desktop(tmp_path):
     source = '"""Module."""\nimport sdl2\nfrom views.view_type import ViewType\n'
     assert codes(write(tmp_path, "src/cheevos/ui/screens/home.py", source)) == ["CV004", "CV004"]
     assert codes(write(tmp_path, "src/cheevos/ui/pyui/views.py", source)) == []
-    assert codes(write(tmp_path, "src/cheevos/platform/desktop/device.py", source)) == []
+    assert codes(write(tmp_path, "src/cheevos/platform/desktop/__main__.py", source)) == []
 
 
 def test_core_must_not_import_ui(tmp_path):
@@ -85,8 +85,8 @@ def test_core_must_not_import_ui(tmp_path):
     assert codes(write(tmp_path, "src/cheevos/core/sync.py", source)) == ["CV005"]
 
 
-def test_desktop_shim_not_imported_by_shipped_code(tmp_path):
-    source = '"""Module."""\nimport cheevos.platform.desktop.device\n'
+def test_desktop_runner_not_imported_by_shipped_code(tmp_path):
+    source = '"""Module."""\nimport cheevos.platform.desktop.simulate\n'
     assert codes(write(tmp_path, "src/cheevos/app.py", source)) == ["CV006"]
     assert codes(write(tmp_path, "src/cheevos/platform/desktop/x.py", source)) == []
 
