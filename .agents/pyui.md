@@ -66,6 +66,56 @@ of PyUI's views, without patching PyUI.
 - **Fullscreen window:** PyUI opens a fullscreen window at the monitor's size, through
   `device.create_window()`; its `DESKTOP` device opens a normal window instead.
 
+## Running inside PyUI (planned for 1.0)
+The 1.0 goal is to run inside PyUI's own process, opened from its Apps menu like PyUI's Activity
+Tracker.
+
+**How PyUI's built-in apps work** (`menus/app/app_menu.py`, `append_pyui_apps`):
+- **The entry:** the Apps list gets a `GridOrListEntry` whose value is a callable, e.g.
+  `ActivityTracker().run_activity_tracking_app`.
+- **Running it:** A calls it in the launcher's process. The device, configs, theme, display and
+  controller are already up. The app shows `ViewCreator` views and returns on B.
+- **The other kind:** apps with a `config.json` make PyUI exit, and `principal.sh` runs their
+  `launch.sh`. That's how Cheevos runs today.
+
+**What goes away:**
+- **On the device, all of `bootstrap.py`:**
+  - the import path and the logger injection;
+  - the config, device, state, theme, display and controller start-up;
+  - `MINI_VARIABLES`, the Wi-Fi warm-up, the backlight helper and the time zone.
+
+  The desktop runner and the screen tests still start PyUI themselves, so they keep a
+  bootstrap.
+- **`app/launch.sh`, `config.json`, and `__main__`'s logging set-up and SIGTERM handler.**
+  `launch.sh` also copies the API key into `spruce-config.json` after the app exits. That copy
+  moves into Python, through `CfwSystemConfig`, because PyUI holds that file in memory.
+- **Most of the start-up wait:** today 4.1–4.5 s on a Mini, of which Cheevos' own imports
+  are under 0.8 s, plus PyUI's restart after Cheevos exits. PyUI's start-up costs
+  ([device.md](device.md), "Start-up") stop mattering to Cheevos.
+- **Device tooling that assumes a separate process:** `device.sh launch`
+  (`/tmp/cmd_to_run.sh`) and the idle check's `pgrep 'python3[.]10 -m [c]heevos'`, since
+  Cheevos would run inside PyUI's `MainUI`.
+
+**What stays:**
+- The core, the screens, and the bridge's views and drawing.
+- The import-on-first-use rule, even more so. PyUI's Apps menu imports its built-in apps
+  when PyUI starts, so Cheevos' entry has to import `cheevos` only when it's opened.
+
+**Rules to follow now, so the move stays cheap:**
+- **Undo every change to PyUI's shared objects on exit,** as `status_bar.installed`,
+  `title_bar.installed` and `ask_text` already do. The texture budget is installed for good;
+  inside PyUI it would change the launcher's caches too, so either undo it on exit or propose
+  it to PyUI.
+- **No process-level exits in app code:** no `sys.exit`, signal handlers or `os._exit`. The
+  entry catches everything, since an uncaught error would take the launcher down.
+- **Leave nothing running:** if `app.run`'s 3 s join times out, the process exit stops the
+  sync, details and media threads today. Inside PyUI they would keep running against closed
+  caches. Module-level caches must stay bounded: they outlive the session.
+- **Memory adds up instead of being replaced.** On the Mini+ (Spruce 4.5.5 nightly), PyUI's
+  launcher idles at 31.6 MB RSS and Cheevos alone takes 33–36 MB. Either way about 17 MB is
+  left, and starting a thread fails below about 8 MB ([device.md](device.md),
+  "Performance"). Measure this first.
+
 ## View gotchas
 - **Timeouts:** `view.get_selection()` never returns `None`. On a timeout or cursor move it
   returns a `Selection` whose input is `None`. That is our tick for live refreshes (sync

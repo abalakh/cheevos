@@ -3,6 +3,10 @@
 Mirrors the start-up order of PyUI's ``mainui.py`` (config, device, state, theme, display,
 controller) without the parts that belong to the launcher itself: menu loops, background
 threads, theme conversion and the stdout/stderr redirection done by ``PyUiLogger.init``.
+
+Needed while Cheevos runs as its own process. Inside PyUI (planned for 1.0) PyUI has already
+done all of this, and only the desktop runner and tests would still start PyUI
+(.agents/pyui.md, "Running inside PyUI").
 """
 
 from __future__ import annotations

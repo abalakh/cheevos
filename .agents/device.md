@@ -102,6 +102,10 @@ graphics pool), slow SD writes. Big lists and image-heavy screens need a check o
   100 ticks a second is one core. Busybox `top` shows % of both cores together.
 
 ### Start-up
+Most of this section matters only while Cheevos starts its own PyUI. Inside PyUI (the 1.0 plan,
+[pyui.md](pyui.md), "Running inside PyUI"), PyUI is already up when Cheevos opens. Only
+Cheevos' own imports remain, and the import-on-first-use rule still applies.
+
 Measured 2026-10-14 (Spruce 4.5.5 nightly, warm, 2,948-game account): the first frame of Home
 comes 4.1–4.5 s after Python starts (4.6–4.9 s before the changes below); the first start after
 an update also compiles every module, about 1.5 s more. Python's imports take most of it

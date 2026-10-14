@@ -23,6 +23,8 @@ Related: what we read from Spruce, RetroArch and the proxy is in
 - Links achievements to their unlock screenshots when they exist.
 - Quality good enough to ship publicly (GitHub release, then Spruce Game Nursery or an upstream
   PR).
+- For 1.0, run inside PyUI, opened from its Apps menu like its Activity Tracker, rather than as
+  a separate app ([pyui.md](pyui.md), "Running inside PyUI").
 
 **Non-goals (v1)**
 - Launching games from the hub.
