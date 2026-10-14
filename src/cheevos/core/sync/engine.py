@@ -32,6 +32,13 @@ from cheevos.core.storage.data_cache import DataCache
 from cheevos.core.storage.media_cache import MediaCache, avatar_key, badge_key, icon_key
 from cheevos.core.storage.recent_feed import RecentFeed, RecentFeedCache, library_fingerprint
 from cheevos.core.sync.events import sync_events
+from cheevos.core.sync.options import (
+    FULL_SINCE_KEY,
+    LAST_SYNC_KEY,
+    RATE_LIMIT_PAUSE,
+    RATE_LIMITED_UNTIL_KEY,
+    SyncOptions,
+)
 from cheevos.core.sync.planner import (
     DAY,
     badge_game_ids,
@@ -44,12 +51,6 @@ from cheevos.core.sync.progress import Failure, Phase, ProgressTracker, SyncStat
 logger = logging.getLogger(__name__)
 
 MEDIA_BATCH = 25  # images per transaction: few commits on the SD's dirsync FAT32
-LAST_SYNC_KEY = "last_sync_at"
-# Set while a full re-sync is unfinished: details fetched before it are re-fetched.
-FULL_SINCE_KEY = "full_resync_since"
-# When RA allows requests again after asking for a long pause (wall clock, epoch seconds).
-RATE_LIMITED_UNTIL_KEY = "rate_limited_until"
-RATE_LIMIT_PAUSE = 60.0  # assumed pause when RA rate-limits without saying for how long
 
 
 class SyncCancelledError(Exception):
@@ -68,22 +69,6 @@ class _FailedError(Exception):
         super().__init__(failure.value)
         self.failure = failure
         self.retry_at = retry_at
-
-
-@dataclass(frozen=True, slots=True)
-class SyncOptions:
-    """What one sync should do.
-
-    Attributes:
-        full: Start "Download every game": fetch every game's details, resuming in later
-            syncs until done.
-        badge_scope: Which games' badges to download.
-        recent_days: Activity window for the working set and the badge scope's "recent".
-    """
-
-    full: bool = False
-    badge_scope: BadgeScope = BadgeScope.ON_DEVICE_AND_RECENT
-    recent_days: int = 30
 
 
 @dataclass(slots=True)

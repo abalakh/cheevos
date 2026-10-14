@@ -4,8 +4,8 @@ from urllib.parse import parse_qsl, urlsplit
 import pytest
 
 from cheevos.core.errors import AuthError
-from cheevos.core.ra_client import RaClient, Response
-from cheevos.core.ra_client.transport import API_V2_HOST
+from cheevos.core.ra_client.client import RaClient
+from cheevos.core.ra_client.transport import API_V2_HOST, Response
 
 KEY = "TESTKEY0123456789abcdefTESTKEY01"
 

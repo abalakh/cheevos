@@ -14,14 +14,18 @@ of PyUI's views, without patching PyUI.
 ## The bridge
 - **Bootstrap**: mirror `mainui.py` start-up:
   1. `PyUiConfig.init`, `UserConfig.reload_config`, `CfwSystemConfig.init`, `Language.init`;
-  2. `initialize_device(<name>, main_ui_mode=False)`, `PyUiState.init`;
+  2. `initialize_device(<name>, main_ui_mode=False)` (then the Wi-Fi status is read on a
+     thread, see [device.md](device.md), "Start-up"), `PyUiState.init`;
   3. `Theme.init`, `Display.init`, `Controller.init`.
 - **Device name**: the same `-device` value PyUI's `launch.sh` would pass, e.g.
   `MIYOO_MINI_PLUS`. `app/launch.sh` gets it from Spruce (`get_miyoo_mini_variant` on the Mini
-  family) and passes `CHEEVOS_PYUI_DEVICE`; the bridge creates the device with PyUI's own
-  `mainui.initialize_device(..., main_ui_mode=False)` (the mode Spruce's `-msgDisplay` helpers
-  use), so every Spruce device works without copying PyUI's device table. Importing `mainui`
-  doesn't start PyUI.
+  family) and passes `CHEEVOS_PYUI_DEVICE`. The bridge creates the Miyoo Mini family itself,
+  as `mainui.initialize_device` does (`bootstrap.MINI_VARIABLES`, checked against `mainui.py`
+  by a test): importing `mainui` also imports PyUI's launcher (see [device.md](device.md),
+  "Start-up", for what that saves). Every
+  other device goes through `mainui.initialize_device(..., main_ui_mode=False)` (the mode
+  Spruce's `-msgDisplay` helpers use), so it works without copying the rest of PyUI's device
+  table. Importing `mainui` doesn't start PyUI.
 - **Standard views** (`ViewCreator.create_view`): lists (`ICON_AND_DESC`) and popups
   (`POPUP`), through `views.choose()`, or a `views.PreparedView` that a screen keeps to show
   again ("Showing a view again", below). The same `PreparedView` builds our two subclasses of
@@ -117,7 +121,7 @@ of PyUI's views, without patching PyUI.
   - replaces `_clear` (drawn before every steady and animated frame) to draw the theme, the
     selection's title and description under the images, fitted once per selection, and to
     resolve the visible and outgoing tiles' images (`get_icon()`, since the entry caches its
-    image path) plus five more each side as `ImageDemand.NEXT`; a new selection drops the
+    image path) plus two more each side as `ImageDemand.NEXT`; a new selection drops the
     downloads still waiting (`visible_images.new_window`). `VisibleImages` doesn't fit: the
     carousel's window wraps around the list;
   - replaces `_render_image` to fit images in the room above the details and frame their

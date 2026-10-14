@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import sys
+import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -109,6 +110,7 @@ def bootstrap(setup: PyUiSetup, device_factory: Callable[[], object]) -> None:
 
     Device.init(device_factory())
     device = Device.get_device()
+    _warm_wifi_status(device)
     # TZ lives only in the process environment; PyUI's launcher re-applies the saved zone at
     # every start, and so must we, or clocks show UTC.
     device.restore_saved_timezone()
@@ -127,13 +129,52 @@ def bootstrap(setup: PyUiSetup, device_factory: Callable[[], object]) -> None:
     Controller.init()
 
 
+def _warm_wifi_status(device: object) -> None:
+    """Read PyUI's Wi-Fi status on a thread while the display starts.
+
+    The top bar draws it from the first frame and PyUI caches it: only the first read waits
+    for ``wifiCmd status`` (0.4 s on a Mini), the rest return the cached value and refresh in
+    the background. Reading it here, during the display's second of start-up, takes that wait
+    off the first frame (.agents/device.md, "Start-up").
+
+    Args:
+        device: The PyUI device object.
+    """
+    read = getattr(device, "get_wifi_status", None)
+    if read is None:
+        return
+
+    def warm() -> None:
+        """Read once; a failure leaves the first frame to read it as before."""
+        try:
+            read()
+        except Exception:  # the warm-up must never stop start-up
+            logger.debug("Wi-Fi status warm-up failed", exc_info=True)
+
+    threading.Thread(target=warm, name="wifi-warm-up", daemon=True).start()
+
+
+# The Miyoo Mini family's branches of PyUI's ``mainui.initialize_device``: device name, and
+# its variables in ``devices.miyoo.mini.miyoo_mini_flip_specific_model_variables``. Importing
+# ``mainui`` also imports PyUI's launcher, so these devices are created directly. That saves
+# little until PyUI's device class stops importing the same menus (.agents/device.md,
+# "Start-up"). tests/unit/test_ui_bootstrap.py checks them against ``mainui.py``.
+MINI_VARIABLES = {
+    "MIYOO_MINI": "MIYOO_MINI_V1_V2_V3_VARIABLES",
+    "MIYOO_MINI_V4": "MIYOO_MINI_V4_VARIABLES",
+    "MIYOO_MINI_PLUS": "MIYOO_MINI_PLUS",
+    "MIYOO_MINI_FLIP": "MIYOO_MINI_FLIP_VARIABLES",
+}
+
+
 def pyui_device(name: str) -> object:
     """Create PyUI's device object, exactly as PyUI's launcher does.
 
-    Reuses ``mainui.initialize_device`` so every device Spruce supports works without a copy
-    of its device table, including ``DESKTOP``, the development window (configured by
-    ``PYUI_DESKTOP_*`` variables). Importing ``mainui`` does not start PyUI (its ``main()`` is
-    guarded).
+    The Miyoo Mini family is created like ``mainui.initialize_device`` does (see
+    :data:`MINI_VARIABLES`). Every other device, including ``DESKTOP``, the development window
+    (configured by ``PYUI_DESKTOP_*`` variables), goes through ``initialize_device`` itself, so
+    no copy of the rest of its table is needed. Importing ``mainui`` does not start PyUI (its
+    ``main()`` is guarded).
 
     Args:
         name: PyUI device name as passed to ``mainui.py -device``, e.g. ``"MIYOO_MINI_PLUS"``.
@@ -142,10 +183,18 @@ def pyui_device(name: str) -> object:
         The initialised device, also registered with PyUI's ``Device`` holder.
     """
     from devices.device import Device
-    from mainui import initialize_device
 
     # main_ui_mode=False: none of the launcher-only background services.
-    initialize_device(name, main_ui_mode=False)
+    variables = MINI_VARIABLES.get(name)
+    if variables is not None:
+        from devices.miyoo.mini import miyoo_mini_flip_specific_model_variables as models
+        from devices.miyoo.mini.miyoo_mini_common import MiyooMiniCommon
+
+        Device.init(MiyooMiniCommon(name, False, getattr(models, variables)))  # noqa: FBT003 — PyUI's positional main_ui_mode
+    else:
+        from mainui import initialize_device
+
+        initialize_device(name, main_ui_mode=False)
     device = Device.get_device()
     _enable_backlight_control(device)
     return device

@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
-
 from cheevos.core.awards import GalleryCounts
 from cheevos.core.storage.recent_feed import RecentFeedCache
 from cheevos.core.sync.progress import Phase
@@ -11,11 +9,6 @@ from cheevos.ui import format as fmt
 from cheevos.ui import strings
 from cheevos.ui.context import AppContext
 from cheevos.ui.pyui.views import MenuItem, choose
-from cheevos.ui.screens.awards import show_awards
-from cheevos.ui.screens.games import show_games
-from cheevos.ui.screens.lists import show_recent
-from cheevos.ui.screens.profile import show_profile
-from cheevos.ui.screens.settings import show_settings
 
 
 def awards_summary(counts: GalleryCounts) -> str:
@@ -42,11 +35,15 @@ class Home:
 
     Args:
         ctx: App context.
+        sync_when_shown: Start a sync once Home is on screen (the "sync when the app opens"
+            setting). Started earlier, the sync's first imports (the engine, the RA client)
+            would compete with the first frame (.agents/device.md, "Start-up").
     """
 
-    def __init__(self, ctx: AppContext) -> None:
+    def __init__(self, ctx: AppContext, *, sync_when_shown: bool = False) -> None:
         self._ctx = ctx
         self._last_phase: Phase | None = None
+        self._sync_pending = sync_when_shown
 
     # --- rows ---------------------------------------------------------------------------------
 
@@ -122,6 +119,7 @@ class Home:
         Returns:
             New rows, or ``None`` when nothing changed.
         """
+        self._start_pending_sync()  # the first tick comes after the first frame
         phase = self._ctx.sync.status().phase
         if phase is self._last_phase:
             return None
@@ -132,16 +130,48 @@ class Home:
 
     def run(self) -> None:
         """Show the dashboard until B (which exits the app)."""
-        routes: dict[str, Callable[[], object]] = {
-            "profile": lambda: show_profile(self._ctx),
-            "games": lambda: show_games(self._ctx),
-            "recent": lambda: show_recent(self._ctx),
-            "awards": lambda: show_awards(self._ctx),
-            "settings": lambda: show_settings(self._ctx),
-        }
         selected = 0
         while choice := choose(
             strings.APP_TITLE, self.items(), selected=selected, on_tick=self.tick, full_status=True
         ):
             selected = choice.index
-            routes[choice.item.key]()
+            self._start_pending_sync()  # a row opened before the first tick
+            _open(self._ctx, choice.item.key)
+
+    def _start_pending_sync(self) -> None:
+        """Start the sync asked for at start-up, once."""
+        if self._sync_pending:
+            self._sync_pending = False
+            self._ctx.start_sync()
+
+
+def _open(ctx: AppContext, key: str) -> None:
+    """Open the screen behind a home row, importing it the first time.
+
+    Home's first frame needs none of these screens, and together they take about 0.2 s to
+    import on a Mini (.agents/device.md, "Start-up").
+
+    Args:
+        ctx: App context.
+        key: The row's key.
+    """
+    if key == "profile":
+        from cheevos.ui.screens.profile import show_profile
+
+        show_profile(ctx)
+    elif key == "games":
+        from cheevos.ui.screens.games import show_games
+
+        show_games(ctx)
+    elif key == "recent":
+        from cheevos.ui.screens.lists import show_recent
+
+        show_recent(ctx)
+    elif key == "awards":
+        from cheevos.ui.screens.awards import show_awards
+
+        show_awards(ctx)
+    elif key == "settings":
+        from cheevos.ui.screens.settings import show_settings
+
+        show_settings(ctx)

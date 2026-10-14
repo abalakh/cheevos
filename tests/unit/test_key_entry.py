@@ -7,8 +7,8 @@ from typing import Any, cast
 import pytest
 
 from cheevos.app import AppEnvironment, _validator
-from cheevos.core.ra_client import Response
 from cheevos.core.ra_client.pacer import Pacer
+from cheevos.core.ra_client.transport import Response
 from cheevos.core.sync.session import Credentials
 from cheevos.platform.paths import Paths
 from cheevos.ui import strings

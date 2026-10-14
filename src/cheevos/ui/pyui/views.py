@@ -9,10 +9,9 @@ from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from cheevos.ui.pyui import badge_grid, carousel, image_frames, row_bars, status_bar, title_bar
-from cheevos.ui.pyui.badge_grid import Details
+from cheevos.ui.pyui import image_frames, row_bars, status_bar, title_bar
 from cheevos.ui.pyui.image_frames import Frame
 from cheevos.ui.pyui.primitives import (
     Button,
@@ -27,6 +26,9 @@ from cheevos.ui.pyui.status_bar import Hint
 from cheevos.ui.pyui.text import ListRoom, list_room
 from cheevos.ui.pyui.title_bar import Title
 from cheevos.ui.pyui.visible_images import ImageDemand, VisibleImages, demanding
+
+if TYPE_CHECKING:
+    from cheevos.ui.pyui.badge_grid import Details
 
 logger = logging.getLogger(__name__)
 
@@ -317,9 +319,14 @@ class PreparedView:
         self._count = len(items)
         self._entries = _entries(items, layout)
         top = title_bar.top_title(title)
+        # The grid and the carousel load when first shown: Home doesn't need them.
         if layout is Layout.BADGES:
+            from cheevos.ui.pyui import badge_grid
+
             self._view = badge_grid.create(top, self._entries, selected, theme_scale())
         elif layout is Layout.CAROUSEL:
+            from cheevos.ui.pyui import carousel
+
             self._view = carousel.create(top, self._entries, selected, theme_scale())
         else:
             # PyUI asks every row for its image and measures every row's text here.

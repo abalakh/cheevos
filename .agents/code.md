@@ -53,13 +53,14 @@ src/cheevos/
                          data_cache.py, award_store.py (awards and events), media_cache.py
     ra_client/           transport.py (HTTPS with HTTP fallback, fixtures), client.py, parse.py,
                          parse_awards.py (awards, v2 events), v2.py (v2 JSON:API requests),
-                         redact.py (key redaction in logs)
+                         redact.py (key redaction in logs); the package imports nothing itself
     sync/                engine.py, planner.py (what to fetch), events.py (event details),
-                         progress.py, lazy_media.py, session.py, __main__.py (sync without UI)
+                         options.py (options and meta keys, without the engine), progress.py,
+                         lazy_media.py, session.py, __main__.py (sync without UI)
     awards.py            the profile's award galleries, after RA's own renderer
     stats.py             profile statistics, after RA's own rules
     settings.py          settings.json load/save with defaults and validation
-    credentials.py       username from Spruce or RetroArch, apikey.txt
+    credentials.py       Credentials; username from Spruce or RetroArch, apikey.txt
     screenshots.py       *-cheevo-<id>.png index
     proxy.py             RAOfflineProxy reader (read-only files)
     local_games.py       on-device matching sources
@@ -174,6 +175,9 @@ Tooling gotchas:
   - Use `X | None` syntax.
   - Every `# type: ignore[...]` needs a reason comment.
   - PyUI is untyped; ty treats it as `Any` and the bridge keeps that inside ([pyui.md](pyui.md)).
+- **Start-up**: import what Home's first frame doesn't need on first use (screens, the RA
+  client, the sync engine), as listed in `pyproject.toml`'s `PLC0415` ignores; a new screen or
+  worker goes in `tests/unit/test_startup_imports.py` ([device.md](device.md), "Start-up").
 - **Size**:
   - modules: soft cap 500 lines, hard cap 800;
   - functions: 50 statements, complexity 10, 6 arguments, 12 branches, 6 returns. Use

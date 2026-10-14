@@ -64,6 +64,12 @@ max-returns = 6
 # PyUI is importable only after bootstrap.add_pyui_to_path(), so these import it lazily.
 "src/cheevos/ui/pyui/**" = ["PLC0415"]
 "src/cheevos/platform/desktop/__main__.py" = ["PLC0415"]
+# These import what the first frame doesn't need on first use: start-up time on a Mini
+# (.agents/device.md, "Start-up"; tests/unit/test_startup_imports.py keeps it so).
+"src/cheevos/app.py" = ["PLC0415"]
+"src/cheevos/core/clock.py" = ["PLC0415"]
+"src/cheevos/core/sync/background.py" = ["PLC0415"]
+"src/cheevos/ui/screens/home.py" = ["PLC0415"]
 
 [tool.ty.environment]
 python-version = "3.10"

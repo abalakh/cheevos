@@ -32,6 +32,7 @@ FIVE_TILES = 5  # a centred selection with two neighbours on each side
 SMALL_TILES = 3  # fewer awards than five, or a portrait screen: one neighbour on each side
 _GAP = 16  # at 640x480: around the images and above the details
 _ENTRY = "#"  # separates an image path from its entry in the paths PyUI hands back
+_AHEAD = 2  # images queued beyond the visible tiles on each side, for the next moves
 # The selection's share of the width: five tiles, three, and three on a portrait screen
 # (PyUI sizes the images by width; a tall screen has height to spare).
 _SHARE_FIVE, _SHARE_THREE, _SHARE_PORTRAIT = 40, 50, 60
@@ -195,7 +196,7 @@ class _Painter:
                 self._drawn[key] = (path, entry.get_value().frame)
         count, reach = len(view.options), view.cols // 2
         with demanding(ImageDemand.NEXT):
-            for step in range(reach + 1, reach + view.cols + 1):
+            for step in range(reach + 1, reach + _AHEAD + 1):
                 for index in (view.selected + step, view.selected - step):
                     view.options[index % count].get_icon()
 

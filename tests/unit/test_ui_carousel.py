@@ -80,8 +80,8 @@ def test_images_follow_the_selection_and_queue_the_next_ones(monkeypatch):
     view, drawn = View(entries, selected=10), painter()
     drawn.images(view)
     assert len(dropped) == 1
-    # The five on screen, then five more each side for the next moves.
-    assert sum(1 for e in entries if e.asked) == 15
+    # The five on screen (8-12), then two more each side for the next moves.
+    assert [index for index, e in enumerate(entries) if e.asked] == [6, 7, 8, 9, 10, 11, 12, 13, 14]
     assert entries[10].image_path == entries[10].image_path_selected
     assert entries[10].image_path.startswith("A10.png#")  # the path, keyed by its entry
     assert entries[2].asked == entries[18].asked == []

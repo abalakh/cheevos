@@ -100,3 +100,42 @@ graphics pool), slow SD writes. Big lists and image-heavy screens need a check o
   of awards; a long desktop run under `tracemalloc` showed no Python leak.
 - **CPU:** measure per thread from `/proc/<pid>/task/*/stat` (fields 14 + 15, 1/100 s ticks);
   100 ticks a second is one core. Busybox `top` shows % of both cores together.
+
+### Start-up
+Measured 2026-10-14 (Spruce 4.5.5 nightly, warm, 2,948-game account): the first frame of Home
+comes 4.1–4.5 s after Python starts (4.6–4.9 s before the changes below); the first start after
+an update also compiles every module, about 1.5 s more. Python's imports take most of it
+(3.4 s): finding and reading each module from the SD card costs a few ms before its code even
+runs, and each dataclass 5–7 ms to build.
+- **Rule: import what Home's first frame doesn't need on first use.** Every screen but Home
+  (`home._open`), the badge grid and carousel (`views`), the RA client and transport (`app`'s
+  factories), the sync engine (on the sync thread, `background`) and `email.utils` (`clock`)
+  load when first used; `ra_client/__init__.py` imports nothing. Names the UI needs without
+  the engine live in `sync/options.py`; `Credentials` lives in `core/credentials.py`.
+  `tests/unit/test_startup_imports.py` fails if any of them loads with `cheevos.app`: add a
+  new screen or worker to its list. The modules that import on first use are listed in
+  `pyproject.toml`'s per-file `PLC0415` ignores. The cost moves to each screen's first
+  opening (Games +0.3 s, Profile +0.2 s, Awards +0.1 s the first time).
+- **The auto-sync starts after Home's first frame** (`Home(sync_when_shown=...)`, on its
+  first tick): started before, the sync thread's imports competed with the first frame
+  (+0.3 s).
+- **PyUI's device without `mainui`:** `bootstrap.pyui_device` creates the Miyoo Mini family
+  itself (`MINI_VARIABLES`; `tests/unit/test_ui_bootstrap.py` checks it against PyUI's
+  `mainui.py`), because importing `mainui` also imports PyUI's launcher. Today that saves only
+  about 10 ms (9 modules): the device class imports the same game menus (below). Once PyUI
+  defers those, it saves about 0.36 s. Other devices still use `mainui.initialize_device`.
+- **PyUI's Wi-Fi status is read on a thread during the display's start-up**
+  (`bootstrap._warm_wifi_status`): its first read runs `wifiCmd status` (0.4 s) and the top
+  bar draws it from the first frame.
+- **PyUI's own share** (not ours to change; worth raising with PyUI): `display.display` imports
+  pysdl2's `sdl2.ext`, whose `resources` module imports `urllib.request` with `http.client`,
+  `email` and `ssl` (0.2 s); `MiyooDevice` → `miyoo_trim_common` imports the game menus (0.36 s,
+  about 90 modules) for `get_image_for_activity` alone, which Cheevos never calls (moving its two
+  menu imports into that method would save it on nearly every device);
+  `Display.init` takes about 1 s (0.63 s re-initialising, 0.32 s loading fonts); and
+  `initialize_device` living in `mainui.py` is why other devices still import the launcher.
+  Don't plant stub modules to skip them: Spruce updates PyUI without a Cheevos release.
+- **How it was measured:** a patched build (never shipped) logs the first frame's time from
+  the process start (`/proc/self/stat`), and can run `cProfile` up to it or start Python with
+  `-X importtime`. A launch with `-X` doesn't match `pgrep -f 'python3[.]10 -m [c]heevos'`
+  (`device.sh` misses it): stop it by PID.
