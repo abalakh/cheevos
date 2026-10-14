@@ -102,11 +102,13 @@ graphics pool), slow SD writes. Big lists and image-heavy screens need a check o
   100 ticks a second is one core. Busybox `top` shows % of both cores together.
 
 ### Start-up
-Measured 2026-10-14 (Spruce 4.5.5 nightly, warm, 2,948-game account): the first frame of Home
-comes 4.1–4.5 s after Python starts (4.6–4.9 s before the changes below); the first start after
-an update also compiles every module, about 1.5 s more. Python's imports take most of it
-(3.4 s): finding and reading each module from the SD card costs a few ms before its code even
-runs, and each dataclass 5–7 ms to build.
+Measured 2026-10-14 (Spruce 4.5.5 nightly, PyUI `346b4092`, warm, 2,948-game account), before
+[SpruceOS #1857](https://github.com/spruceUI/spruceOS/pull/1857): Home's first frame appeared
+4.1–4.5 s after Python started, down from 4.6–4.9 s before Cheevos deferred its screens and
+sync imports. The first start after an update also compiled every module, about 1.5 s more.
+Python's imports took most of it (3.4 s): finding and reading each module from the SD card
+costs a few ms before its code even runs, and each dataclass 5–7 ms to build. The upstream
+factory and game-menu fixes have not yet been timed on a device.
 - **Rule: import what Home's first frame doesn't need on first use.** Every screen but Home
   (`home._open`), the badge grid and carousel (`views`), the RA client and transport (`app`'s
   factories), the sync engine (on the sync thread, `background`) and `email.utils` (`clock`)
@@ -119,22 +121,23 @@ runs, and each dataclass 5–7 ms to build.
 - **The auto-sync starts after Home's first frame** (`Home(sync_when_shown=...)`, on its
   first tick): started before, the sync thread's imports competed with the first frame
   (+0.3 s).
-- **PyUI's device without `mainui`:** `bootstrap.pyui_device` creates the Miyoo Mini family
-  itself (`MINI_VARIABLES`; `tests/unit/test_ui_bootstrap.py` checks it against PyUI's
-  `mainui.py`), because importing `mainui` also imports PyUI's launcher. Today that saves only
-  about 10 ms (9 modules): the device class imports the same game menus (below). Once PyUI
-  defers those, it saves about 0.36 s. Other devices still use `mainui.initialize_device`.
+- **PyUI's upstream device factory:** `bootstrap.pyui_device` imports `initialize_device`
+  from `devices.device_factory` for every device, including `DESKTOP`. This avoids the
+  launcher imports without copying any device branches. If that module is absent on an
+  older supported SpruceOS, it falls back to `mainui.initialize_device`; errors inside the
+  factory still surface. `tests/unit/test_ui_bootstrap.py` covers both paths.
+- **PyUI's game menus load on first activity-icon lookup:** SpruceOS #1857 (merge commit
+  `a3c494b1`) moved the two menu imports into `MiyooTrimCommon.get_image_for_activity`, which
+  Cheevos never calls. On a Mac, after importing PyUI's shared UI modules, the Mini device
+  adds 48 modules instead of 141, and the Brick 43 instead of 137. The pre-fix device timing
+  put about 0.36 s in these menu imports; the new hardware saving remains unmeasured.
 - **PyUI's Wi-Fi status is read on a thread during the display's start-up**
   (`bootstrap._warm_wifi_status`): its first read runs `wifiCmd status` (0.4 s) and the top
   bar draws it from the first frame.
-- **PyUI's own share** (not ours to change; worth raising with PyUI): `display.display` imports
-  pysdl2's `sdl2.ext`, whose `resources` module imports `urllib.request` with `http.client`,
-  `email` and `ssl` (0.2 s); `MiyooDevice` → `miyoo_trim_common` imports the game menus (0.36 s,
-  about 90 modules) for `get_image_for_activity` alone, which Cheevos never calls (moving its two
-  menu imports into that method would save it on nearly every device);
-  `Display.init` takes about 1 s (0.63 s re-initialising, 0.32 s loading fonts); and
-  `initialize_device` living in `mainui.py` is why other devices still import the launcher.
-  Don't plant stub modules to skip them: Spruce updates PyUI without a Cheevos release.
+- **PyUI's remaining share** in the pre-fix measurements: `display.display` imports pysdl2's
+  `sdl2.ext`, whose `resources` module imports `urllib.request` with `http.client`, `email`
+  and `ssl` (0.2 s). `Display.init` took about 1 s (0.63 s re-initialising, 0.32 s loading
+  fonts). Don't plant stub modules to skip them: Spruce updates PyUI without a Cheevos release.
 - **How it was measured:** a patched build (never shipped) logs the first frame's time from
   the process start (`/proc/self/stat`), and can run `cProfile` up to it or start Python with
   `-X importtime`. A launch with `-X` doesn't match `pgrep -f 'python3[.]10 -m [c]heevos'`

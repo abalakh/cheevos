@@ -27,7 +27,7 @@ build-backend = "uv_build"
 
 [tool.cheevos]
 # SpruceOS commit the PyUI bridge and the desktop runner were last verified against.
-pyui-tested-commit = "346b4092dd1bdfbd40b0991f3a630b601e4cdfaf"
+pyui-tested-commit = "a3c494b13046ef0e238b963f36c9cab3f3a1e3f0"
 
 [tool.ruff]
 line-length = 100

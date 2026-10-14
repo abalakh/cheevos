@@ -154,27 +154,13 @@ def _warm_wifi_status(device: object) -> None:
     threading.Thread(target=warm, name="wifi-warm-up", daemon=True).start()
 
 
-# The Miyoo Mini family's branches of PyUI's ``mainui.initialize_device``: device name, and
-# its variables in ``devices.miyoo.mini.miyoo_mini_flip_specific_model_variables``. Importing
-# ``mainui`` also imports PyUI's launcher, so these devices are created directly. That saves
-# little until PyUI's device class stops importing the same menus (.agents/device.md,
-# "Start-up"). tests/unit/test_ui_bootstrap.py checks them against ``mainui.py``.
-MINI_VARIABLES = {
-    "MIYOO_MINI": "MIYOO_MINI_V1_V2_V3_VARIABLES",
-    "MIYOO_MINI_V4": "MIYOO_MINI_V4_VARIABLES",
-    "MIYOO_MINI_PLUS": "MIYOO_MINI_PLUS",
-    "MIYOO_MINI_FLIP": "MIYOO_MINI_FLIP_VARIABLES",
-}
-
-
 def pyui_device(name: str) -> object:
     """Create PyUI's device object, exactly as PyUI's launcher does.
 
-    The Miyoo Mini family is created like ``mainui.initialize_device`` does (see
-    :data:`MINI_VARIABLES`). Every other device, including ``DESKTOP``, the development window
-    (configured by ``PYUI_DESKTOP_*`` variables), goes through ``initialize_device`` itself, so
-    no copy of the rest of its table is needed. Importing ``mainui`` does not start PyUI (its
-    ``main()`` is guarded).
+    Use ``devices.device_factory`` to avoid importing the launcher. Older SpruceOS releases
+    expose the same factory only through ``mainui``; importing it does not start PyUI (its
+    ``main()`` is guarded). ``DESKTOP``, the development window, is configured by
+    ``PYUI_DESKTOP_*`` variables.
 
     Args:
         name: PyUI device name as passed to ``mainui.py -device``, e.g. ``"MIYOO_MINI_PLUS"``.
@@ -184,17 +170,15 @@ def pyui_device(name: str) -> object:
     """
     from devices.device import Device
 
-    # main_ui_mode=False: none of the launcher-only background services.
-    variables = MINI_VARIABLES.get(name)
-    if variables is not None:
-        from devices.miyoo.mini import miyoo_mini_flip_specific_model_variables as models
-        from devices.miyoo.mini.miyoo_mini_common import MiyooMiniCommon
-
-        Device.init(MiyooMiniCommon(name, False, getattr(models, variables)))  # noqa: FBT003 — PyUI's positional main_ui_mode
-    else:
+    try:
+        from devices.device_factory import initialize_device
+    except ModuleNotFoundError as error:
+        if error.name != "devices.device_factory":
+            raise  # a missing factory dependency is a real start-up failure
         from mainui import initialize_device
 
-        initialize_device(name, main_ui_mode=False)
+    # main_ui_mode=False: none of the launcher-only background services.
+    initialize_device(name, main_ui_mode=False)
     device = Device.get_device()
     _enable_backlight_control(device)
     return device

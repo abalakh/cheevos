@@ -229,9 +229,10 @@ cd /mnt/SDCARD/App/Cheevos && PLATFORM=MiyooMini \
 The window, keyboard, gamepad, scripts and screenshots are PyUI's own `DESKTOP` device
 (SpruceOS `App/PyUI/main-ui/devices/desktop/`, documented in `App/PyUI/docs/desktop_readme.txt`;
 in a SpruceOS checkout, `python3 App/PyUI/main-ui/desktop.py` runs Spruce's whole launcher the
-same way). Cheevos starts it with PyUI's own `initialize_device`
-(`bootstrap.pyui_device("DESKTOP")`). `src/cheevos/platform/desktop/` adds only Cheevos' side:
-the command line, recorded fixtures or the live API, and the drills.
+same way). Cheevos starts it with `devices.device_factory.initialize_device`
+(`bootstrap.pyui_device("DESKTOP")`), falling back to `mainui.initialize_device` on older
+SpruceOS releases. `src/cheevos/platform/desktop/` adds only Cheevos' side: the command line,
+recorded fixtures or the live API, and the drills.
 - **Configuration:** the runner passes its options to PyUI as `PYUI_DESKTOP_*` variables (size,
   zoom, headless, script, capture folder). The fake card is PyUI's data folder, so the device's
   own settings land in its `Saves/desktop-system.json`.

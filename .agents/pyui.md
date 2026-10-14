@@ -5,11 +5,11 @@ PyUI is SpruceOS's Python/SDL2 UI toolkit. Cheevos imports it at runtime from
 weekly). Only `cheevos.ui.pyui` (the bridge) and `cheevos.platform.desktop` (the desktop runner)
 may import it ([code.md](code.md), "Layers"). Read this file before touching either.
 
-Both early questions have a yes: PyUI can be started from a separate app (`app/launch.sh` mirrors
-the platform branch of PyUI's own launcher; about 3 s to a usable screen on the Mini), and its
-views draw what the app needs (lists with icons and right-aligned values, badge grids, popups,
-custom screens). Progress bars, frames and the bottom-bar status are drawn by the bridge on top
-of PyUI's views, without patching PyUI.
+PyUI can be started from a separate app (`app/launch.sh` mirrors the platform branch of
+PyUI's own launcher; measured start-up times are in [device.md](device.md)). Its views draw
+what the app needs: lists with icons and right-aligned values, badge grids, popups and custom
+screens. Progress bars, frames and the bottom-bar status are drawn by the bridge on top of
+PyUI's views, without patching PyUI.
 
 ## The bridge
 - **Bootstrap**: mirror `mainui.py` start-up:
@@ -19,13 +19,14 @@ of PyUI's views, without patching PyUI.
   3. `Theme.init`, `Display.init`, `Controller.init`.
 - **Device name**: the same `-device` value PyUI's `launch.sh` would pass, e.g.
   `MIYOO_MINI_PLUS`. `app/launch.sh` gets it from Spruce (`get_miyoo_mini_variant` on the Mini
-  family) and passes `CHEEVOS_PYUI_DEVICE`. The bridge creates the Miyoo Mini family itself,
-  as `mainui.initialize_device` does (`bootstrap.MINI_VARIABLES`, checked against `mainui.py`
-  by a test): importing `mainui` also imports PyUI's launcher (see [device.md](device.md),
-  "Start-up", for what that saves). Every
-  other device goes through `mainui.initialize_device(..., main_ui_mode=False)` (the mode
-  Spruce's `-msgDisplay` helpers use), so it works without copying the rest of PyUI's device
-  table. Importing `mainui` doesn't start PyUI.
+  family) and passes `CHEEVOS_PYUI_DEVICE`. Every device is created through
+  `devices.device_factory.initialize_device(..., main_ui_mode=False)` (the mode Spruce's
+  `-msgDisplay` helpers use). The factory was extracted from `mainui` in
+  [SpruceOS #1857](https://github.com/spruceUI/spruceOS/pull/1857), so creating a device no
+  longer loads the launcher or its game menus. On older SpruceOS releases without that
+  module, the bridge falls back to `mainui.initialize_device`; importing `mainui` doesn't
+  start PyUI. The bridge keeps no copy of PyUI's device table. A missing dependency inside
+  the factory is a start-up error, not a reason to fall back.
 - **Standard views** (`ViewCreator.create_view`): lists (`ICON_AND_DESC`) and popups
   (`POPUP`), through `views.choose()`, or a `views.PreparedView` that a screen keeps to show
   again ("Showing a view again", below). The same `PreparedView` builds our two subclasses of
