@@ -52,9 +52,12 @@ run: ## Desktop window: make run [RES=752x560] [SCALE=1]
 	$(RUN) python -m cheevos.platform.desktop --res $(RES) --scale $(SCALE)
 
 screens: ## Headless PNGs of the walk-through into build/screens/<WxH>/
-	@for res in $(SCREEN_RESOLUTIONS); do \
-		$(RUN) python -m cheevos.platform.desktop --headless --res $$res \
-			--script "$(SCREEN_SCRIPT)" || exit 1; \
+	@cards=$$(mktemp -d) || exit 1; \
+	trap 'rm -rf "$$cards"' 0; \
+	trap 'exit 1' 1 2 15; \
+	for res in $(SCREEN_RESOLUTIONS); do \
+		CHEEVOS_SDCARD_ROOT="$$cards/$$res" $(RUN) python -m cheevos.platform.desktop \
+			--headless --res $$res --script "$(SCREEN_SCRIPT)" || exit 1; \
 	done
 	@echo "Screens written to build/screens/"
 

@@ -129,7 +129,9 @@ Script tokens: `up down left right a b x y l1 r1 l2 r2 start select menu`, `shot
 things that take time, like a sync).
 
 - `make screens` renders the standard walk-through at 640×480, 752×560 and 1280×720 into
-  `build/screens/`. The weekly PyUI drift job uploads them.
+  `build/screens/`. Each resolution starts on a fresh temporary SD card, so settings and view
+  state saved by `make run` don't affect the captures. The cards are removed when the command
+  finishes, including on failure. The weekly PyUI drift job uploads the screenshots.
 - A run fails if the app exits before the script ends. That usually means the script drifted
   from the screens, e.g. a B too many after a press that did nothing.
 - `make doc-screens` renders the wiki's screenshots (`docs/images/`) from the `showcase`
