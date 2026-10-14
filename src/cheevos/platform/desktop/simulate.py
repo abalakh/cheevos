@@ -4,12 +4,12 @@
 an account with no games. ``proxy`` adds an enabled RAOfflineProxy with queued unlocks.
 ``noset`` removes the most recent game's achievement set and counts.
 ``showcase`` gives the fixture games assorted progress and awards (mastered, completed, beaten
-in both modes, mixed hardcore and casual), with achievement lists to match, and a made-up
-account, to review progress bars and the awards wall, and to take the screenshots for the docs
-(``scripts/doc_screens.py``).
+in both modes, mixed hardcore and casual), with achievement lists to match, event and site
+badges (``showcase_awards.py``), and a made-up account, to review progress bars and the
+Awards screen, and to take the screenshots for the docs (``scripts/doc_screens.py``).
 ``setup`` starts without a key file, on the first-run key screen.
 ``awards`` serves another account's recorded awards (``record_fixtures.py USER --awards-only``)
-to review a big awards wall; images the mirror lacks are fetched live from RA's media host.
+to review a big Awards screen; images the mirror lacks are fetched live from RA's hosts.
 ``ondemand`` downloads only the working set, as a first sync does: opening an older game loads
 it on the spot, slowly enough to see the loading page.
 """
@@ -29,7 +29,9 @@ from urllib.parse import parse_qs, urlsplit
 from cheevos.core.clock import ServerClock
 from cheevos.core.ra_client.parse import parse_time
 from cheevos.core.ra_client.transport import (
+    API_V2_HOST,
     MEDIA_HOST,
+    STATIC_HOST,
     FixtureTransport,
     HttpTransport,
     Response,
@@ -37,6 +39,7 @@ from cheevos.core.ra_client.transport import (
 )
 from cheevos.platform.desktop.clock_drill import ClockRecoveryTransport
 from cheevos.platform.desktop.no_set_drill import NoSetTransport
+from cheevos.platform.desktop.showcase_awards import award_rows, v2_body
 from cheevos.platform.desktop.showcase_history import unlocks as showcase_unlocks
 from cheevos.platform.paths import Paths
 
@@ -172,6 +175,8 @@ class _Showcase:
 
     def get(self, host: str, path: str, headers: dict[str, str]) -> Response:
         """Serve the recording, with progress, awards and recent unlocks rewritten."""
+        if host == API_V2_HOST:  # the events' tiers and points
+            return Response(status=200, body=json.dumps(v2_body(path)).encode())
         if "API_GetAchievementsEarnedBetween" in path:
             query = parse_qs(urlsplit(path).query)
             end = int(query.get("t", ["0"])[0]) or int(time.time())
@@ -285,6 +290,7 @@ class _Showcase:
                 }
             )
         kinds = [(row["AwardType"], row["AwardDataExtra"]) for row in rows]
+        rows += award_rows(len(rows))
         return {
             "TotalAwardsCount": len(rows),
             "MasteryAwardsCount": kinds.count(("Mastery/Completion", 1)),
@@ -333,14 +339,17 @@ class _BorrowedAwards:
     def __init__(self, base: Transport, awards: Path) -> None:
         self._base = base
         self._awards = awards
+        self._recorded = FixtureTransport(awards.parent)  # the events' tiers and points
         self._live: Transport | None = None
 
     def get(self, host: str, path: str, headers: dict[str, str]) -> Response:
-        """Serve the borrowed awards, the fixtures, or a live image."""
-        if host != MEDIA_HOST and "API_GetUserAwards" in path:
+        """Serve the borrowed awards and their events, the fixtures, or a live image."""
+        if host not in (MEDIA_HOST, STATIC_HOST) and "API_GetUserAwards" in path:
             return Response(status=200, body=self._awards.read_bytes())
+        if host == API_V2_HOST:
+            return self._recorded.get(host, path, headers)
         response = self._base.get(host, path, headers)
-        if host == MEDIA_HOST and response.status == NOT_FOUND:
+        if host in (MEDIA_HOST, STATIC_HOST) and response.status == NOT_FOUND:
             self._live = self._live or HttpTransport()
             return self._live.get(host, path, headers)
         return response

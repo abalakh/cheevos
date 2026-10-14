@@ -6,12 +6,14 @@ updates it:
 1. Your profile (points, rank, last played game).
 2. Your list of games with their progress.
 3. Your awards and latest 100 unlocks. Recent unlocks are saved separately, so they don't
-   require downloading entire achievement lists for old games.
+   require downloading entire achievement lists for old games. For event awards, the event's
+   tiers too (what each tier needs, and its badge), once per event and again after 30 days.
 4. The achievements of the games on your SD card and the games you played recently (see
    **Recent games** in [Settings](Settings.md)), plus any game that changed since you last
    downloaded it. Games not refreshed for 30 days are checked a few at a time, so changes
    RetroAchievements makes to old sets also arrive.
-5. Badges and game icons (see **Badge downloads** in [Settings](Settings.md)).
+5. Badges and game icons (see **Badge downloads** in [Settings](Settings.md)), and the
+   badges of your event and site awards.
 
 **The first sync** spaces game downloads about 3 seconds apart: seconds for small libraries,
 and a few minutes for one with thousands of games, because only the games you play are downloaded.

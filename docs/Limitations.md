@@ -26,8 +26,12 @@ too, but those haven't been tried yet: expect rough edges, and please report the
 - **"Last active"** is when your rich presence last changed. RetroAchievements doesn't expose
   your real last activity through its API.
 - **Rank** shows "Unranked" until you have 250 hardcore points. That's RetroAchievements' rule.
-- **Hidden awards** (awards you hid on your RetroAchievements profile) don't appear on the awards
-  wall. They still count in the totals.
+- **Hidden awards** (awards you hid on your RetroAchievements profile) don't appear in Awards,
+  as on your profile.
+- **Event awards need one extra download.** RetroAchievements' main API doesn't say what an
+  event's tiers need, so Cheevos asks its newer API once per event (and adds up the event's
+  points from its achievements, which no API states directly). Until then, or if that API
+  refuses, an event badge shows its title, image and date with "Event award".
 - **Points in the last 7 and 30 days** are fetched when you press See more on the profile, so they
   need Wi-Fi the first time.
 - **Subsets** are recognised by "[Subset" in their title, as an approximation of how the site

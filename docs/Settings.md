@@ -23,7 +23,8 @@ tags set developers add (Progression, Win condition, Missable). Tagging started 
 older sets have no tags, and "Story only" hides nothing there. Use **All** for those games.
 
 Settings take effect immediately and are saved in `Saves/cheevos/settings.json` when you exit
-Cheevos, only if they changed. The file also remembers the Games progress/details view and the
-achievement list/grid view and sort (shared by all games). A power cut or forced kill before exit
+Cheevos, only if they changed. The file also remembers the Games progress/details view, the
+achievement list/grid view and sort (shared by all games), and the Awards view (carousel, grid
+or list). A power cut or forced kill before exit
 loses changes from that session. Older settings files work as usual: missing settings use their
 defaults, and unknown fields are ignored.

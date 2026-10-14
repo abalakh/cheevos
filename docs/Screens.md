@@ -101,12 +101,35 @@ plain.
 ![Recent unlocks](images/recent.png)
 
 ## Awards
-Your mastered, completed and beaten games, one tile per game with its highest award. The frame
-follows RetroAchievements' colours: **gold** for mastered, with plain icons for completed games.
-Beaten games have **silver** frames, thick in hardcore and thin in casual. Press **A** to open the game,
-**Y** to filter or sort, including your own order from the RetroAchievements site.
+The badges on your RetroAchievements profile: **Game Awards** (mastered and completed games),
+**Event Awards** and **Site Awards** (such as Patreon or developer badges). Awards you hid on your
+profile don't show. Beaten games aren't awards here, as on the site: they're in **Games** and
+your profile's statistics.
 
-![Awards](images/awards.png)
+Each badge has its frame from the site: **gold** for mastered games and events, plain for
+completed games, and a rainbow **holographic** frame for the $2 Patreon badge. Under it: its
+title, what it was awarded for ("Mastered", "Awarded for earning at least 30 points", "Awarded
+for completing this event"…) and the date.
+
+Press **Select** to switch between three views; Cheevos remembers your choice:
+
+- **Carousel**: one large badge in the middle, its neighbours getting smaller towards the
+  edges. **Left** and **right** slide through them.
+- **Grid**: many badges at once, like the profile page.
+- **List**: one row per badge, with its title, description and date.
+
+![Awards carousel](images/awards.png)
+
+![Awards grid](images/awards-grid.png)
+
+![Awards list](images/awards-list.png)
+
+Press **A** on a game to open its achievements, and **B** to come back to the same badge. Event
+and site badges show everything they have on the screen itself, so **A** does nothing on them.
+
+Press **Y** to choose the view, filter (**All**, **Game Awards**, **Mastered**, **Completed**,
+**Event Awards**, **Site Awards**, each with how many you have) or sort: newest first, the order
+of your profile on the site (**Site order**), title, or console (game awards).
 
 ## Settings
 See [Settings](Settings.md).

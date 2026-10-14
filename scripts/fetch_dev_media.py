@@ -2,8 +2,9 @@
 
 Fills ``dev/media-host/`` with the host's own paths (``UserPic/<user>.png``,
 ``Images/<id>.png``, ``Badge/<name>.png`` and ``Badge/<name>_lock.png``) so the desktop
-runner's fixture mode serves real images offline. Media needs no API key. Existing files are
-skipped.
+runner's fixture mode serves real images offline, plus the ``showcase`` drill's award images
+(site badges come from RA's static host, under ``assets/``). Media needs no API key. Existing
+files are skipped.
 
 Usage: ``uv run python scripts/fetch_dev_media.py [--games 519,3830]`` (default: all games)
 """
@@ -17,10 +18,13 @@ import ssl
 import sys
 from pathlib import Path
 
+from cheevos.platform.desktop import showcase_awards
+
 REPO = Path(__file__).resolve().parents[1]
 FIXTURES = REPO / "tests" / "fixtures" / "ra"
 MIRROR = REPO / "dev" / "media-host"
 MEDIA_HOST = "media.retroachievements.org"
+STATIC_HOST = "static.retroachievements.org"  # the site's own art: /assets/...
 USER_AGENT = "Cheevos/0.1.0.dev0 (dev media fetcher)"
 
 
@@ -28,14 +32,18 @@ class MediaFetcher:
     """Download media files over one keep-alive connection, skipping existing files."""
 
     def __init__(self) -> None:
-        self._connection = http.client.HTTPSConnection(
-            MEDIA_HOST, context=ssl.create_default_context(), timeout=30
-        )
+        context = ssl.create_default_context()
+        self._connections = {
+            host: http.client.HTTPSConnection(host, context=context, timeout=30)
+            for host in (MEDIA_HOST, STATIC_HOST)
+        }
         self.downloaded = 0
         self.skipped = 0
 
     def fetch(self, path: str, destination: Path) -> None:
         """Save ``https://media.retroachievements.org<path>`` to ``destination``.
+
+        ``/assets/`` paths come from the static host instead.
 
         Args:
             path: URL path starting with ``/``.
@@ -47,8 +55,9 @@ class MediaFetcher:
         if destination.exists():
             self.skipped += 1
             return
-        self._connection.request("GET", path, headers={"User-Agent": USER_AGENT})
-        response = self._connection.getresponse()
+        connection = self._connections[STATIC_HOST if path.startswith("/assets/") else MEDIA_HOST]
+        connection.request("GET", path, headers={"User-Agent": USER_AGENT})
+        response = connection.getresponse()
         body = response.read()
         if response.status != 200:  # noqa: PLR2004 — HTTP OK
             raise RuntimeError(f"{path}: HTTP {response.status}")
@@ -114,6 +123,8 @@ def main(argv: list[str] | None = None) -> int:
     wanted = [int(part) for part in args.games.split(",") if part] or recorded
     for game_id in wanted:
         fetch_game(fetcher, game_id)
+    for path in showcase_awards.image_paths():
+        mirror(fetcher, path)
     print(
         f"Media mirror {MIRROR.relative_to(REPO)}: {fetcher.downloaded} new, {fetcher.skipped} kept"
     )

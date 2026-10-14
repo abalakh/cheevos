@@ -60,7 +60,11 @@ and Menu as separate inputs for its options popups, so either A or M opens them 
 1280x720, 480x800.
 
 **Real badges and icons in fixture mode:** run `uv run python scripts/fetch_dev_media.py` once.
-It mirrors the images the fixtures mention into `dev/media-host`.
+It mirrors the images the fixtures mention into `dev/media-host`, and the `showcase` drill's
+event and site badges (site art from RA's static host, under `assets/`). CI has no mirror, so
+its screen tests see fallback icons everywhere. A screen test that compares images can pass
+here and fail there (awards sharing a fallback once lost their frames): before pushing one,
+run it once with `dev/media-host` renamed.
 
 **Unlock screenshots in fixture mode** come from `dev/sdcard/Saves/screenshots` if it exists.
 Otherwise the fake card gets a generated stand-in for Final Fantasy Tactics Advance's two unlocks,
@@ -96,17 +100,21 @@ real. Each drill gets a fresh card.
 | `empty` | An account with no games |
 | `noset` | Fire Emblem, the first game in the list, with its achievement set and counts removed. Shows the zero-total list row and the message; A or B returns to the games list. |
 | `proxy` | RAOfflineProxy enabled, with unlocks waiting to sync (games list `+N`, Recent unlocks, the Settings row). Descent's has no `patch:` data, as after playing online with RetroArch 1.22. |
-| `showcase` | Every kind of progress (mastered, completed, beaten in both modes, mixed hardcore and casual), with achievement lists to match, awards, a month of recent unlocks and a made-up account. Used for the docs' screenshots. |
-| `awards` | A big account's awards wall, from a recording of that account's awards (below), with live images. Its games aren't in the fixtures, so opening one tries to load it and says "Loading failed". |
+| `showcase` | Every kind of progress (mastered, completed, beaten in both modes, mixed hardcore and casual), with achievement lists to match, awards (games, tiered and plain events, site badges with a holographic one; `showcase_awards.py` also answers the v2 API), a month of recent unlocks and a made-up account. Used for the docs' screenshots. |
+| `awards` | A big account's Awards screen, from a recording of that account's awards and events (below), with live images. Its games aren't in the fixtures, so opening one tries to load it and says "Loading failed". |
 | `setup` | First start without a key file: the key screen (A types the key, B exits) |
 | `ondemand` | Only the working set is downloaded, as after a first sync. Opening an older game (Metroid, last in the games list) loads it, slowed to 1.5 s to show the loading page. |
 
-The `awards` drill needs one recorded response:
+The `awards` drill needs a recording of the awards, and of what the sync asks RA's v2 API
+about their events (tiers and points; a few requests, with the key in a header):
 
 ```sh
 uv run python scripts/record_fixtures.py <username> --awards-only --out dev/fixtures/awards
 CHEEVOS_SIMULATE=awards make run
 ```
+
+`CHEEVOS_AWARDS_FIXTURES=<dir>` points the drill at another recording. Without the events in
+it, event badges show RA's own titles with "Event award" (the offline fallback).
 
 ## Headless screenshots
 The runner can play a script of button presses without a window and save the screens as PNG:
@@ -241,7 +249,7 @@ the command line, recorded fixtures or the live API, and the drills.
 ## What the desktop can't show
 - The Mini's custom `mmiyoo` SDL driver: for example, it ignores blending for filled rectangles
   (see `.agents/pyui.md`), double buffering, evdev input.
-- Real speed: a Cortex-A7 at 1.2 GHz, 128 MB RAM, slow SD writes. Big lists and image-heavy
-  screens need a check on hardware.
+- Real speed: a dual-core Cortex-A7 at 1.2 GHz, 128 MB RAM, slow SD writes. Big lists and
+  image-heavy screens need a check on hardware.
 - FAT32 on the SD card (32 KB clusters, `dirsync`), the real RAOfflineProxy, Wi-Fi, and a clock
   that reads 1970 until it syncs.

@@ -29,6 +29,7 @@ def test_round_trip(tmp_path, sort):
         game_list_details=True,
         achievement_grid=True,
         achievement_sort=sort,
+        awards_view="list",
     )
     save_settings(path, settings)
     assert load_settings(path) == settings
@@ -46,6 +47,7 @@ def test_saved_json_has_stable_key_order(tmp_path):
         "game_list_details",
         "achievement_grid",
         "achievement_sort",
+        "awards_view",
     ]
 
 
@@ -69,6 +71,7 @@ def test_each_invalid_key_falls_back_alone(tmp_path):
                 "game_list_details": "details",
                 "achievement_grid": "grid",
                 "achievement_sort": "title",
+                "awards_view": "wall",
                 "unknown_key": 1,
             }
         )
@@ -92,6 +95,23 @@ def test_invalid_achievement_sort_keeps_other_preferences(tmp_path, sort):
     path = tmp_path / "settings.json"
     path.write_text(json.dumps({"achievement_grid": True, "achievement_sort": sort}))
     assert load_settings(path) == Settings(achievement_grid=True)
+
+
+@pytest.mark.parametrize("view", ["carousel", "grid", "list"])
+def test_awards_view_is_independent_of_the_achievement_view(tmp_path, view):
+    path = tmp_path / "settings.json"
+    save_settings(path, Settings(achievement_grid=False, awards_view=view))
+    loaded = load_settings(path)
+    assert (loaded.awards_view, loaded.achievement_grid) == (view, False)
+
+
+@pytest.mark.parametrize("view", [None, True, "wall", "Grid", ["list"]])
+def test_absent_or_invalid_awards_view_is_the_carousel(tmp_path, view):
+    path = tmp_path / "settings.json"
+    path.write_text(json.dumps({"achievement_grid": True, "awards_view": view}))
+    assert load_settings(path) == Settings(achievement_grid=True, awards_view="carousel")
+    path.write_text(json.dumps({"achievement_grid": True}))
+    assert load_settings(path).awards_view == "carousel"
 
 
 def test_unknown_fields_are_ignored_and_dropped_on_save(tmp_path):

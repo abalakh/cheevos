@@ -12,6 +12,9 @@ from cheevos.core.models import (
     Award,
     AwardCounts,
     AwardKind,
+    AwardType,
+    EventInfo,
+    EventTier,
     GameDetail,
     GameProgress,
     Unlock,
@@ -342,44 +345,63 @@ def test_recent_unlocks_newest_first_with_limit(cache):
 def test_awards_round_trip(cache):
     assert cache.awards() == (None, [])
     assert cache.award_counts() is None
+    assert cache.gallery_counts() is None
     counts = AwardCounts(mastered=1, completed=0, beaten_hardcore=2, beaten_softcore=0)
+    smb = ("Super Mario Bros.", "NES/Famicom", "/Images/126543.png")
     awards = [
+        Award(AwardType.MASTERY, 1446, 1, *smb, 100, position=0),
+        Award(AwardType.GAME_BEATEN, 1446, 1, *smb, 50, position=1),
         Award(
-            1446, "Super Mario Bros.", "NES/Famicom", "/Images/126543.png", AwardKind.MASTERED, 100
-        ),
-        Award(
-            1446,
-            "Super Mario Bros.",
-            "NES/Famicom",
-            "/Images/126543.png",
-            AwardKind.BEATEN_HARDCORE,
-            50,
-        ),
-        Award(
+            AwardType.GAME_BEATEN,
             355,
+            1,
             "Zelda",
             "SNES/Super Famicom",
             "/Images/059119.png",
-            AwardKind.BEATEN_HARDCORE,
             None,
             console_id=3,
-            display_order=-1,
+            display_order=4,
+            position=2,
         ),
+        Award(AwardType.EVENT, 1446, 2, "AotW", "Events", "/Images/1.png", 70, 101, 5, 3, 3),
+        Award(AwardType.PATREON, 0, 2, "", "", "", 60, position=4),
     ]
-    cache.save_awards(counts, awards)
+    cache.save_awards(counts, list(reversed(awards)))  # stored in RA's order, not the list's
     stored_counts, stored = cache.awards()
     assert stored_counts == counts
     assert cache.award_counts() == counts
     assert stored == awards
-    assert cache.awards(AwardKind.BEATEN_HARDCORE) == (counts, awards[1:])
+    assert cache.awards(AwardKind.BEATEN_HARDCORE) == (counts, awards[1:3])
+    assert cache.awards(AwardKind.MASTERED)[1] == awards[:1]
+    assert cache.awards(AwardKind.COMPLETED)[1] == []
+    assert cache.awards(gallery=True)[1] == [awards[0], *awards[3:]]  # no beaten awards
+    gallery = cache.gallery_counts()
+    assert gallery is not None
+    assert (gallery.mastered, gallery.completed, gallery.events, gallery.site) == (1, 0, 1, 1)
     cache.save_awards(counts, awards[:1])  # replaces the whole set
     assert cache.awards()[1] == awards[:1]
 
 
+def test_events_round_trip_and_remember_unknown_ones(cache):
+    assert cache.events() == {}
+    assert cache.event_fetch_times() == {}
+    tiers = (EventTier(1, "Bronze", 12, "/Images/2.png"), EventTier(2, "Silver", 30, "/b.png"))
+    aotw = EventInfo(196, "Achievement of the Week 2026", "/Images/1.png", tiers, 64)
+    cache.save_events([aotw, EventInfo(221, "Find the Pixel", "/Images/3.png")], [196, 221, 7], 100)
+    assert cache.events() == {196: aotw, 221: EventInfo(221, "Find the Pixel", "/Images/3.png")}
+    assert cache.event_fetch_times() == {196: 100, 221: 100, 7: 100}  # 7: RA didn't return it
+    fewer = EventInfo(196, "Renamed", "/Images/1.png", tiers[:1])
+    cache.save_events([fewer], [196], 200)  # replaces the event, tiers and points included
+    assert cache.events()[196] == fewer
+    assert cache.event_fetch_times()[196] == 200
+
+
 def test_unreadable_award_counts_are_ignored(cache):
     cache.set_meta("award_counts", "{broken")
+    cache.set_meta("gallery_counts", '{"unknown": 1}')
     assert cache.awards() == (None, [])
     assert cache.award_counts() is None
+    assert cache.gallery_counts() is None
 
 
 def test_unlock_window_round_trip(cache):

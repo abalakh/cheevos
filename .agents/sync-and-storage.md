@@ -16,8 +16,8 @@ the app deletes it and starts fresh.
 | API key | `Saves/cheevos/apikey.txt` | User data | Plain text, user-editable |
 | Settings | `Saves/cheevos/settings.json` | User data | JSON, written atomically (temp file + rename). Unknown keys are ignored and invalid values fall back to defaults. |
 | PyUI view state | `Saves/cheevos/pyui-state.json` | Cache | PyUI's last selections, kept apart from the launcher's own state. |
-| RA data cache | `Saves/cheevos/cache/data.db` | Cache | SQLite: profile, games, achievements, awards, sync state. Rebuildable from RA. |
-| Image cache | `Saves/cheevos/cache/media.db` | Cache | SQLite blobs keyed `badge/<BadgeName>[_lock]`, `icon/<gameId>`, `avatar/<user>`. Kept separate so "Clear image cache" doesn't drop RA data. |
+| RA data cache | `Saves/cheevos/cache/data.db` | Cache | SQLite: profile, games, achievements, awards, events, sync state. Rebuildable from RA. |
+| Image cache | `Saves/cheevos/cache/media.db` | Cache | SQLite blobs keyed `badge/<BadgeName>[_lock]`, `icon/<gameId>`, `avatar/<user>`, `award/<path without .png>` (event and site badges, e.g. `award/Images/122639`). Kept separate so "Clear image cache" doesn't drop RA data. |
 | Image scratch | `/tmp/cheevos/media/` | Cache | The images the current screen needs, extracted from `media.db` because PyUI loads images by path (~17 ms per 40 badges). tmpfs is RAM, so it's bounded: 4 MB, LRU, counted in whole 4 KB pages (a 3 KB badge takes a page). |
 | Drawing scratch | `/tmp/cheevos/scaled/` | Cache | Generated PNGs (swatches, button glyphs), and in `sharp/` the enlarged screenshots: only the newest 4 (up to 1.4 MB each). |
 | Log | `Saves/spruce/cheevos-$PLATFORM.log` | — | Spruce's convention. Rotating, 1 MB × 2. |
@@ -43,9 +43,15 @@ achievements(achievement_id INTEGER PRIMARY KEY, game_id, title, description, po
       true_ratio, badge_name, display_order, type, num_awarded, num_awarded_hc,
       earned_at, earned_hc_at)
 game_stats(game_id PRIMARY KEY, num_distinct_players, num_players_casual, num_players_hc)
-awards(game_id, kind, title, console_id, console_name, image_icon, awarded_at, display_order,
-       PRIMARY KEY(game_id, kind))
+awards(position, type, data, extra, title, console_name, image_icon, awarded_at, console_id,
+       display_order, display_tier)   -- every visible award, in RA's order; beaten ones too
+events(event_id PRIMARY KEY, title, image, points, fetched_at)  -- '' title: RA returned none
+event_tiers(event_id, tier, label, points, image, PRIMARY KEY(event_id, tier))
 ```
+
+Schema 3 (event and site awards) recreated older caches: the first sync after the update
+fetches the working set's details again; images survive in `media.db`. `meta.gallery_counts`
+holds the Awards screen's per-gallery counts for the home row (`award_store.py`).
 
 The recent-unlock feed is a versioned JSON snapshot in `meta.recent_unlock_feed`, bounded to
 100 entries with their achievement definitions and game metadata. It is replaced in one
@@ -91,8 +97,14 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
 3. **Game list**: every page of `GetUserCompletionProgress`. Upsert the `games` rows. Compute a
    fingerprint per game: `(MaxPossible, NumAwarded, NumAwardedHardcore, MostRecentAwardedDate,
    HighestAwardKind)`.
-4. **Awards**: `GetUserAwards`. One request, before the details, so the awards wall and the
-   home screen are complete as early as the games list.
+4. **Awards**: `GetUserAwards`. One request, before the details, so the Awards screen and the
+   home screen are complete as early as the games list. Then the events' details
+   (`sync/events.py`), from RA's v2 API, for events never fetched, earned again since their
+   last fetch, or older than 30 days: one `events` request per 50 events, then, for events
+   whose earned tier has points, their `event-achievements` (100 a page) to add up what each
+   event is worth ([retroachievements.md](retroachievements.md), "Event tiers"). An event RA
+   doesn't return is remembered as fetched (no title), so it isn't asked for at every sync.
+   A refused or odd v2 answer is logged and skipped; the awards still show.
 5. **Recent unlocks**: `GetAchievementsEarnedBetween`, latest 100 distinct achievements. Query
    backwards from the latest `MostRecentAwardedDate` to the account's member date: neither
    bound depends on the device clock. Start with 7 days, halve any capped (500-row) window
@@ -118,7 +130,10 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
    next run.
    - The test account (2,937 games) has 60 games in a 30-day working set: about 3 minutes
      for its details at the current pace, plus media downloads spaced 0.25 s apart.
-8. **Badges** (the "Badge downloads" setting):
+8. **Award images**: event and site badges (the shown tier's badge; the site's art from its
+   static host), whatever the badge setting: there are few of them, and the Awards screen
+   should work offline. Mastered games' icons are the library's icons, already downloaded.
+9. **Badges** (the "Badge downloads" setting):
    - On-device + recent: games in `local_games` plus games played or unlocked within the recent
      window.
    - All: every game whose details are cached.
@@ -130,7 +145,7 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
      (`lazy_media.py`).
    - The `_lock` blob stays after an unlock, on purpose: it's a few KB, it's needed again if
      progress is reset on RA, and "Clear image cache" removes it.
-9. **Local matching refresh** ([integration.md](integration.md), "On-device games").
+10. **Local matching refresh** ([integration.md](integration.md), "On-device games").
 
 - **Triggers**: auto on app open when the network is up and the setting is on; Start on any
   screen; Settings → "Sync now" / "Download every game".

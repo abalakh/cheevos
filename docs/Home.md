@@ -14,7 +14,8 @@ and unlock screenshots, right on the device, in the look of your Spruce theme.
   (progression, win condition, missable) and the date you unlocked it.
 - **Unlock screenshots:** if RetroArch saves a screenshot when you unlock an achievement,
   Cheevos shows it on the achievement and full screen.
-- **Recent unlocks** across all games, and an **awards wall** of your mastered and beaten games.
+- **Recent unlocks** across all games, and your profile's **awards**: mastered and completed
+  games, events and site badges, as a carousel, a grid or a list.
 - **Your profile:** points, rank, last played game, player stats and games per console.
 - **Works offline.** Everything is cached on the SD card. When Wi-Fi is on, Cheevos syncs only
   what changed.

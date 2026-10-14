@@ -8,7 +8,9 @@ from cheevos.core.clock import ServerClock
 from cheevos.core.errors import NetworkError
 from cheevos.core.ra_client.transport import (
     API_HOST,
+    API_V2_HOST,
     MEDIA_HOST,
+    STATIC_HOST,
     FixtureTransport,
     HttpTransport,
     default_ssl_context,
@@ -62,6 +64,19 @@ def test_fixture_media(tmp_path):
     assert transport.get(MEDIA_HOST, "/Badge/2.png", {}).status == 404
     assert transport.get(MEDIA_HOST, "/../outside.png", {}).status == 404
     assert FixtureTransport(FIXTURES).get(MEDIA_HOST, "/Badge/1.png", {}).status == 404
+
+
+def test_fixture_v2_resources_and_static_art(tmp_path):
+    (tmp_path / "events.json").write_text('{"data": []}', encoding="utf-8")
+    manifest = '{"requests": [{"file": "events.json", "method": "v2/events", "params": {}}]}'
+    (tmp_path / "manifest.json").write_text(manifest, encoding="utf-8")
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "patreon.png").write_bytes(b"png")
+    transport = FixtureTransport(tmp_path, media_dir=tmp_path)
+    assert transport.get(API_V2_HOST, "/v2/events?filter%5Bid%5D=1", {}).body == b'{"data": []}'
+    assert transport.calls == [("v2/events", {"filter[id]": "1"})]
+    assert transport.get(API_V2_HOST, "/v2/event-achievements", {}).status == 404
+    assert transport.get(STATIC_HOST, "/assets/patreon.png", {}).body == b"png"
 
 
 # --- HttpTransport ----------------------------------------------------------------------------
@@ -265,6 +280,13 @@ def test_http_statuses_do_not_trigger_downgrade_or_redirects(status):
     assert make(secure, plain).get(API_HOST, "/a", {}).status == status
     assert plain.connections == []
     assert len(secure.connections) == 1
+
+
+@pytest.mark.parametrize("host", [API_V2_HOST, STATIC_HOST])
+def test_ras_other_hosts_also_use_http_when_tls_fails(host):
+    secure, plain = Factory(ssl.SSLError("clock")), Factory(OK)
+    assert make(secure, plain).get(host, "/v2/events", {}).status == 200
+    assert plain.connections[0].host == host
 
 
 def test_other_hosts_never_downgrade():

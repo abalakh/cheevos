@@ -50,11 +50,13 @@ src/cheevos/
     models.py            dataclasses: UserProfile, GameProgress, Achievement, Award, Unlock, ...
     errors.py            CheevosError and its subclasses
     storage/             db.py (open/recreate), schema.py (DDL, version, row mapping),
-                         data_cache.py, media_cache.py
+                         data_cache.py, award_store.py (awards and events), media_cache.py
     ra_client/           transport.py (HTTPS with HTTP fallback, fixtures), client.py, parse.py,
+                         parse_awards.py (awards, v2 events), v2.py (v2 JSON:API requests),
                          redact.py (key redaction in logs)
-    sync/                engine.py, planner.py (what to fetch), progress.py, lazy_media.py,
-                         session.py, __main__.py (sync without UI)
+    sync/                engine.py, planner.py (what to fetch), events.py (event details),
+                         progress.py, lazy_media.py, session.py, __main__.py (sync without UI)
+    awards.py            the profile's award galleries, after RA's own renderer
     stats.py             profile statistics, after RA's own rules
     settings.py          settings.json load/save with defaults and validation
     credentials.py       username from Spruce or RetroArch, apikey.txt
@@ -64,23 +66,24 @@ src/cheevos/
     net.py               connectivity check through the shared transport
     clock.py             shared RA Date + monotonic app clock (system clock unchanged)
   ui/
-    pyui/                bridge: bootstrap, views (lists, grids, popups), primitives (drawing,
-                         input), text (fitting, glyph fallbacks), status_bar, bar_layout, glyphs,
-                         generated (PNG swatches, button glyphs), award_images (static awards),
-                         row_bars, bar_colors, grid_frames, image_frames (shared outlines),
-                         badge_grid (a game's compact badge grid),
-                         texture_budget (bounded PyUI texture caches), title_bar (a game's
-                         top-bar title and award dot)
+    pyui/                bridge: bootstrap, views (lists, grids, carousel, popups), primitives
+                         (drawing, input), text (fitting, glyph fallbacks), status_bar,
+                         bar_layout, glyphs, generated (PNG swatches, button glyphs),
+                         award_images (static awards), row_bars, bar_colors, image_frames
+                         (shared outlines), badge_grid (compact badge grid), carousel (the
+                         awards carousel), texture_budget (bounded PyUI texture caches),
+                         title_bar (a game's top-bar title and award dot)
     screens/             home, profile, page (scrolling pages), games, game_detail, achievement,
-                         lists (recent unlocks), awards, settings, setup, status (bottom-bar sync
-                         status), rows, common
+                         lists (recent unlocks), awards, award_text (how awards read),
+                         settings, setup, status (bottom-bar sync status), rows, common
     context.py           what screens share (AppContext)
     media.py             image resolver with outline-icon fallbacks
     strings.py           every user-facing string (ready for PyUI Language later)
   platform/
     paths.py             every path, from CHEEVOS_SDCARD_ROOT (default /mnt/SDCARD)
     desktop/             dev only: runner CLI on PyUI's DESKTOP device, fixture/live
-                         environments, drills
+                         environments, drills (showcase_awards: the showcase's event and site
+                         badges)
   res/icons/             original outlines: 24/48 px status, 96/144 px lists and fallbacks
   res/awards/            pre-rendered awards: dark/light and black/white contrast variants
 app/                     packaging: config.json, launch.sh, cheevos.png

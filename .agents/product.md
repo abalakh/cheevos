@@ -1,8 +1,9 @@
 # Product: what Cheevos does
 
 An on-device RetroAchievements hub for SpruceOS. It shows the player's profile, game progress,
-achievement lists with badges, descriptions and unlock modes, mastery awards, unlocks waiting in
-RAOfflineProxy, and the screenshots RetroArch took when achievements were unlocked.
+achievement lists with badges, descriptions and unlock modes, the profile's game, event and site
+awards, unlocks waiting in RAOfflineProxy, and the screenshots RetroArch took when achievements
+were unlocked.
 
 The wiki (`docs/`) explains the screens to players. This file holds the rules behind them: data
 sources, orderings, edge cases. Keep both in step. Keep the UI lean: prefer a section on an
@@ -37,7 +38,9 @@ Settings.
 - **Profile**: avatar, username, Hardcore (`TotalPoints`), Casual (`TotalSoftcorePoints`) and
   RetroPoints (`TotalTruePoints`), and the rank `#Rank` ("Unranked" when null).
 - **Games**: number of games, mastered or beaten. **Recent unlocks**: the latest one.
-  **Awards**: mastered and beaten counts.
+  **Awards**: what the Awards screen shows, gallery by gallery, leaving out empty ones ("902
+  mastered · 35 events"; "No awards yet"), with the total on the right. Counted from the
+  visible awards at sync (`gallery_counts` in `meta`), so it agrees with the screen.
 - **Sync status** lives in PyUI's bottom bar, not in a home row:
   - Home and Settings always show it with a Start hint: "✓ Synced 5 min ago · [START] Sync",
     "Games 3/12 · [START] Cancel", "Offline · showing saved
@@ -131,19 +134,59 @@ and cached separately from complete game sets. Browsing it uses saved definition
 titles, even for games whose full sets were never downloaded. Pending proxy unlocks come
 first, marked; already-online entries are not duplicated. A row opens the achievement card.
 
-## Awards wall
-- A grid of game icons from `API_GetUserAwards` (`VisibleUserAwards` of type
-  "Mastery/Completion" and "Game Beaten"; `AwardDataExtra` 1 = hardcore).
-- One tile per game, with its highest award: Mastered > Completed > Beaten > Beaten (casual).
-  A mastered game usually holds a Beaten award too.
-- Tiles: the game icon framed in RA's colours. RA draws mastered icons with a 2 px gold border
-  (`goldimage`); we extend that with its award-indicator colours. Mastered: thick gold.
-  Completed: plain. Beaten: thick silver. Beaten (casual): thin silver. The caption is the
-  game title.
-- Y: filter (all / mastered and completed, RA's own showcase / beaten) and sort (newest first,
-  site order = the player's own `DisplayOrder` on RA, title, console). The top bar shows the
-  count.
-- A opens that game's achievement list.
+## Awards
+The badges of RA's profile galleries (RAWeb `site-award.php`; how they are grouped and worded:
+[retroachievements.md](retroachievements.md), "Awards" and "Event tiers"), from
+`API_GetUserAwards` plus the event details only RA's v2 API has.
+- **Which awards**: the visible **Game Awards** (masteries and completions), **Event Awards**
+  (events, and masteries of the old event games on the "Events" console) and **Site Awards**
+  (site events, playtests, developer and media contributions, Patreon, Certified Legend). Awards
+  the player hid on RA never show. **Beaten** awards are left out, as RA's own galleries leave
+  them out: they stay milestones in Games and the Profile's statistics, and event and site
+  badges never count there. A game holding both a mastery and a completion shows the mastery;
+  event and site awards are never merged or matched by ID (`Award.key` names the type: an event
+  ID can equal a game ID).
+- **Each badge**: its image framed as on RA, a title, and a description with the date:
+
+  | Award | Frame | Title | Description |
+  |---|---|---|---|
+  | Game, mastered | Gold | Game title | Mastered · date |
+  | Game, completed | Plain | Game title | Completed · date |
+  | Old event game | Gold if mastered | Its title | Mastered (Completed) · date |
+  | Event, site event | Gold | Event title, plus the earned tier where RA adds it | "Awarded for completing this event" or "Awarded for earning at least N points" · date |
+  | Patreon | Gold; holographic for the $2 tier | Patreon Supporter | "$2 Patreon supporter", or a thank-you · date |
+  | Developer, media | Gold | RA's name for it | Its threshold, e.g. "Over 1,000 unlocks", "100 approved screenshots" · date |
+  | Certified Legend, playtest | Gold | Certified Legend / Playtester Award | "A Certified RetroAchievements Legend" / the playtest's name · date |
+
+  An event's image is the tier the player chose to show (`display_award_tier`); its text is the
+  tier actually earned. Before an event's details are fetched (offline first sync, or the v2
+  API refused), it shows RA's title and image with "Event award": nothing is invented.
+  Descriptions are shortened with "…" before the date is (`MenuItem.tail`).
+- **Views** (Select cycles carousel → grid → list, and the bottom bar names the next one; also
+  "View" in the Y/Menu popup). All three show the same awards in the same order.
+  - **Carousel** (default): PyUI's animated carousel, the selection larger and centred, smaller
+    neighbours towards the edges (five tiles; three with fewer than five awards, or on a
+    portrait screen, where the centre takes 60% of the width). Under it the title, then the
+    description and date. No selection ring: the frames are RA's.
+  - **Grid**: the achievements' compact badge grid (whole rows and columns, focus ring,
+    enlarged selection, scrollbar, L1/R1 paging); under it the title, then the description
+    and, on the right, the date.
+  - **List**: the normal themed rows: framed icon, title, then description · date.
+
+  The view is remembered as `awards_view` (carousel, grid or list; anything else means the
+  carousel), apart from the achievement view, and saved on exit like the other views.
+- **Y / Menu**: View · Filter · Sort.
+  - Filter: All · Game Awards · Mastered · Completed · Event Awards · Site Awards, each with its
+    count; empty ones are left out (except All and the current one). The top bar counts the
+    awards shown ("Awards · 35").
+  - Sort: Newest first (default) · Site order (galleries in the order of their first award,
+    the player's arrangement inside each, as on the profile) · Title (as shown) · Console (game
+    awards only: offered for All and the game filters; game awards by console first).
+- **A**: a game award opens the game's achievements; back from it, the same view, selection
+  and page. Event and site badges (old events' masteries included) do nothing: the screen
+  already shows their title, reason and date, and a details popup only repeated them.
+- **Keeping the place**: switching views and a Y menu left unchanged keep the selection; a new
+  filter or sort starts at the top. An empty filter says so and returns to All.
 
 ## Profile (after RA's own profile page)
 One page, scrolled with the D-pad (up/down: a row, L1/R1: a page; a thin scrollbar on the
@@ -195,9 +238,10 @@ Stored in `Saves/cheevos/settings.json`.
 | About | — | Version, license (MIT), credits: PyUI (Copyright (c) 2025 Christopher Jacobs; its license requires this user-facing credit), RetroAchievements as the data source |
 
 The file also remembers `game_list_details` (the games list view), `achievement_grid` (the
-achievement list/grid view) and `achievement_sort` (the achievement sort, initially `"order"`
-for RA display order). Achievement preferences are shared by all games. Changes take effect in
-memory immediately and are written once on app exit, only if they changed.
+achievement list/grid view), `achievement_sort` (the achievement sort, initially `"order"`
+for RA display order) and `awards_view` (the Awards screen's carousel, grid or list).
+Achievement preferences are shared by all games. Changes take effect in memory immediately and
+are written once on app exit, only if they changed.
 
 ## Controls
 These follow the conventions of Spruce's own menus (see [pyui.md](pyui.md), "Buttons"): X acts
@@ -209,9 +253,9 @@ on the highlighted item, Start is free in lists, Select switches the view.
 | A | Open / confirm |
 | B | Back |
 | Start | Sync, or cancel the running sync, on every screen except popups and the keyboard. After "API key rejected": enter a new key |
-| Y / MENU (tap) | Options popup: filter and sort (games, awards); view, filter and sort (a game's achievements) |
+| Y / MENU (tap) | Options popup: filter and sort (games); view, filter and sort (a game's achievements, awards) |
 | X | Reveal a hidden (spoiler) description on the achievement card (per-item, like PyUI); "See more" on the profile |
-| Select | Games: progress bars ↔ details. A game's achievements: list ↔ grid (like PyUI's game lists) |
+| Select | Games: progress bars ↔ details. A game's achievements: list ↔ grid (like PyUI's game lists). Awards: carousel → grid → list |
 | L1 / R1 | Page up / down (PyUI default) |
 | MENU (hold) | Reserved by Spruce (game switcher) |
 
@@ -242,7 +286,8 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
   a missing image falls back to an outline, so columns stay aligned. A badge not downloaded
   yet shows a gold trophy if unlocked and a grey lock (`lock-muted`, rendered in SPRUCE's
   muted text colour, `#7C6F64`) if locked, so the state reads at a glance, as RA greys out
-  locked badges. There is no third-party icon set.
+  locked badges. A missing award image shows a gamepad (game awards) or a crown (event and site
+  badges). There is no third-party icon set.
 - **App icon**: an original trophy outline in the SPRUCE theme's app-icon style (4 px rounded
   stroke, 10 px padding, `#D7B45F`), from `assets/icons/cheevos.svg`, rendered at 105 px by
   `scripts/render_icons.py` and shipped as `cheevos.png`. Themes can override it with
@@ -265,6 +310,7 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
 | Power-off mid-sync | Resumes next run. Per-game commits mean the DB is never half-written for a game. |
 | A game whose achievements were never downloaded | Opening it loads them: "Loading achievements…" (B backs out; the fetch still completes), about a second on a Mini. Offline, or when RA fails, it says the achievements aren't downloaded yet and why (Wi-Fi, key, RA's pause). |
 | Proxy missing or unreadable | Hide the Settings status row and pending markers. |
+| Event details unavailable (never fetched offline, or RA's v2 API refused) | Event badges keep RA's own title and image, described as "Event award"; the sync carries on (not "API key rejected"), and the next sync asks again. Fetched details are kept for offline browsing. |
 | Theme lacks an asset we use | Fall back to our bundled icons (`cheevos/res/`) or generate it (button badges). |
 | The app can't start (PyUI import, bootstrap, any crash) | `launch.sh` sees the non-zero exit, appends stderr to the app log (errors before logging starts only reach stderr), and shows "Cheevos couldn't start" with the log's path through `App/PyUI/launch.sh -msgDisplay` (PyUI's launcher sets up every platform's display). Verified on the Mini. |
 | Unknown platform | `launch.sh` shows "Cheevos doesn't support this device yet" the same way. |

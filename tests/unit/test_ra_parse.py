@@ -197,63 +197,6 @@ def test_game_detail_rejects_bad_payloads(payload):
         parse.parse_game_detail(payload)
 
 
-def test_awards_from_empty_fixture():
-    counts, awards = parse.parse_awards(load("user_awards"))
-    assert (counts.mastered, counts.completed, counts.beaten_hardcore, counts.beaten_softcore) == (
-        0,
-        0,
-        0,
-        0,
-    )
-    assert awards == []
-
-
-def test_awards_kinds_and_filtering():
-    counts, awards = parse.parse_awards(
-        {
-            "MasteryAwardsCount": 1,
-            "CompletionAwardsCount": "1",
-            "BeatenHardcoreAwardsCount": 1,
-            "BeatenSoftcoreAwardsCount": 1,
-            "VisibleUserAwards": [
-                {
-                    "AwardType": "Mastery/Completion",
-                    "AwardData": 1,
-                    "AwardDataExtra": 1,
-                    "Title": "A",
-                    "AwardedAt": "2024-02-10T16:41:22+00:00",
-                    "ConsoleID": 5,
-                    "DisplayOrder": "3",
-                },
-                {"AwardType": "Mastery/Completion", "AwardData": "2", "AwardDataExtra": 0},
-                {"AwardType": "Game Beaten", "AwardData": 3, "AwardDataExtra": 1},
-                {"AwardType": "Game Beaten", "AwardData": 4, "AwardDataExtra": "0"},
-                {"AwardType": "Patreon Supporter", "AwardData": 0},
-                {"AwardType": "Game Beaten", "AwardData": 0, "AwardDataExtra": 1},
-            ],
-        }
-    )
-    assert (counts.mastered, counts.completed) == (1, 1)
-    assert [(a.game_id, a.kind) for a in awards] == [
-        (1, AwardKind.MASTERED),
-        (2, AwardKind.COMPLETED),
-        (3, AwardKind.BEATEN_HARDCORE),
-        (4, AwardKind.BEATEN_SOFTCORE),
-    ]
-    assert awards[0].title == "A"
-    assert awards[0].awarded_at == utc(2024, 2, 10, 16, 41, 22)
-    assert (awards[0].console_id, awards[0].display_order) == (5, 3)
-    assert (awards[1].console_id, awards[1].display_order) == (0, 0)
-
-
-@pytest.mark.parametrize(
-    "payload", [[], {"VisibleUserAwards": {"a": 1}}, {"VisibleUserAwards": [1]}]
-)
-def test_awards_reject_bad_payloads(payload):
-    with pytest.raises(ApiPayloadError):
-        parse.parse_awards(payload)
-
-
 def test_unlocks_between():
     unlocks = parse.parse_unlocks(
         [

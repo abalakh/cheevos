@@ -20,7 +20,7 @@ from cheevos.core.ra_client import FixtureTransport, RaClient, RedactingFilter, 
 from cheevos.core.ra_client.client import default_user_agent
 from cheevos.core.ra_client.pacer import Pacer
 from cheevos.core.ra_client.redact import install_redaction
-from cheevos.core.ra_client.transport import API_HOST, MEDIA_HOST
+from cheevos.core.ra_client.transport import API_HOST, MEDIA_HOST, STATIC_HOST
 from cheevos.core.storage.data_cache import DataCache
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "ra"
@@ -183,6 +183,12 @@ def test_media_uses_media_host():
     transport = ScriptedTransport(Response(status=200, body=b"img"))
     make(transport).media("/UserPic/Balah.png")
     assert transport.calls[0][:2] == (MEDIA_HOST, "/UserPic/Balah.png")
+
+
+def test_site_art_comes_from_the_static_host():
+    transport = ScriptedTransport(Response(status=200, body=b"img"))
+    make(transport).media("/assets/images/badge/patreon.png")
+    assert transport.calls[0][:2] == (STATIC_HOST, "/assets/images/badge/patreon.png")
 
 
 def test_default_user_agent():

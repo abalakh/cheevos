@@ -22,9 +22,10 @@ of PyUI's views, without patching PyUI.
   `mainui.initialize_device(..., main_ui_mode=False)` (the mode Spruce's `-msgDisplay` helpers
   use), so every Spruce device works without copying PyUI's device table. Importing `mainui`
   doesn't start PyUI.
-- **Standard views** (`ViewCreator.create_view`): lists (`ICON_AND_DESC`, `TEXT_AND_IMAGE`) and
-  grids (`GRID`), through `views.choose()`, or a `views.PreparedView` that a screen keeps to
-  show again ("Showing a view again", below).
+- **Standard views** (`ViewCreator.create_view`): lists (`ICON_AND_DESC`) and popups
+  (`POPUP`), through `views.choose()`, or a `views.PreparedView` that a screen keeps to show
+  again ("Showing a view again", below). The same `PreparedView` builds our two subclasses of
+  PyUI's views: the badge grid (`GridView`) and the awards carousel (`CarouselView`).
 - **Custom screens** (profile, achievement card, full-screen screenshot) are drawn with PyUI's
   `Display` primitives and `Theme` colours and fonts (`primitives.py`), so they still follow the
   theme.
@@ -87,19 +88,13 @@ of PyUI's views, without patching PyUI.
   the 4 MB scratch LRU (851 evictions) and made the view 10× slower to build. Grids ask
   `image_path_selected_searcher` for the highlighted tile; leave it unset and the selected
   tile has no image.
-- **Grids need an image size:** without `grid_resized_width/height`, `GridView.__init__` resolves
+- **Grids need an image size:** without `resized_width/height`, `GridView.__init__` resolves
   and loads every tile's image to find the tallest. With 2,000 awards that took half a second on
   a Mac. It also extracted hundreds of images through the 4 MB scratch LRU, which evicted files
   whose paths PyUI had already cached; loading those failed, and PyUI blacklisted them for the
-  session. `PreparedView` always passes a tile size.
-- **Grid shape** (`views.grid_shape`, the awards wall): PyUI's `GridView` splits the screen into
-  the `cols`×`rows` we pass. Tiles and columns scale like the theme's list rows (155 px columns at 640x480, a
-  quarter narrower allowed). Rows are as tall as `GridView._render_cell` needs: the image moved
-  by `gridMultiRowImageYOffset`, then a caption one line up from the row's bottom, moved by
-  `multiRowGridTextYOffset`. SPRUCE's 480x800 config moves both, so a fixed row height put
-  captions on the badges there. Result: 4x2 on 4:3 and 3:2 screens, 5x2 at 1280x720, 4x3
-  at 720x720, 3x3 at 480x800.
-- **Badge grid** (`badge_grid.py`, a game's achievements, `Layout.BADGES`): a `GridView`
+  session. The badge grid always passes its badge size.
+- **Badge grid** (`badge_grid.py`, a game's achievements and the Awards grid, `Layout.BADGES`):
+  a `GridView`
   subclass that keeps PyUI's input, wraparound, L1/R1 paging and touch, and replaces `_render`
   (and `cell_at_touch_point`). It draws the visible tiles every frame, as PyUI's grid does; the
   selected tile last, enlarged, so it covers its neighbours; then the details, scrollbar and
@@ -114,6 +109,30 @@ of PyUI's views, without patching PyUI.
   would only save ~10 ms per idle frame, so it isn't done.
   - The strip's title uses the normal text colour: the "selected" colour is meant for a
     highlight bar and disappears on MINIMAL's and ART_BOOK_NEXT's plain background.
+  - Awards use it as they are: a game icon fits the badge square, and the date goes where an
+    achievement's tags go (right-aligned parts are fitted first, so it stays whole).
+- **Carousel** (`carousel.py`, the Awards screen, `Layout.CAROUSEL`): a `CarouselView`
+  subclass. PyUI keeps the input and the animation (left/right, wraparound, L1/R1 by a
+  screenful); the subclass:
+  - replaces `_clear` (drawn before every steady and animated frame) to draw the theme, the
+    selection's title and description under the images, fitted once per selection, and to
+    resolve the visible and outgoing tiles' images (`get_icon()`, since the entry caches its
+    image path) plus five more each side as `ImageDemand.NEXT`; a new selection drops the
+    downloads still waiting (`visible_images.new_window`). `VisibleImages` doesn't fit: the
+    carousel's window wraps around the list;
+  - replaces `_render_image` to fit images in the room above the details and frame their
+    actual drawn bounds. PyUI passes only the entry's `image_path`, so `_clear` sets it to
+    `<path>#<entry id>` and the painter looks up that entry's image and frame. Keyed by path
+    alone, awards sharing a fallback (a mastered and a completed game, images not downloaded)
+    lost their frames depending on which tiles the slide included, which only CI caught;
+  - draws short lists once each: PyUI repeats the options until there are more than twice the
+    tiles (`PreparedView` maps the index back with `% count`), and skips the animation below
+    three; PyUI resumes drawing after an animation without clearing, so `_clear` runs again;
+  - pages with L1/R1 itself on themes with tabs (PyUI returns those to the caller there);
+  - sets `options_are_sorted = False` (no letter next to the index);
+  - five tiles (centre 40% of the width, shrinking further away), three for fewer than five
+    awards (50%) or on a portrait screen (60%: PyUI sizes images by width, and a tall screen
+    has height to spare). Images are scaled linearly, as PyUI does (the approved design).
 - **Grid tiles cache their image path:** `GridOrListEntry` drops its searchers after one call.
   `visible_images.VisibleImages` re-arms the visible tiles' searchers when `MediaResolver.version` changes,
   so lazily downloaded icons appear. List rows use `icon_searcher`, which PyUI calls every frame.
@@ -123,22 +142,25 @@ of PyUI's views, without patching PyUI.
   in the scroll direction (`ImageDemand.NEXT`, back of the queue). Sizes come from the view, so
   they scale with the screen (5 rows at 640x480, 9 at 480x800).
 - **Badge outlines** (`image_frames.py`): hardcore achievements have a gold border; casual,
-  pending and locked ones stay plain. Mastered award tiles use the same gold border; completed
-  tiles stay plain. A transparent PNG frame surrounds the fitted image, with a 1 px black
+  pending and locked ones stay plain. Mastered games, events and most site badges use the same
+  gold border; completed games stay plain; the $2 Patreon badge gets `Frame.HOLO`, as wide as
+  gold, painted with RA's 135° `holoimage` gradient. A transparent PNG frame surrounds the fitted image, with a 1 px black
   outer edge so gold stays gold and readable on bright themes. Thickness scales with the
   image, at least 2 px. Generate once per style and rendered size in the RAM scratch, shared
   across badges: one texture draw per border, with no per-badge image copies. PyUI's bounded
-  texture cache includes these assets. Lists wrap `_render` before the list presents and
-  mirror the icon column and row geometry; only visible framed icons are measured, in a
-  bounded cache. Cache the fitted rectangles until the visible window, options identity or
-  media revision changes, so scrolling, on-tick updates and lazy downloads stay correct.
-- **Grid overlays** (the awards wall): `GridView._render` ends with `present()`, so anything
-  drawn after it is lost. Wrap the per-tile `_render_cell` (`grid_frames.py`) to select its
-  outline; PyUI calls
-  it with keyword arguments (`visible_index=`, `imageTextPair=`). A `_render_primary_image`
-  wrapper draws the border using the returned image dimensions and the actual centre,
-  including the fallback. This also handles rectangular images and single-row grids without
-  reproducing the theme's offsets.
+  texture cache includes these assets. Only the bands' pixels are computed (the gradient is
+  pure Python, about 55× slower on a Mini+ than on a Mac).
+  - **The carousel fills rectangles instead** (`fill()`, `Display.render_box`): its slides
+    draw every tile at a new size in each frame, and a PNG per size stalled. Measured on a
+    Mini+ with 1,877 awards (2026-10-14): PNG frames took 609 ms for the first move (16 gold
+    PNGs, 3–52 ms each) and, for holographic frames, 2.3 s per 224 px PNG: 3.8 s to open
+    Awards and an 11.9 s freeze on the first move. Fills: 335 ms for the first move, 314–348
+    ms after (warm PNGs: 296–349 ms); every award holographic, as a stress test, ~600 ms a
+    move (about 60 fills per holographic tile). Opening Awards: 1.0–1.1 s.
+  - Lists wrap `_render` before the list presents and mirror the icon column and row
+    geometry; only visible framed icons are measured, in a bounded cache. Cache the fitted
+    rectangles until the visible window, options identity or media revision changes, so
+    scrolling, on-tick updates and lazy downloads stay correct.
 - **Row bars:** progress bars in list rows wrap one view's `_render` (`row_bars.py`) and
   replicate `DescriptiveListView._render`'s geometry (icon column = 1/8 of the selected-row
   background, description at `text_offset_y + title height`). An item with `progress` gets an
@@ -154,7 +176,9 @@ of PyUI's views, without patching PyUI.
   the circle centre; the rim hides the strip's left edge. The top bar uses these same PNGs
   at a smaller size, including mastery glow, with no bar to mask inside hollow rings.
 - **Long text:** PyUI does not truncate list titles against `value_text`, or descriptions at
-  the screen edge. The bridge fits both (`ui/pyui/text.py`).
+  the screen edge. The bridge fits both (`ui/pyui/text.py`). A `MenuItem.tail` (an award's
+  date) stays whole after the description: `fit_with_tail` shortens the description first.
+  `displayable()` strips a leading space, so the separator before the tail is added after it.
 
 ## Drawing gotchas
 - **Texture caches never evict:** `Display` caches a texture per distinct string and per image

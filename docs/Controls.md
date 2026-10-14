@@ -8,9 +8,9 @@ Cheevos follows the button conventions of Spruce's own menus.
 | A | Open or confirm. On an achievement with a screenshot: show it full screen. |
 | B | Back. On the home screen: leave Cheevos. |
 | Start | Sync now, or cancel the running sync. Works on every screen. After "API key rejected": enter a new key. |
-| Y / Menu (tap) | Filter and sort (games, a game's achievements, awards). |
+| Y / Menu (tap) | Filter and sort (games); view, filter and sort (a game's achievements, awards). |
 | X | Reveal a hidden description (achievement). See more (profile). |
-| Select | Switch view: progress bars ↔ details (games), list ↔ grid (a game's achievements). |
+| Select | Switch view: progress bars ↔ details (games), list ↔ grid (a game's achievements), carousel → grid → list (awards). |
 | L1 / R1 | Page up / down. |
 | Menu (hold) | Spruce game switcher. |
 

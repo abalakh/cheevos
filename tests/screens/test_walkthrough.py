@@ -295,3 +295,36 @@ def test_award_dot_follows_its_title(tmp_path):
     assert gold["game"] > 20  # the dot is ~12 px across at 640x480
     assert gold["popup"] == gold["game"]  # a popup over the screen keeps it
     assert gold["card"] == gold["games"] == 0  # other screens never get a stale dot
+
+
+@pytest.mark.parametrize("res", ["640x480", "752x560", "1280x720", "720x720", "480x800"])
+def test_awards_views_keep_the_selection_through_games_options_and_view_switches(tmp_path, res):
+    # Showcase awards, newest first: Descent (a mastered game), then Find the Pixel (an event).
+    script = (
+        "down,down,down,a,shot:carousel,a,shot:game,b,shot:from_game,"
+        "right,shot:event,a,shot:event_a,y,shot:options,b,shot:from_options,"
+        "select,shot:grid,select,shot:list,select,shot:carousel_again"
+    )
+    run_app(tmp_path, script, res=res, simulate="showcase")
+    names = [token[5:] for token in script.split(",") if token.startswith("shot:")]
+    assert_shots(tmp_path, names, res)
+    shots = tmp_path / "shots" / res
+    height = int(res.split("x")[1])
+
+    def below_clock(name):
+        return png_rows(shots / f"{name}.png", height)[1][height // 6 :]
+
+    assert below_clock("game") != below_clock("carousel")
+    assert below_clock("from_game") == below_clock("carousel")
+    for name in ("event_a", "from_options", "carousel_again"):  # A on an event does nothing
+        assert below_clock(name) == below_clock("event")
+    assert len({bytes(b"".join(below_clock(name))) for name in ("event", "grid", "list")}) == 3
+
+
+def test_awards_view_is_saved_on_exit(tmp_path):
+    # Drills start from a clean card, so restoring it is covered by test_ui_awards.py.
+    run_app(
+        tmp_path, "down,down,down,a,right,select,shot:grid,select,shot:list", simulate="showcase"
+    )
+    settings_file = tmp_path / "sdcard-showcase/Saves/cheevos/settings.json"
+    assert load_settings(settings_file) == Settings(awards_view="list")  # nothing else changed

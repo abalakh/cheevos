@@ -1,7 +1,14 @@
 import pytest
 
 from cheevos.ui.pyui import text
-from cheevos.ui.pyui.text import ListRoom, Text, displayable, fit_text, text_width
+from cheevos.ui.pyui.text import (
+    ListRoom,
+    Text,
+    displayable,
+    fit_text,
+    fit_with_tail,
+    text_width,
+)
 
 LACKING = {"·", "…", "é"}  # a pixel font like Pico-8's
 
@@ -52,6 +59,19 @@ def test_fit_text_keeps_text_that_fits_and_shortens_the_rest():
     assert fit_text("Metroid", Text.TITLE, 100) == "Metroid"  # 70 px of 97
     # 97 px less "..." (30 px) leaves 67 px: six letters, then the stand-in ellipsis
     assert fit_text("Metroid Fusion", Text.TITLE, 100) == "Metroi..."
+
+
+def test_fit_with_tail_keeps_the_date_whole():
+    # Joined: "Mastered - 1 May" (16 characters, 160 px) fits 200 px as it is.
+    assert fit_with_tail("Mastered", "1 May", Text.BODY, 200) == "Mastered - 1 May"
+    # Too long: the description is shortened, the date and its separator stay.
+    fitted = fit_with_tail("Awarded for earning points", "1 May", Text.BODY, 200)
+    assert fitted.endswith("... - 1 May")
+    assert text_width(fitted, Text.BODY) <= 200
+    # No room left for a description: everything is shortened together.
+    assert fit_with_tail("Awarded", "27 April 2026", Text.BODY, 120) == "Awarded..."
+    assert fit_with_tail("", "1 May", Text.BODY, 200) == "1 May"
+    assert fit_with_tail("Mastered", "", Text.BODY, 200) == "Mastered"
 
 
 def test_list_room_leaves_the_value_its_width_and_the_title_a_minimum():

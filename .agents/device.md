@@ -89,5 +89,14 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 
 ## Performance (Miyoo Mini+)
 
-The hardware: a Cortex-A7 at 1.2 GHz, 128 MB RAM, slow SD writes. Big lists and image-heavy
-screens need a check on it.
+The hardware: a dual-core Cortex-A7 at 1.2 GHz, 128 MB RAM (103 MB for Linux, the rest for the
+graphics pool), slow SD writes. Big lists and image-heavy screens need a check on it.
+- **Memory headroom is small.** Measured 2026-10-14 on Spruce 4.5.5 nightly with a 2,948-game
+  account: about 17 MB available on Home, with RAOfflineProxy's service at 30–36 MB beside
+  Cheevos (33–36 MB RSS). Browsing images fills the 4 MB `/tmp` image scratch, and the heap
+  levels off at +3–4.5 MB. Below about 8 MB available, starting a thread fails (the kernel's
+  heuristic refuses an 8 MB stack): PyUI's Wi-Fi status refresh then raised `can't start new
+  thread` and Cheevos exited. 0.1.6 and the Awards carousel both got there after 20–30 pages
+  of awards; a long desktop run under `tracemalloc` showed no Python leak.
+- **CPU:** measure per thread from `/proc/<pid>/task/*/stat` (fields 14 + 15, 1/100 s ticks);
+  100 ticks a second is one core. Busybox `top` shows % of both cores together.

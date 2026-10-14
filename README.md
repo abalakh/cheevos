@@ -16,7 +16,7 @@ Works offline, follows your Spruce theme.
 - **Achievements as a list or a badge grid**, with points, rarity, type tags and unlock dates.
   Filter and sort them.
 - **Unlock screenshots** shown on each achievement, and full screen.
-- **Profile, recent unlocks and an awards wall.**
+- **Profile, recent unlocks and awards** (game, event and site badges, as on your profile).
 - **Offline-ready:** everything is cached on the SD card, and syncs only fetch what changed.
   Unlocks still waiting in RAOfflineProxy show as "Pending sync".
 - **Optional spoiler protection** for locked descriptions: all of them, or just the story ones.

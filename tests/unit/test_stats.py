@@ -4,6 +4,7 @@ from cheevos.core.models import (
     Award,
     AwardCounts,
     AwardKind,
+    AwardType,
     GameProgress,
     Unlock,
     UnlockWindow,
@@ -44,7 +45,10 @@ def profile(hardcore=1000, casual=100, retro=1500):
 
 
 def award(game_id, kind, *, title="Game", console=5):
-    return Award(game_id, title, "Console", "", kind, None, console_id=console)
+    mastery = kind in (AwardKind.MASTERED, AwardKind.COMPLETED)
+    hardcore = kind in (AwardKind.MASTERED, AwardKind.BEATEN_HARDCORE)
+    award_type = AwardType.MASTERY if mastery else AwardType.GAME_BEATEN
+    return Award(award_type, game_id, int(hardcore), title, "Console", "", None, console_id=console)
 
 
 @pytest.mark.parametrize(
@@ -74,6 +78,9 @@ def test_player_stats_follow_ras_rules():
         award(1, AwardKind.BEATEN_HARDCORE),
         award(2, AwardKind.BEATEN_HARDCORE, title="~Homebrew~ Game"),
         award(5, AwardKind.BEATEN_HARDCORE, title="Zelda [Subset - Bonus]"),
+        # Event and site badges never count as games, whatever their IDs.
+        Award(AwardType.EVENT, 1, 1, "Event", "Events", "", None, console_id=101),
+        Award(AwardType.UNLOCKS_YIELD, 3, 1, "", "", "", None),
     ]
     counts = AwardCounts(mastered=1, completed=0, beaten_hardcore=4, beaten_softcore=0)
     stats = player_stats(profile(), games, counts, awards, NOW - 10 * WEEK, NOW)

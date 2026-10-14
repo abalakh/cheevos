@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
+from cheevos.core.awards import GalleryCounts
 from cheevos.core.storage.recent_feed import RecentFeedCache
 from cheevos.core.sync.progress import Phase
 from cheevos.ui import format as fmt
@@ -15,6 +16,25 @@ from cheevos.ui.screens.games import show_games
 from cheevos.ui.screens.lists import show_recent
 from cheevos.ui.screens.profile import show_profile
 from cheevos.ui.screens.settings import show_settings
+
+
+def awards_summary(counts: GalleryCounts) -> str:
+    """Describe the Awards screen in a line, leaving out empty galleries.
+
+    Args:
+        counts: Visible awards per gallery.
+
+    Returns:
+        E.g. ``"12 mastered · 3 completed · 5 events"``.
+    """
+    events = strings.AWARDS_EVENTS.format(count=fmt.number(counts.events))
+    parts = [
+        (counts.mastered, strings.AWARDS_MASTERED.format(count=fmt.number(counts.mastered))),
+        (counts.completed, strings.AWARDS_COMPLETED.format(count=fmt.number(counts.completed))),
+        (counts.events, strings.AWARDS_EVENT if counts.events == 1 else events),
+        (counts.site, strings.AWARDS_SITE.format(count=fmt.number(counts.site))),
+    ]
+    return " · ".join(text for count, text in parts if count) or strings.AWARDS_NONE
 
 
 class Home:
@@ -88,13 +108,11 @@ class Home:
         return MenuItem(strings.RECENT, text, self._ctx.icon("clock"), key="recent")
 
     def _awards_row(self) -> MenuItem:
-        """Summarise mastered and beaten games."""
-        counts = self._ctx.data.award_counts()
-        mastered = counts.mastered + counts.completed if counts else 0
-        beaten = counts.beaten_hardcore + counts.beaten_softcore if counts else 0
-        text = strings.AWARDS_SUMMARY.format(mastered=mastered, beaten=beaten)
+        """Summarise the Awards screen's galleries: game, event and site badges."""
+        counts = self._ctx.data.gallery_counts() or GalleryCounts()
         icon = self._ctx.icon("crown")
-        return MenuItem(strings.AWARDS, text, icon, str(mastered + beaten), "awards")
+        total = fmt.number(counts.total)
+        return MenuItem(strings.AWARDS, awards_summary(counts), icon, total, "awards")
 
     # --- live refresh -------------------------------------------------------------------------
 
