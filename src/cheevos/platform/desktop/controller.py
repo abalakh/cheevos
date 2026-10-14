@@ -163,8 +163,8 @@ class DesktopControllerInterface(ControllerInterface):
         """Consume script steps up to and including the next button press.
 
         Args:
-            timeout: PyUI's input timeout in milliseconds; a ``wait`` tick lasts this long, as
-                an idle tick does on a device.
+            timeout: PyUI's polling timeout in milliseconds. Scripted ``wait`` ticks last at
+                least 1/12 s, the documented UI idle tick, even when PyUI polls more often.
 
         Returns:
             The scripted input, or ``None`` once the script is consumed (interactive mode).
@@ -177,9 +177,9 @@ class DesktopControllerInterface(ControllerInterface):
             if isinstance(step, Wait):
                 if step.ticks > 1:
                     self._script.appendleft(Wait(step.ticks - 1))
-                # PyUI truncates its seconds timeout to milliseconds. Cover the lost fraction
-                # so it returns to the UI instead of consuming another step in the same tick.
-                time.sleep((max(timeout, 0) + 1) / 1000)
+                # Newer PyUI polls internally at 5 ms. Keep the documented script tick and
+                # cover truncation so the UI redraws before another script step is consumed.
+                time.sleep((max(timeout, 1000 / 12) + 1) / 1000)
                 return None  # one idle tick: PyUI redraws and our on_tick handlers run
             if isinstance(step, Capture):
                 if self._on_capture is not None:

@@ -1,0 +1,12 @@
+{
+  "slot_commit": "868631d7b131540df87c8e3295638e27445cdba2",
+  "games": [
+    {"id": "final-fantasy-tactics", "title": "Final Fantasy Tactics Advance", "system": "GBA", "color": [72, 77, 88], "crop": [0.15, 0.235, 0.89, 0.865], "photographer": "ikk5", "entry": "AGB-AFXP-0/ikk5-1.html", "photo": "AGB-AFXP-0/ikk5-1_01_front.jpg"},
+    {"id": "pokemon-leafgreen", "title": "Pokémon LeafGreen Version", "system": "GBA", "color": [40, 169, 77], "crop": [0.14, 0.24, 0.85, 0.86], "photographer": "fexcollects", "entry": "AGB-BPGE-1/fexcollects-1.html", "photo": "AGB-BPGE-1/fexcollects-1_01_front.jpg"},
+    {"id": "advance-wars", "title": "Advance Wars", "system": "GBA", "color": [72, 77, 88], "crop": [0.14, 0.24, 0.875, 0.86], "photographer": "ikk5", "entry": "AGB-AWRP-0/ikk5-1.html", "photo": "AGB-AWRP-0/ikk5-1_01_front.jpg"},
+    {"id": "tetris", "title": "Tetris", "system": "GB", "color": [163, 164, 151], "crop": [0.18, 0.30, 0.84, 0.865], "photographer": "gekkio", "entry": "DMG-TRA-1/gekkio-1.html", "photo": "DMG-TRA-1/gekkio-1_01_front.jpg"},
+    {"id": "super-mario-land", "title": "Super Mario Land", "system": "GB", "color": [163, 164, 151], "crop": [0.14, 0.28, 0.90, 0.88], "photographer": "ikk5", "entry": "DMG-MLA-0/ikk5-1.html", "photo": "DMG-MLA-0/ikk5-1_01_front.jpg"},
+    {"id": "pokemon-crystal", "title": "Pokémon Crystal Version", "system": "GBC", "color": [63, 156, 189], "crop": [0.15, 0.35, 0.875, 0.91], "photographer": "Comrade Claire", "entry": "CGB-BYTE-0/comrade-claire-1.html", "photo": "CGB-BYTE-0/comrade-claire-1_01_front.jpg"},
+    {"id": "zelda-oracle-seasons", "title": "The Legend of Zelda: Oracle of Seasons", "system": "GBC", "color": [66, 73, 77], "crop": [0.125, 0.325, 0.87, 0.91], "photographer": "Rhetchid", "entry": "CGB-AZ7E-0/rhetchid-1.html", "photo": "CGB-AZ7E-0/rhetchid-1_01_front.jpg"}
+  ]
+}

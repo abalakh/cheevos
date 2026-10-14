@@ -21,6 +21,7 @@ import os
 import sys
 import time
 import warnings
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,6 +51,7 @@ class RunnerOptions:
         sd_root: Fake SD-card root for configs, caches and saves.
         live: Use the real RetroAchievements API instead of recorded fixtures.
         verbose: Show PyUI's own log output.
+        cartridges: Preview Spruce's cartridge view instead of running Cheevos.
     """
 
     width: int
@@ -65,6 +67,7 @@ class RunnerOptions:
     sd_root: Path
     live: bool
     verbose: bool
+    cartridges: bool = False
 
 
 def _resolution(text: str) -> tuple[int, int]:
@@ -121,9 +124,14 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
     parser.add_argument("--out", type=Path, default=_REPO_ROOT / "build" / "screens")
     parser.add_argument("--verbose", action="store_true", help="show PyUI's log output")
     parser.add_argument(
+        "--cartridges", action="store_true", help="preview the SpruceOS cartridge view"
+    )
+    parser.add_argument(
         "--live", action="store_true", help="real RA API with dev/sdcard (default: fixtures)"
     )
     args = parser.parse_args(argv)
+    if args.cartridges and args.live:
+        parser.error("--cartridges uses fixture labels; omit --live")
     try:
         script = parse_script(args.script)
     except ScriptError as exc:
@@ -148,6 +156,7 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
         ),
         live=args.live,
         verbose=args.verbose,
+        cartridges=args.cartridges,
     )
 
 
@@ -186,11 +195,12 @@ def _configure_logging(*, verbose: bool) -> logging.Logger:
     return pyui_logger
 
 
-def run(options: RunnerOptions) -> int:
-    """Bring up PyUI with the desktop device and run the app.
+def run(options: RunnerOptions, *, cartridge_preview: Callable[[], None] | None = None) -> int:
+    """Bring up PyUI with the desktop device and run the app or cartridge preview.
 
     Args:
         options: Runner options.
+        cartridge_preview: Optional recorder to run after the desktop device starts.
 
     Returns:
         Process exit code.
@@ -240,14 +250,24 @@ def run(options: RunnerOptions) -> int:
                 options.width, options.height, saves_dir, options.pyui_dir, controller
             ),
         )
-    from cheevos import app
-    from cheevos.platform.desktop.environments import fixture_environment, live_environment
-
-    env = (
-        live_environment(options.sd_root) if options.live else fixture_environment(options.sd_root)
-    )
     try:
-        app.run(started_at=started_at, env=env)
+        if options.cartridges:
+            if not (options.pyui_dir / "views" / "cartridge_view.py").is_file():
+                logger.error("This PyUI has no cartridge view; use `make cartridges`")
+                return 2
+            from cheevos.platform.desktop import cartridges
+
+            (cartridge_preview or cartridges.run)()
+        else:
+            from cheevos import app
+            from cheevos.platform.desktop.environments import fixture_environment, live_environment
+
+            env = (
+                live_environment(options.sd_root)
+                if options.live
+                else fixture_environment(options.sd_root)
+            )
+            app.run(started_at=started_at, env=env)
     except SystemExit as exc:  # DesktopQuit / ScriptFinished end the run normally
         return int(exc.code or 0)
     if unplayed := controller.unplayed:

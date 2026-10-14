@@ -37,7 +37,7 @@ def desktop_controller(monkeypatch):
     return module
 
 
-@pytest.mark.parametrize("tick_seconds", [1 / 12, 0.05])
+@pytest.mark.parametrize("tick_seconds", [1 / 12, 0.05, 0.005])
 def test_wait_ticks_return_to_the_ui_before_the_next_capture(
     monkeypatch, desktop_controller, tick_seconds
 ):
@@ -59,6 +59,6 @@ def test_wait_ticks_return_to_the_ui_before_the_next_capture(
     for _ in range(30):
         assert poll() is None
         assert captures == []
-    assert clock.now >= 30 * tick_seconds
+    assert clock.now >= 30 * max(tick_seconds, 1 / 12)
     assert poll().name == "A"
     assert captures == ["loaded"]

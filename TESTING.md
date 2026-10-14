@@ -203,6 +203,47 @@ and PyUI's core UI modules don't hard-code `/mnt/SDCARD`. So the runner needs no
 - **SDL** comes from `pysdl2-dll` (SDL2, SDL2_ttf, SDL2_image); PySDL2 is pinned to the
   device's 0.9.17.
 
+## Cartridge launcher prototype
+
+`make cartridges RES=752x560 SCALE=1` previews the optional `CARTRIDGE` view from the sibling
+SpruceOS source checkout (`SPRUCE_DIR=../spruceOS` by default). It uses Cheevos's desktop
+device shim and starts directly on a cartridge shelf with seven real cartridge prints:
+three GBA games, two GB games and two GBC games. Pixel shells and the two slot layers are
+adapted from Slot; game labels come from attributed photographs in the Game Boy hardware
+database. Sources, license notices and the reproducible recipe are in `assets/cartridges/`.
+Rebuild the PNGs with `uv run python scripts/prepare_cartridge_art.py`. Pillow is used only by
+development tools. No emulator runs. Its fake card is `dev/sdcard-cartridges`, and
+it is excluded from the Cheevos device package.
+
+The selected game title sits in the top bar. The console slot fills the bottom edge;
+cartridge frames have no button hints or text below the slot.
+Cartridges grow into focus while browsing. A starts a shrink-to-fit, descent, brief pause
+at the opening and final push into the slot; B can cancel throughout that sequence.
+
+Controls: D-pad browses; Select (Right Shift) changes console; A (X) inserts the cartridge;
+B (Z) cancels during insertion, returns from the inserted preview, or exits from the shelf.
+Esc quits. Ejection and restoring the cartridge after a real emulator
+exits are deferred until device integration.
+
+Capture the browsing and insertion states:
+
+```sh
+make cartridges SCALE=1 ARGS='--headless --script "shot:shelf,right,wait:4,shot:next,a,wait:3,shot:inserting,wait:12,shot:inserted,b,shot:return,select,shot:gb,select,shot:gbc"'
+```
+
+Screenshots land in `build/cartridges/<WxH>/`. The source implementation is
+`App/PyUI/main-ui/views/cartridge_view.py` in SpruceOS. `View.prepare_launch()` runs before
+the normal ROM launch handoff; existing view types keep their immediate launch behaviour.
+Selecting `CARTRIDGE` in PyUI's theme game-selection settings enables it in the launcher;
+the default SPRUCE theme is unchanged. The external source prototype is exercised by
+`tests/screens/test_cartridge_preview.py` when that checkout is present.
+
+`make cartridge-demo` records browsing and insertion on all three shelves as
+`build/cartridge-demo/cartridge-demo.gif`, with intro/credit cards and sharing notes. The
+folder also contains editable PNG frames, durations, and `timeline.ffconcat` for MP4 export
+with FFmpeg. The demo uses fixed time samples of the actual PyUI rendering; it labels itself
+as a desktop UI concept. Its final card credits Slot, the photo contributors and PyUI.
+
 ## What the desktop can't show
 - The Mini's custom `mmiyoo` SDL driver: for example, it ignores blending for filled rectangles
   (see `.agents/pyui.md`), double buffering, evdev input.

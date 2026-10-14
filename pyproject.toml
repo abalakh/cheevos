@@ -19,6 +19,7 @@ dev = [
   # Desktop runner only. PySDL2 is pinned to the version Spruce ships on devices.
   "pysdl2==0.9.17",
   "pysdl2-dll",
+  "pillow>=12.3.0",
 ]
 
 [build-system]
@@ -64,6 +65,7 @@ max-returns = 6
 # PyUI is importable only after bootstrap.add_pyui_to_path(), so these import it lazily.
 "src/cheevos/ui/pyui/**" = ["PLC0415"]
 "src/cheevos/platform/desktop/__main__.py" = ["PLC0415"]
+"src/cheevos/platform/desktop/cartridge_demo.py" = ["PLC0415"]
 
 [tool.ty.environment]
 python-version = "3.10"

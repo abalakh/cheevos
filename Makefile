@@ -4,13 +4,14 @@ UV ?= uv
 RUN := $(UV) run
 RES ?= 640x480
 SCALE ?= 2
+SPRUCE_DIR ?= ../spruceOS
 SCREEN_RESOLUTIONS ?= 640x480 752x560 1280x720
 # Walk-through of the real app on recorded fixtures (desktop fixture mode).
 SCREEN_SCRIPT ?= shot:home,a,shot:profile,b,down,a,shot:games,select,shot:games_details,select,down,a,shot:game,down,a,shot:achievement,a,shot:screenshot,b,b,y,shot:options,b,b,b,down,a,shot:recent,b,down,a,shot:awards,a,down,a,shot:settings
 SHELL_SCRIPTS := $(shell find app scripts -name '*.sh' 2>/dev/null)
 
 .DEFAULT_GOAL := help
-.PHONY: help sync pyui fmt lint conventions shellcheck typecheck test check run screens doc-screens wiki package \
+.PHONY: help sync pyui fmt lint conventions shellcheck typecheck test check run cartridges cartridge-demo screens doc-screens wiki package \
 	deploy launch stop logs shot clean
 
 help: ## Show this help
@@ -50,6 +51,19 @@ check: lint typecheck test ## Everything CI runs
 
 run: ## Desktop window: make run [RES=752x560] [SCALE=1]
 	$(RUN) python -m cheevos.platform.desktop --res $(RES) --scale $(SCALE)
+
+cartridges: ## Cartridge prototype from SpruceOS source: D-pad browse, Select console, A insert
+	CHEEVOS_PYUI_DIR="$(abspath $(SPRUCE_DIR))/App/PyUI/main-ui" \
+	CHEEVOS_THEMES_DIR="$(abspath $(SPRUCE_DIR))/Themes" \
+	CHEEVOS_SDCARD_ROOT="$(CURDIR)/dev/sdcard-cartridges" \
+	$(RUN) python -m cheevos.platform.desktop --cartridges --res $(RES) --scale $(SCALE) \
+		--out build/cartridges $(ARGS)
+
+cartridge-demo: ## Record the cartridge concept demo as a shareable GIF with source credits
+	CHEEVOS_PYUI_DIR="$(abspath $(SPRUCE_DIR))/App/PyUI/main-ui" \
+	CHEEVOS_THEMES_DIR="$(abspath $(SPRUCE_DIR))/Themes" \
+	CHEEVOS_SDCARD_ROOT="$(CURDIR)/build/cartridge-demo/card" \
+	$(RUN) python -m cheevos.platform.desktop.cartridge_demo $(ARGS)
 
 screens: ## Headless PNGs of the walk-through into build/screens/<WxH>/
 	@for res in $(SCREEN_RESOLUTIONS); do \
