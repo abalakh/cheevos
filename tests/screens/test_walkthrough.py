@@ -28,7 +28,7 @@ pytestmark = [
 WALKTHROUGH = (
     "shot:home,a,shot:profile,b,down,a,shot:games,select,shot:games_details,select,"
     "y,shot:games_options,b,"
-    "down,a,shot:game,y,a,down,a,shot:game_grid,select,shot:game_list,b,b,down,a,shot:recent,b,"
+    "down,a,shot:game,select,y,a,down,a,shot:game_grid,select,shot:game_list,b,b,down,a,shot:recent,b,"
     "down,a,shot:awards,a,down,a,shot:settings,down,down,down,down,down,down,down,down,a,"
     "shot:about"
 )
@@ -134,7 +134,7 @@ def test_full_walkthrough(tmp_path, options_button):
 @pytest.mark.parametrize(
     "open_screen",
     ["down,a", "down,a,a", "down,a,a,select", "down,down,down,a"],
-    ids=["games", "achievements", "badge_grid", "awards"],
+    ids=["games", "badge_grid", "achievement_list", "awards"],
 )
 def test_options_popups_accept_y_and_menu(tmp_path, open_screen):
     run_app(
@@ -154,7 +154,7 @@ def test_options_popups_accept_y_and_menu(tmp_path, open_screen):
 
 def test_unlock_screenshot(tmp_path):
     # Real screenshots (dev/sdcard) are git-ignored; without them the fixture card has stand-ins.
-    run_app(tmp_path, "down,a,down,a,down,a,shot:achievement,a,shot:screenshot")
+    run_app(tmp_path, "down,a,down,a,right,a,shot:achievement,a,shot:screenshot")
     shots = tmp_path / "shots" / "640x480"
     assert (shots / "achievement.png").read_bytes() != (shots / "screenshot.png").read_bytes()
 
@@ -227,7 +227,7 @@ def test_games_list_is_kept_while_its_games_are_unchanged(tmp_path):
 
 def test_badge_grid_wraps_to_the_last_page_and_comes_back_to_it_from_a_card(tmp_path):
     # Fire Emblem (87 badges): up from the first wraps to the last, partial page.
-    run_app(tmp_path, "down,a,a,select,shot:first,up,shot:last,a,shot:card,b,shot:back")
+    run_app(tmp_path, "down,a,a,shot:first,up,shot:last,a,shot:card,b,shot:back")
     assert_shots(tmp_path, ["first", "last", "card", "back"])
     shots = tmp_path / "shots" / "640x480"
     below_clock = [png_rows(shots / f"{name}.png", 480)[1][64:] for name in ("first", "last")]
@@ -238,27 +238,27 @@ def test_badge_grid_wraps_to_the_last_page_and_comes_back_to_it_from_a_card(tmp_
 def test_view_preferences_survive_exit_and_restart(tmp_path):
     run_app(
         tmp_path,
-        "down,a,select,shot:details,down,a,select,y,down,down,a,down,down,down,a,shot:grid,b,b,b",
+        "down,a,select,shot:details,down,a,select,y,down,down,a,down,down,down,a,shot:list,b,b,b",
     )
     settings_file = tmp_path / "sdcard/Saves/cheevos/settings.json"
     assert load_settings(settings_file) == Settings(
-        game_list_details=True, achievement_grid=True, achievement_sort="points"
+        game_list_details=True, achievement_grid=False, achievement_sort="points"
     )
 
     # Restart on the same card, then change the layout through Y. Exhausting the script raises
     # SystemExit, which must save the final choice just like B on Home in the first run.
     run_app(
         tmp_path,
-        "down,a,shot:restored_details,down,a,shot:restored_grid,y,a,up,a,shot:list,"
+        "down,a,shot:restored_details,down,a,shot:restored_list,y,a,down,a,shot:grid,"
         "y,down,down,a,down,a,shot:rarity",
     )
     shots = tmp_path / "shots" / "640x480"
-    for name in ("details", "grid"):
+    for name in ("details", "list"):
         # Ignore the top-bar clock when comparing the views before and after restart.
         expected = png_rows(shots / f"{name}.png", 480)[1][64:]
         assert png_rows(shots / f"restored_{name}.png", 480)[1][64:] == expected
     assert load_settings(settings_file) == Settings(
-        game_list_details=True, achievement_grid=False, achievement_sort="rarity"
+        game_list_details=True, achievement_grid=True, achievement_sort="rarity"
     )
 
 

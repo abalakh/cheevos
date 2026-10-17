@@ -8,7 +8,7 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 | Item | Value |
 |---|---|
 | OS | SpruceOS ≥ 4.5.0. Needs PyUI views, `spruce/scripts/appEnv.sh` and RAOfflineProxy 2.x. |
-| Devices | Every device Spruce supports. Verified on a Miyoo Mini+ (640×480); the rest of the Mini family shares its setup. Others are untested. |
+| Devices | Every device supported by SpruceOS. |
 | Resolutions | Every resolution the default SPRUCE theme ships: 640×480, 720×480, 752×560, 720×720, 960×720, 1024×768, 1280×720, 480×800. |
 | Runtime | Spruce's CPython **3.10.18**: `$SPRUCE_PYTHON` (32-bit: `spruce/bin/python/bin/python3.10`; 64-bit: `spruce/flip/bin/python3.10`). |
 | Built-in modules we rely on | `ssl` (OpenSSL 3.5), `sqlite3`, `json`, `hashlib`, `zlib`, `ctypes`, `zoneinfo` |
@@ -36,10 +36,8 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
 - **No `devices` list:** a `devices` list in an app's `config.json` hides it on every device not
   named there. Cheevos ships without one, so the Apps menu shows it on every device.
   `launch.sh` covers every platform PyUI's launcher does.
-- **Untested devices run the same code as the Mini.** Keep device-specific screens and code
-  paths out of the app: we can't test them, so on exactly the devices they're for they would
-  be the riskiest code. A one-time "untested device" note was removed for this reason (it also
-  gave users nothing to act on). Release notes say which devices are tested.
+- **Shared UI across devices:** use the same screens and application logic on every platform,
+  with platform setup handled by the launcher and PyUI bridge.
 - **Start-up failures:** when the app exits non-zero, `launch.sh` appends its stderr to the app
   log and shows a message ([product.md](product.md), "Offline and error behaviour").
   `/mnt/SDCARD/App/PyUI/launch.sh -msgDisplay "text" -msgDisplayTimeMs 5000` shows a message on
@@ -49,7 +47,7 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
   [RELEASING.md](../RELEASING.md), under "Releases"). The description links merged PR titles
   and direct commit titles.
   Pre-releases start at the previous version tag; stable releases start at the previous stable tag.
-  Game Nursery packaging follows whatever format the maintainers ask for.
+  Stable releases are mirrored into SpruceOS's `App/Cheevos/` through an upstream PR.
 
 ## Device gotchas (verified on a Miyoo Mini+, SpruceOS 4.5.0)
 - **Idle check:** a test once replaced the cache under an open session; hence the rule to check

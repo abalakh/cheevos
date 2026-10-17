@@ -39,8 +39,8 @@ def test_changes_apply_in_memory_and_flush_once(tmp_path, monkeypatch):
     monkeypatch.setattr(context, "save_settings", saved)
 
     ctx.update_settings(replace(ctx.settings, game_list_details=True))
-    ctx.update_settings(replace(ctx.settings, achievement_grid=True, auto_sync=False))
-    assert ctx.settings == Settings(game_list_details=True, achievement_grid=True, auto_sync=False)
+    ctx.update_settings(replace(ctx.settings, achievement_grid=False, auto_sync=False))
+    assert ctx.settings == Settings(game_list_details=True, achievement_grid=False, auto_sync=False)
     assert load_settings(ctx.paths.settings_file) == Settings()
     saved.assert_not_called()
 
@@ -51,7 +51,7 @@ def test_changes_apply_in_memory_and_flush_once(tmp_path, monkeypatch):
     assert saved.call_count == 1
 
 
-@pytest.mark.parametrize("initial", [Settings(), Settings(achievement_grid=True)])
+@pytest.mark.parametrize("initial", [Settings(), Settings(achievement_grid=False)])
 def test_unchanged_or_reverted_settings_need_no_write(tmp_path, monkeypatch, initial):
     ctx = make_context(tmp_path, initial)
     saved = Mock()
@@ -67,7 +67,7 @@ def test_unchanged_or_reverted_settings_need_no_write(tmp_path, monkeypatch, ini
 def test_failed_save_is_logged_and_can_be_retried(tmp_path, monkeypatch, caplog):
     ctx = make_context(tmp_path)
     save_settings(ctx.paths.settings_file, ctx.settings)
-    ctx.update_settings(replace(ctx.settings, achievement_grid=True))
+    ctx.update_settings(replace(ctx.settings, achievement_grid=False))
     saved = Mock(side_effect=OSError("card is read-only"))
     monkeypatch.setattr(context, "save_settings", saved)
     ctx.flush_settings()

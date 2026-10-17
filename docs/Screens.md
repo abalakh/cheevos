@@ -75,7 +75,8 @@ details. Their cards say **Unlocked offline · waiting to sync**, with the queue
 
 ![Achievements](images/game.png)
 
-Press **Select** for a badge grid, and **Y** to filter (locked, unlocked, missable, progression
+Achievements start in the badge grid unless you've saved another view. Press **Select** to
+switch between grid and list, and **Y** to filter (locked, unlocked, missable, progression
 and win) or sort (**RA display order**, points, rarest first, unlocked first or locked first).
 RA display order is the default: the set's display order on RetroAchievements, with achievement
 ID breaking ties. Cheevos remembers your sort and list/grid choice for all games, including games
@@ -130,7 +131,7 @@ for completing this event"…) and the date.
 
 Press **Select** to switch between three views; Cheevos remembers your choice:
 
-- **Carousel**: one large badge in the middle, its neighbours getting smaller towards the
+- **Carousel** (default): one large badge in the middle, its neighbours getting smaller towards the
   edges. **Left** and **right** slide through them.
 - **Grid**: many badges at once, like the profile page.
 - **List**: one row per badge, with its title, description and date.

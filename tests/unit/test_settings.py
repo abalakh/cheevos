@@ -14,7 +14,10 @@ from cheevos.core.settings import (
 
 
 def test_missing_file_gives_defaults(tmp_path):
-    assert load_settings(tmp_path / "settings.json") == DEFAULTS
+    loaded = load_settings(tmp_path / "settings.json")
+    assert loaded == DEFAULTS
+    assert loaded.achievement_grid is True
+    assert loaded.awards_view == "carousel"
     assert Settings(BadgeScope.ON_DEVICE_AND_RECENT, 30, DescriptionHiding.OFF, True) == DEFAULTS
 
 
@@ -97,12 +100,15 @@ def test_invalid_achievement_sort_keeps_other_preferences(tmp_path, sort):
     assert load_settings(path) == Settings(achievement_grid=True)
 
 
+@pytest.mark.parametrize("grid", [False, True])
 @pytest.mark.parametrize("view", ["carousel", "grid", "list"])
-def test_awards_view_is_independent_of_the_achievement_view(tmp_path, view):
+def test_saved_view_preferences_are_preserved_independently(tmp_path, grid, view):
     path = tmp_path / "settings.json"
-    save_settings(path, Settings(achievement_grid=False, awards_view=view))
+    save_settings(path, Settings(achievement_grid=grid, awards_view=view))
+    stored = path.read_bytes()
     loaded = load_settings(path)
-    assert (loaded.awards_view, loaded.achievement_grid) == (view, False)
+    assert (loaded.awards_view, loaded.achievement_grid) == (view, grid)
+    assert path.read_bytes() == stored
 
 
 @pytest.mark.parametrize("view", [None, True, "wall", "Grid", ["list"]])

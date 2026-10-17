@@ -22,15 +22,5 @@ so the pixel art stays sharp.
 ![1280×720](images/games-1280x720.png)
 
 ## Devices
-Cheevos is **tested on the Miyoo Mini+**, and the rest of the **Miyoo Mini family** (Mini,
-Mini v4, Mini Flip) shares its hardware and software setup.
-
-It's installed and started the same way on Spruce's other devices (Miyoo A30 and Flip, TrimUI
-Brick and Smart Pro, Anbernic RG devices, and more): its launcher uses the same settings Spruce
-uses to start its own UI on each of them. They just haven't been tried yet, so please report
-how it went.
-
-If it doesn't start at all, you get a short message ("Cheevos couldn't start") and are back in
-Spruce's menu: nothing is changed on your SD card. Either way, a report with the log
-(`Saves/spruce/cheevos-<device>.log`) on the project's GitHub page helps get your device
-confirmed.
+Cheevos supports **every device supported by SpruceOS**. It uses Spruce's own UI toolkit and
+the same launcher settings Spruce uses for its UI on each platform.

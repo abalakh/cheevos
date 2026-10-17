@@ -97,7 +97,7 @@ def test_empty_filter_recovers_the_full_set(monkeypatch, message_ui, button, lay
     expected = Layout.BADGES if layout == "grid" else Layout.LIST
     shown = [(view.items, view.layout) for view in built]
     assert shown == [
-        ([MenuItem("Locked"), MenuItem("More points")], Layout.LIST),
+        ([MenuItem("Locked"), MenuItem("More points")], Layout.BADGES),
         ([MenuItem("More points"), MenuItem("Locked")], expected),
     ]
     assert message_ui == [strings.NO_ACHIEVEMENTS]

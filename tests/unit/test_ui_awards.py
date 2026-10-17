@@ -310,7 +310,7 @@ def test_select_cycles_views_keeping_the_selection_and_remembers_it(monkeypatch)
     assert [view.layout for view in FakeView.built] == [Layout.CAROUSEL, Layout.BADGES, Layout.LIST]
     assert [view.initial for view in FakeView.built] == [0, 3, 3]
     assert ctx.settings.awards_view == "list"
-    assert ctx.settings.achievement_grid is False  # independent of the achievement view
+    assert ctx.settings.achievement_grid is True  # independent of the achievement view
 
 
 def test_new_filter_starts_at_the_top_and_unchanged_options_keep_the_page(monkeypatch):

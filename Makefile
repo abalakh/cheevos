@@ -6,7 +6,7 @@ RES ?= 640x480
 SCALE ?= 2
 SCREEN_RESOLUTIONS ?= 640x480 752x560 1280x720
 # Walk-through of the real app on recorded fixtures (desktop fixture mode).
-SCREEN_SCRIPT ?= shot:home,a,shot:profile,b,down,a,shot:games,select,shot:games_details,select,down,a,shot:game,down,a,shot:achievement,a,shot:screenshot,b,b,y,shot:options,b,b,b,down,a,shot:recent,b,down,a,shot:awards,a,down,a,shot:settings
+SCREEN_SCRIPT ?= shot:home,a,shot:profile,b,down,a,shot:games,select,shot:games_details,select,down,a,shot:game,right,a,shot:achievement,a,shot:screenshot,b,b,y,shot:options,b,b,b,down,a,shot:recent,b,down,a,shot:awards,a,down,a,shot:settings
 SHELL_SCRIPTS := $(shell find app scripts -name '*.sh' 2>/dev/null)
 
 .DEFAULT_GOAL := help

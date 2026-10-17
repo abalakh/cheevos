@@ -1,15 +1,12 @@
 # Contributing
 
-Bug reports, device reports and pull requests are all welcome.
+Bug reports and pull requests are welcome.
 
-## Reporting a bug or a device
+## Reporting a bug
 Open an issue with:
 - your device, SpruceOS version and theme;
 - what you did and what happened (a photo or a Spruce screenshot helps);
 - the log from your SD card: `Saves/spruce/cheevos-<device>.log`.
-
-Cheevos is tested on the Miyoo Mini family. A report from another Spruce device, whether it
-works or not, is as useful as a bug report: it's how a device gets confirmed.
 
 ## Making a change
 1. Set up the tools and run the app on your computer: see [TESTING.md](TESTING.md). Most changes

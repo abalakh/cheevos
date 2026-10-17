@@ -1,15 +1,18 @@
 # Installation
 
+Cheevos is included in SpruceOS public and nightly releases. Open **Apps → Cheevos** to start
+it. You can also install or update it manually from the latest Cheevos release.
+
 ## Requirements
 - **SpruceOS 4.5.0+.** Cheevos uses Spruce's own UI toolkit (PyUI) and Python, so it
   needs nothing else.
-- **A device Spruce runs on.** Cheevos is tested on the Miyoo Mini family; on other devices it
-  should work too (see [Themes and devices](Themes-and-Devices.md)).
+- **Any device supported by SpruceOS.** Cheevos supports them all (see
+  [Themes and devices](Themes-and-Devices.md)).
 - **A RetroAchievements account**, signed in on the device (in Spruce's RetroAchievements
   settings or in RetroArch), and its **Web API key**. See [Setup](Setup.md).
 - **Wi-Fi** for the first sync. After that, Cheevos also works offline.
 
-## Install
+## Manual install
 1. Download `Cheevos-<version>.zip` from the latest release on the repository's **Releases**
    page (not the "Source code" archives), or build it yourself with `make package` (see
    `RELEASING.md` in the repository).

@@ -11,11 +11,6 @@ and some are limits of the data RetroAchievements offers.
 - **Changing settings of RetroArch or Spruce.** Cheevos only reads them. For example, it doesn't
   turn on unlock screenshots for you (see [Setup](Setup.md)).
 
-## Devices
-Cheevos is tested on the Miyoo Mini family. It installs and starts on Spruce's other devices
-too, but those haven't been tried yet: expect rough edges, and please report them
-(see [Themes and devices](Themes-and-Devices.md)).
-
 ## Data from RetroAchievements
 - **Achievements of games you don't play aren't kept by default:** only games on your SD card
   and games played lately are downloaded, spaced about 3 seconds apart. Other games load when

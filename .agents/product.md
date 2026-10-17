@@ -21,8 +21,7 @@ Related: what we read from Spruce, RetroArch and the proxy is in
 - Works offline once synced. When Wi-Fi is up, it syncs incrementally in the background.
 - Shows Hardcore and Casual progress side by side, plus unlocks still queued in RAOfflineProxy.
 - Links achievements to their unlock screenshots when they exist.
-- Quality good enough to ship publicly (GitHub release, then Spruce Game Nursery or an upstream
-  PR).
+- Ships in SpruceOS public and nightly releases, with standalone packages on GitHub.
 
 **Non-goals (v1)**
 - Launching games from the hub.
@@ -90,8 +89,9 @@ Settings.
   - title, points, and a type tag (Progression / Win / Missable);
   - an unlock marker: Hardcore, Casual or Pending sync;
   - "screenshot" if an unlock screenshot exists.
-- **View**: list or badge grid (Select). Going into a card and back returns to the same view and
-  page; so does a Y menu left unchanged. A new filter or sort starts at the top.
+- **View**: badge grid (default) or list (Select). Saved preferences keep their chosen view.
+  Going into a card and back returns to the same view and page; so does a Y menu left
+  unchanged. A new filter or sort starts at the top.
 - **Badge grid**: badges packed close together, like the achievement wall on RA profiles: 8×4
   at 640×480, 11×4 at 1280×720, 8×6 at 720×720, 6×8 at 480×800 (whole rows and columns at the
   theme's badge size, never shrunk to fit more). Every cell has room for a gold outline, so no

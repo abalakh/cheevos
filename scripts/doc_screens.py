@@ -34,9 +34,9 @@ RUNS: list[tuple[str, str | None, str]] = [
                 "a,shot:profile,x,down,down,down,down,down,down,shot:profile-more,b",
                 f"down,a,{BY_COMPLETION},shot:games,select,shot:games-details,select",
                 "down,down,a,shot:game",
-                "down,a,shot:achievement,a,shot:fullscreen,b,b,b",
+                "right,a,shot:achievement,a,shot:fullscreen,b,b,b",
                 # Descent, mastered: the grid shot also shows the award dot in the top bar
-                "up,up,a,select,shot:game-grid,b,b",
+                "up,up,a,shot:game-grid,b,b",
                 "down,a,shot:recent,b",
                 # Carousel first; the grid and list then select AotW 2026 (third), a tiered event
                 "down,a,shot:awards,right,right",
