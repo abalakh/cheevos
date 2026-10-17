@@ -13,7 +13,7 @@ from cheevos.ui import strings
 from cheevos.ui.context import AppContext
 from cheevos.ui.pyui.badge_grid import Details
 from cheevos.ui.pyui.primitives import Area, Button
-from cheevos.ui.pyui.views import Choice, Layout, MenuItem
+from cheevos.ui.pyui.views import Choice, Layout, MenuItem, PreparedView
 from cheevos.ui.screens import common, game_detail
 
 
@@ -182,6 +182,36 @@ def test_card_and_unchanged_options_return_to_the_same_view(monkeypatch):
     assert len(built) == 2
     assert built[1].selected == 0
     assert cards == [achievements[0], achievements[0]]
+
+
+def test_live_refresh_updates_unlocks_and_title_even_if_it_finished_before_first_tick(monkeypatch):
+    locked = Achievement(1, 1, "Locked", "", 5, 5, "1", 0, None, 20, 0, None, None)
+    old = GameDetail(1, "Game", "Console", "", 100, 100, 0, (locked,))
+    new = replace(old, achievements=(replace(locked, earned_at=1),))
+    ctx = context(old)
+    ctx.data.version = lambda: 5
+    ctx.data.game_detail = lambda _id: new
+    titles = []
+    browser = game_detail._GameBrowser(ctx, old, game_detail.Title("Game", "0/1"), {}, live=True)
+    browser.prepared = cast(PreparedView, SimpleNamespace(set_title=titles.append))
+    monkeypatch.setattr(game_detail, "_row", lambda _ctx, a, *_args: MenuItem(str(a.unlocked)))
+    assert browser._refresh() == [MenuItem("True")]
+    assert browser.detail == new
+    assert titles[0].tail == "1/1"
+    assert browser._refresh() is None
+
+
+def test_live_refresh_recovers_a_filter_that_new_unlocks_make_empty(monkeypatch):
+    locked = Achievement(1, 1, "Locked", "", 5, 5, "1", 0, None, 20, 0, None, None)
+    old = GameDetail(1, "Game", "Console", "", 100, 100, 0, (locked,))
+    ctx = context(old)
+    ctx.data.version = lambda: 5
+    ctx.data.game_detail = lambda _id: replace(old, achievements=(replace(locked, earned_at=1),))
+    browser = game_detail._GameBrowser(ctx, old, game_detail.Title("Game", "0/1"), {}, live=True)
+    browser.view = replace(browser.view, filter="locked")
+    monkeypatch.setattr(game_detail, "_row", lambda _ctx, a, *_args: MenuItem(a.title))
+    assert browser._refresh() == [MenuItem("Locked")]
+    assert browser.view.filter == "all"
 
 
 def achievement_with(**changes):

@@ -29,6 +29,8 @@ import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
+from cheevos.platform.arguments import add_game_argument
+
 logger = logging.getLogger(__name__)
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -54,6 +56,7 @@ class RunnerOptions:
         sd_root: Fake SD-card root for configs, caches and saves.
         live: Use the real RetroAchievements API instead of recorded fixtures.
         verbose: Show PyUI's own log output.
+        game_id: Optional target for a game-only session launched from Spruce.
     """
 
     width: int
@@ -69,6 +72,7 @@ class RunnerOptions:
     sd_root: Path
     live: bool
     verbose: bool
+    game_id: int | None = None
 
 
 def _resolution(text: str) -> tuple[int, int]:
@@ -116,6 +120,7 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
         The runner options.
     """
     parser = argparse.ArgumentParser(prog="python -m cheevos.platform.desktop")
+    add_game_argument(parser)
     parser.add_argument("--res", type=_resolution, default=(640, 480), help="e.g. 640x480")
     parser.add_argument("--theme", default="SPRUCE")
     parser.add_argument("--headless", action="store_true", help="no window; use with --script")
@@ -150,6 +155,7 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
         ),
         live=args.live,
         verbose=args.verbose,
+        game_id=args.game_id,
     )
 
 
@@ -273,7 +279,7 @@ def run(options: RunnerOptions) -> int:
         live_environment(options.sd_root) if options.live else fixture_environment(options.sd_root)
     )
     try:
-        app.run(started_at=started_at, env=env)
+        app.run(started_at=started_at, env=env, game_id=options.game_id)
     except SystemExit as exc:  # Esc, closing the window, or the end of a headless script
         return int(exc.code or 0)
     return _check_script_finished()

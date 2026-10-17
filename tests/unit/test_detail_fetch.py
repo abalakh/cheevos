@@ -126,6 +126,43 @@ def test_a_fetched_game_is_not_fetched_again(harness):
     assert harness.calls() == [FFTA]
 
 
+def test_refresh_fetches_a_cached_game_again(harness):
+    harness.fetcher.request(FFTA)
+    harness.finished(FFTA)
+    harness.fetcher.request(FFTA, refresh=True)
+    assert harness.finished(FFTA).state is FetchState.DONE
+    assert harness.calls() == [FFTA, FFTA]
+
+
+def test_cancel_keeps_saved_details_and_a_later_refresh_works(harness):
+    harness.fetcher.request(FFTA)
+    harness.finished(FFTA)
+    harness.gated.add(FFTA)
+    harness.fetcher.request(FFTA, refresh=True)
+    wait_until(lambda: harness.calls() == [FFTA, FFTA])
+    harness.fetcher.cancel(FFTA)
+    harness.gate.set()
+    assert harness.finished(FFTA).state is FetchState.CANCELLED
+    cache = harness.cache()
+    assert cache.game_detail(FFTA) is not None
+    cache.close()
+    harness.fetcher.request(FFTA, refresh=True)
+    assert harness.finished(FFTA).state is FetchState.DONE
+    assert harness.calls() == [FFTA, FFTA, FFTA]
+
+
+def test_cancel_a_queued_game_does_not_cancel_the_active_game(harness):
+    harness.gated.add(FFTA)
+    harness.fetcher.request(FFTA)
+    wait_until(lambda: harness.calls() == [FFTA])
+    harness.fetcher.request(DESCENT)
+    harness.fetcher.cancel(DESCENT)
+    harness.gate.set()
+    assert harness.finished(FFTA).state is FetchState.DONE
+    assert harness.finished(DESCENT).state is FetchState.CANCELLED
+    assert harness.calls() == [FFTA]
+
+
 def test_the_latest_request_goes_first(harness):
     harness.gated.add(FFTA)
     harness.fetcher.request(FFTA)  # in flight, held at the gate

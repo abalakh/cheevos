@@ -23,6 +23,7 @@ LATER = [
     "cheevos.ui.screens.achievement",
     "cheevos.ui.screens.awards",
     "cheevos.ui.screens.game_detail",
+    "cheevos.ui.screens.game_status",
     "cheevos.ui.screens.games",
     "cheevos.ui.screens.lists",
     "cheevos.ui.screens.profile",

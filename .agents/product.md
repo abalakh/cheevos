@@ -119,8 +119,8 @@ Settings.
   locked Progression and Win condition achievements, the story beats and the ending. Sets
   without type tags (mostly pre-2023) hide nothing in that mode. An unlock waiting in
   RAOfflineProxy's queue counts as unlocked.
-- **Unlock info**: "Hardcore · 2026-09-30 21:14", or "Casual · …", or "Pending sync · queued
-  …", or "Locked".
+- **Unlock info**: "Unlocked (Hardcore) 2026-09-30 21:14", or "Unlocked (Casual) …", or
+  "Unlocked offline · waiting to sync since …", or "Locked".
 - **Rarity**: `NumAwarded / NumDistinctPlayers` as a percentage, for both modes. A card
   opened from the independent Recent feed can lack game statistics: show unknown rarity,
   draw its saved content immediately, and load the statistics in the background online.

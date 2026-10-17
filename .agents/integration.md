@@ -56,6 +56,34 @@ A game Spruce never identified isn't "on this device". Hashing ROMs ourselves wo
 gap: on demand per system, with the proxy's `libraproxy_rchash.so` (rcheevos `rc_hash`) through
 ctypes, or by matching title and console.
 
+## Direct launch from Spruce
+Spruce's game popup resolves the selected ROM before launching `Cheevos/launch.sh --game-id N`.
+The PyUI integration first trusts a loaded `CheevosCacheManager` path-to-game match, with no
+ROM checks, helper call or fallback-cache access. A known association remains valid for viewing
+progress after a ROM is patched or replaced at the same path; this feature doesn't validate
+compatibility for submitting unlocks. Spruce's mapping takes priority over any saved fallback.
+
+Paths Spruce doesn't know use `Saves/cheevos/cache/rom-identifications.json` (256 entries, at
+most 256 KB). It stores helper-confirmed game IDs by absolute path, with no fingerprints or
+track dependency traversal. Version 2 reads earlier version-1 records and drops their obsolete
+metadata on the next save. Confirmed misses expire after seven days; errors/cancellations are
+never cached. Spruce-provided matches aren't copied into this cache.
+
+Only an unknown/expired path uses the proxy's `identify-rom` command (native rcheevos hashing
+plus the existing hash-to-ID cache/RA lookup), with no game-set download or proxy service start.
+This CLI call belongs to Spruce; Cheevos itself keeps the read-only proxy boundary below.
+For a single-ROM ZIP, the proxy streams extraction in 64 KB chunks into a temporary
+`rom-hash-*` directory on SD and removes it after hashing, including on failure. Spruce owns
+the lookup's parent directory under `Saves/cheevos/cache/identify-work` and passes it as
+`RAOFFLINEPROXY_HASH_WORK_DIR`, so it also cleans up after force-killing a stalled helper.
+Without that override, the proxy uses its own data directory. The identification CLI also
+unwinds cleanup on SIGTERM. Never read the whole entry into Python or extract it to RAM-backed
+`/tmp`: those copies can exhaust the Mini's memory before the RA lookup.
+
+Cheevos opens the resolved game directly and refreshes only its details and visible images.
+Start refreshes/cancels that game; B returns to Spruce. Home and account-wide auto-sync are
+skipped. Opening the app normally retains its usual Home and sync behaviour.
+
 ## RAOfflineProxy (`core/proxy.py`)
 The proxy takes RetroArch's unlocks while offline and sends them when Wi-Fi is back. It forces
 Casual mode and refuses hardcore awards, so a queued unlock is always casual. Where queued

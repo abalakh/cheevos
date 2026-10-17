@@ -6,8 +6,8 @@ Cheevos follows the button conventions of Spruce's own menus.
 |---|---|
 | D-pad | Move. On the profile: scroll. |
 | A | Open or confirm. On an achievement with a screenshot: show it full screen. |
-| B | Back. On the home screen: leave Cheevos. |
-| Start | Sync now, or cancel the running sync. Works on every screen. After "API key rejected": enter a new key. |
+| B | Back. On Home, or the achievement list opened from Spruce: leave Cheevos. |
+| Start | Sync now, or cancel the running sync. When opened from Spruce's game menu: refresh only that game. After "API key rejected": enter a new key. |
 | Y / Menu (tap) | Filter and sort (games); view, filter and sort (a game's achievements, awards). |
 | X | Reveal a hidden description (achievement). See more (profile). |
 | Select | Switch view: progress bars ↔ details (games), list ↔ grid (a game's achievements), carousel → grid → list (awards). |
@@ -21,6 +21,8 @@ current screen, for example **[Y] Filter [SELECT] Details** on the games list.
 
 The sync status sits in the bottom bar too. Home and Settings always show it ("Synced 5 min
 ago"). Other screens show it only while a sync runs and for a few seconds after it ends.
+When opened from Spruce's game menu, the bottom bar instead shows that game's refresh status
+and a **Refresh game** hint. Account-wide sync does not run in that session.
 
 ## On-screen keyboard
 The keyboard appears when you type your Web API key (see [Setup](Setup.md)). It's Spruce's own

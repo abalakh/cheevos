@@ -51,11 +51,27 @@ Press **Y** to filter (all, on this device, in progress, mastered or beaten, not
 recognised on your SD card (see [Limitations](Limitations.md)).
 
 ## A game's achievements
+You can open these directly from Spruce's per-game Menu popup: **View achievement progress**.
+Spruce identifies the ROM first and explains if no RetroAchievements game matches its hash.
+Spruce's existing game identification is used immediately. Other resolved game IDs are saved
+on the SD card by ROM path, so later launches skip the checking step. Replacing or patching a
+ROM at the same path keeps its game association: viewing progress doesn't require a currently
+RA-compatible ROM. An unmatched path is checked again after a week.
+This needs a Spruce build with the Cheevos integration and a compatible Cheevos installation.
+Cheevos shows saved progress immediately and refreshes only this game when online. **Start**
+refreshes or cancels that game's request; **B** from the list returns to the same game in Spruce.
+Offline, previously downloaded progress remains available. Opening Cheevos from Apps still
+opens Home and uses your normal sync preference.
+
+![Opened from Spruce's game menu](images/game-from-spruce.png)
+
 Every achievement with its badge, points, type and unlock date, or how rare it is if you haven't
 unlocked it yet. "screenshot" means there's an unlock screenshot for it. The top bar shows how
 many you've unlocked, with a smaller version of the game's award circle if it has one.
 Hardcore badges have a **gold outline** in both the list and grid. Casual unlocks and pending
 offline unlocks have plain colour badges; locked badges are grey.
+Unlocks waiting in RAOfflineProxy's queue are labelled **Pending sync** in the list and grid
+details. Their cards say **Unlocked offline · waiting to sync**, with the queued date.
 
 ![Achievements](images/game.png)
 
@@ -74,7 +90,8 @@ on the right shows where you are. Back from a card, you're on the same page.
 
 ![Achievement grid of a mastered game](images/game-grid.png)
 
-If a game has no achievements, Cheevos says so. Press **A** or **B** to return to the games list.
+If a game has no achievements, Cheevos says so. Press **A** or **B** to return to the calling
+screen (or Spruce when opened from its game menu).
 
 ## An achievement
 The badge, title, points, type, when you unlocked it, how many players have it, and the

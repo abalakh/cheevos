@@ -75,7 +75,9 @@ account and is recreated.
   by walking them. So a scan of `media` reads the whole file, even for `SUM(size)`: 2.4 s for
   48 MB on the Mini. Settings shows the size of `media.db` (`os.stat`, 0.1 ms) instead.
 - **`/tmp`:** a 49 MB tmpfs, which is RAM. Keep extracted images bounded; the app deletes both
-  scratch folders on exit.
+  scratch folders on exit. Never put device backups or deployment archives here: they consume
+  the same scarce RAM as running apps and can cause OOM or a device freeze. Stream them over
+  SSH to/from the development machine instead.
 - **Clock:** there may be no RTC, so the device can boot in 1970. TLS failures automatically
   retry over HTTP. `core/clock.py` shares RA's API `Date` plus monotonic elapsed time across
   sync, game downloads and UI calculations. Before the first valid sample it uses system time.

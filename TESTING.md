@@ -210,6 +210,12 @@ scripts/device.sh press down a b   # tap buttons
 Password prompts work; an SSH key saves typing. The only thing `deploy` deletes is the old
 `App/Cheevos/cheevos` package before copying the new one.
 
+**Keep backups off the device's `/tmp`.** On the Mini it is a 49 MB tmpfs backed by RAM;
+an 18 MB app backup was enough to cause memory pressure, thread creation failures and a
+device freeze. Stream backups over SSH directly to the development machine. Stream deployment
+archives straight into `tar` on the SD card, as `device.sh deploy` does, instead of staging
+them in the device's `/tmp`.
+
 **Be careful with a device that's in use:**
 - Check that it's idle before launching, tapping or deploying: neither Cheevos nor a game should
   be running (`pgrep -f 'python3[.]10 -m [c]heevos'`, `pgrep -f '[r]a32[.]'`).

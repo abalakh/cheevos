@@ -124,7 +124,7 @@ export PYTHONPATH="$APP_DIR"
 export SSL_CERT_FILE=/mnt/SDCARD/spruce/etc/ca-certificates.crt
 
 cd "$RUN_DIR" || cd "$APP_DIR" || exit 1
-"$PYTHON" -m cheevos 2>"$STDERR_LOG"
+"$PYTHON" -m cheevos "$@" 2>"$STDERR_LOG"
 STATUS=$?
 [ -n "$CLEANUP" ] && $CLEANUP
 if [ "$STATUS" -ne 0 ]; then

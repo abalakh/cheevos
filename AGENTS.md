@@ -42,6 +42,9 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
     `Saves/spruce/cheevos-*.log`, and `/tmp`.
   - Treat everything else (Spruce/RetroArch configs, other apps' data) as read-only unless a
     change has been agreed.
+  - **Never store device backups or deployment archives in the device's `/tmp`.** It is
+    RAM-backed tmpfs; an 18 MB backup has caused memory pressure and a device freeze. Stream
+    backups over SSH to the development machine, and stream deployments straight to the SD card.
   - **Never touch `/mnt/SDCARD/Roms`.** A ROM library is usually irreplaceable: don't modify it,
     and don't even list it recursively.
   - Only send single taps of A/B/X/Y/D-pad/L1/R1/Start/Select. Never MENU, power or combos:

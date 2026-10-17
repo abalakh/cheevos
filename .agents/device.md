@@ -60,6 +60,11 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
   take a screenshot between screens rather than sending long sequences.
 - **`pgrep -f` self-match:** a plain `pgrep -f` pattern also matches the remote shell's own
   command line. Use the `[x]` trick (`'[c]heevos'`).
+- **Backups must stay off device `/tmp`.** It is RAM-backed tmpfs. An 18 MB app backup
+  during integration testing caused memory pressure, thread creation failures and a device
+  freeze. Stream backups over SSH to the development machine and deployment archives straight
+  to the SD card; never stage a full backup or package in the device's `/tmp`. Small, bounded
+  test fixtures and the app's image scratch are fine.
 - **busybox limits:** busybox tar rejects pax/xattr headers, so deploy uses
   `COPYFILE_DISABLE=1 tar --format ustar`. Busybox `sort` has no `-h`.
 - **SSH:** ssh's ControlPath must be under ~104 bytes, so the control socket lives in

@@ -52,7 +52,9 @@ RUNS: list[tuple[str, str | None, str]] = [
 ]
 
 
-def render(resolution: str, theme: str | None, script: str, out: Path) -> list[Path]:
+def render(
+    resolution: str, theme: str | None, script: str, out: Path, *, game_id: int | None = None
+) -> list[Path]:
     """Run one headless walk-through of the showcase drill.
 
     Args:
@@ -60,6 +62,7 @@ def render(resolution: str, theme: str | None, script: str, out: Path) -> list[P
         theme: Theme name from ``dev/themes``, or ``None`` for the bundled SPRUCE theme.
         script: Desktop runner script.
         out: Capture directory.
+        game_id: Open this game's achievements directly from Spruce.
 
     Returns:
         The captured images.
@@ -67,6 +70,8 @@ def render(resolution: str, theme: str | None, script: str, out: Path) -> list[P
     env = {**os.environ, "CHEEVOS_SIMULATE": "showcase"}
     command = [sys.executable, "-m", "cheevos.platform.desktop", "--headless"]
     command += ["--res", resolution, "--script", script, "--out", str(out)]
+    if game_id is not None:
+        command += ["--game-id", str(game_id)]
     if theme is not None:
         env["CHEEVOS_THEMES_DIR"] = str(THEMES)
         command += ["--theme", theme]
@@ -89,6 +94,12 @@ def main() -> int:
             for image in render(resolution, theme, script, Path(scratch)):
                 shutil.copyfile(image, OUT / image.name)
                 print(f"{OUT.relative_to(REPO) / image.name}")
+    with tempfile.TemporaryDirectory() as scratch:
+        for image in render(
+            "640x480", None, "wait:10,shot:game-from-spruce", Path(scratch), game_id=519
+        ):
+            shutil.copyfile(image, OUT / image.name)
+            print(f"{OUT.relative_to(REPO) / image.name}")
     return 0
 
 
