@@ -1,5 +1,6 @@
-# Weekly early warning: does the bridge still work against SpruceOS's latest Development branch?
-# A failure here means PyUI changed in a way we must adapt to before the next Spruce release.
+# Weekly early warning: do the bridge and ROM identification still work against SpruceOS's
+# latest Development branch? A failure here means PyUI or Spruce's RAOfflineProxy bundle changed
+# in a way we must adapt to before the next Spruce release.
 name: PyUI drift
 
 on:
@@ -23,6 +24,14 @@ jobs:
             App/PyUI
             Themes/SPRUCE
 
+      - name: Check out RAOfflineProxy at the latest Development
+        uses: actions/checkout@v5
+        with:
+          repository: spruceUI/spruceOS
+          ref: Development
+          path: .spruceos-proxy
+          sparse-checkout: App/RAOfflineProxy
+
       # setup-uv has no major tags since v8, so pin the release. Keep uv on the minor that
       # pyproject's uv_build bound allows, so CI builds the way contributors do.
       - uses: astral-sh/setup-uv@v10.2.0
@@ -40,6 +49,17 @@ jobs:
         env:
           PYTEST_ADDOPTS: --basetemp=build/pytest  # keep the screen tests' captures
 
+      # Runs whatever the tests did: it records the bundle's version and commit, and a failure
+      # names the API that changed.
+      - name: RAOfflineProxy compatibility
+        if: ${{ !cancelled() }}
+        run: |
+          mkdir -p build
+          make proxy-check REPORT=build/proxy-compat.json > build/proxy-compat.txt 2>&1 || status=$?
+          cat build/proxy-compat.txt
+          { echo '```'; cat build/proxy-compat.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "${status:-0}"
+
       # How the latest PyUI draws our screens. If a test fails, `make screens` never runs, so
       # the screen tests' own captures come too.
       - uses: actions/upload-artifact@v7
@@ -49,3 +69,4 @@ jobs:
           path: |
             build/screens/
             build/pytest/**/shots/**/*.png
+            build/proxy-compat.json

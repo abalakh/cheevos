@@ -18,6 +18,8 @@ the app deletes it and starts fresh.
 | PyUI view state | `Saves/cheevos/pyui-state.json` | Cache | PyUI's last selections, kept apart from the launcher's own state. |
 | RA data cache | `Saves/cheevos/cache/data.db` | Cache | SQLite: profile, games, achievements, awards, events, sync state. Rebuildable from RA. |
 | Image cache | `Saves/cheevos/cache/media.db` | Cache | SQLite blobs keyed `badge/<BadgeName>[_lock]`, `icon/<gameId>`, `avatar/<user>`, `award/<path without .png>` (event and site badges, e.g. `award/Images/122639`). Kept separate so "Clear image cache" doesn't drop RA data. |
+| ROM identifications | `Saves/cheevos/cache/rom-identifications.json` | Cache | Game IDs the identification helper found, by ROM path, for Spruce's "View achievement progress". JSON, at most 256 entries and 256 KB, written atomically ([integration.md](integration.md), "Direct launch from Spruce"). |
+| Identification scratch | `Saves/cheevos/cache/identify-work/` | Cache | Spruce's per-lookup directory, where the helper extracts a zipped ROM to hash it. On the SD card, not `/tmp`: a ROM can be bigger than the RAM `/tmp` has. Removed after each lookup. |
 | Image scratch | `/tmp/cheevos/media/` | Cache | The images the current screen needs, extracted from `media.db` because PyUI loads images by path (~17 ms per 40 badges). tmpfs is RAM, so it's bounded: 4 MB, LRU, counted in whole 4 KB pages (a 3 KB badge takes a page). |
 | Drawing scratch | `/tmp/cheevos/scaled/` | Cache | Generated PNGs (swatches, button glyphs), and in `sharp/` the enlarged screenshots: only the newest 4 (up to 1.4 MB each). |
 | Log | `Saves/spruce/cheevos-$PLATFORM.log` | — | Spruce's convention. Rotating, 1 MB × 2. |

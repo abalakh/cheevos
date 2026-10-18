@@ -16,7 +16,7 @@ from cheevos.core.errors import (
     RateLimitedError,
     RequestCancelledError,
 )
-from cheevos.core.ra_client.client import RaClient, default_user_agent
+from cheevos.core.ra_client.client import RaClient
 from cheevos.core.ra_client.pacer import Pacer
 from cheevos.core.ra_client.redact import RedactingFilter, install_redaction
 from cheevos.core.ra_client.transport import (
@@ -25,6 +25,7 @@ from cheevos.core.ra_client.transport import (
     STATIC_HOST,
     FixtureTransport,
     Response,
+    default_user_agent,
 )
 from cheevos.core.storage.data_cache import DataCache
 

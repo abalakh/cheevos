@@ -26,7 +26,9 @@ def test_device_package_includes_license_and_excludes_desktop(tmp_path) -> None:
         for style in ("dark", "light", "black", "white"):
             for kind in ("mastered", "completed", "beaten-hardcore", "beaten-softcore"):
                 assert f"Cheevos/cheevos/res/awards/{kind}-{style}.png" in release.namelist()
-        assert release.getinfo("Cheevos/launch.sh").external_attr >> 16 & 0o777 == 0o755
+        for script in ("launch.sh", "identify-rom.sh"):
+            assert release.getinfo(f"Cheevos/{script}").external_attr >> 16 & 0o777 == 0o755
+        assert "Cheevos/cheevos/platform/identify_rom.py" in release.namelist()
         assert not any("desktop/" in name or "__pycache__/" in name for name in release.namelist())
         assert "Cheevos/removed.py" not in release.namelist()
 

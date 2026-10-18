@@ -63,6 +63,10 @@ src/cheevos/
     credentials.py       Credentials; username from Spruce or RetroArch, apikey.txt
     screenshots.py       *-cheevo-<id>.png index
     proxy.py             RAOfflineProxy reader (read-only files)
+    identification/      Spruce's ROM identification helper: path_cache (saved paths),
+                         candidates (archive rules, hash candidates), hash_lookup (the proxy's
+                         cache, read-only, then RA), identify (the order of steps), result
+                         (the JSON contract); the package imports nothing itself
     local_games.py       on-device matching sources
     net.py               connectivity check through the shared transport
     clock.py             shared RA Date + monotonic app clock (system clock unchanged)
@@ -82,17 +86,22 @@ src/cheevos/
     strings.py           every user-facing string (ready for PyUI Language later)
   platform/
     paths.py             every path, from CHEEVOS_SDCARD_ROOT (default /mnt/SDCARD)
+    arguments.py         the --game-id argument shared by the launcher and desktop runner
+    identify_rom.py      the identification helper's entry point (identify-rom.sh runs it)
+    proxy_hasher.py      adapter over RAOfflineProxy's rom_hashing wrapper (its only import
+                         from the proxy)
     desktop/             dev only: runner CLI on PyUI's DESKTOP device, fixture/live
                          environments, drills (showcase_awards: the showcase's event and site
                          badges)
   res/icons/             original outlines: 24/48 px status, 96/144 px lists and fallbacks
   res/awards/            pre-rendered awards: dark/light and black/white contrast variants
-app/                     packaging: config.json, launch.sh, cheevos.png
+app/                     packaging: config.json, launch.sh, identify-rom.sh, cheevos.png
 assets/                  icon sources (SVG)
 tests/                   unit and screen tests, fixtures/
 scripts/                 check_conventions, record_fixtures, fetch_dev_media, fetch_pyui.sh,
                          build_package, release_notes, render_icons, make_synthetic_cache,
-                         doc_screens, device.sh
+                         doc_screens, device.sh, fetch_proxy.sh, check_proxy_compat (with
+                         proxy_native: ELF exports, a simulated native hasher)
 docs/                    the user guide, published as the GitHub wiki (images/ from doc_screens)
 .agents/                 docs for coding agents, by area (AGENTS.md is the entry point)
 README.md, CONTRIBUTING.md, TESTING.md, RELEASING.md
@@ -123,7 +132,8 @@ On the device, everything is assembled into `/mnt/SDCARD/App/Cheevos/` ([device.
 | `ty check` | Type checking | CI fails on any error |
 | `pytest` | Tests | CI fails; core coverage ≥ 85% |
 | `scripts/check_conventions.py` | Rules ruff can't express (below) | CI fails |
-| `shellcheck` | `app/launch.sh`, `scripts/*.sh` (POSIX sh: devices run busybox ash) | CI fails |
+| `shellcheck` | `app/*.sh`, `scripts/*.sh` (POSIX sh: devices run busybox ash) | CI fails |
+| `scripts/check_proxy_compat.py` | The RAOfflineProxy bundle at `proxy-tested-commit` still offers what ROM identification uses | CI fails |
 
 `make check` runs all of these locally; `make fmt` formats and auto-fixes. Per-file ignores worth
 knowing about:
@@ -178,6 +188,8 @@ Tooling gotchas:
 - **Start-up**: import what Home's first frame doesn't need on first use (screens, the RA
   client, the sync engine), as listed in `pyproject.toml`'s `PLC0415` ignores; a new screen or
   worker goes in `tests/unit/test_startup_imports.py` ([device.md](device.md), "Start-up").
+  The ROM identification helper follows the same rule: a saved path loads no hashing, SQLite or
+  network code (`tests/unit/test_identify_rom.py`).
 - **Size**:
   - modules: soft cap 500 lines, hard cap 800;
   - functions: 50 statements, complexity 10, 6 arguments, 12 branches, 6 returns. Use
@@ -237,4 +249,4 @@ How to run all of this: [TESTING.md](../TESTING.md).
 - Start by sourcing `/mnt/SDCARD/spruce/scripts/helperFunctions.sh` and `appEnv.sh`. Read only
   `SPRUCE_*` / `PLATFORM` variables from them.
 - Quote every expansion. No bashisms.
-- `.spruceos/`, `build/`, `dist/` and `dev/` are git-ignored.
+- `.spruceos/`, `.spruceos-proxy/`, `build/`, `dist/` and `dev/` are git-ignored.

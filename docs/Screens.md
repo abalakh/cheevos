@@ -52,11 +52,16 @@ recognised on your SD card (see [Limitations](Limitations.md)).
 
 ## A game's achievements
 You can open these directly from Spruce's per-game Menu popup: **View achievement progress**.
-Spruce identifies the ROM first and explains if no RetroAchievements game matches its hash.
-Spruce's existing game identification is used immediately. Other resolved game IDs are saved
-on the SD card by ROM path, so later launches skip the checking step. Replacing or patching a
-ROM at the same path keeps its game association: viewing progress doesn't require a currently
-RA-compatible ROM. An unmatched path is checked again after a week.
+A game Spruce has already identified opens immediately. Otherwise Cheevos identifies the ROM
+while Spruce shows "Checking RetroAchievements..." (**B** cancels): it hashes the ROM with
+RAOfflineProxy's hasher, without changing the proxy, and looks the hash up in the proxy's
+cache, then on RetroAchievements. That lookup sends only the ROM's hash and needs no sign-in;
+without Wi-Fi it works only for ROMs the proxy already knows. Spruce explains if no
+RetroAchievements game matches the hash. Resolved game IDs are saved on the SD card by ROM
+path, so later launches skip the checking step. Replacing or patching a ROM at the same path
+keeps its game association: viewing progress doesn't require a currently RA-compatible ROM, and
+a ROM version RetroAchievements lists as untested or incompatible still opens its game. An
+unmatched path is checked again after a week.
 This needs a Spruce build with the Cheevos integration and a compatible Cheevos installation.
 Cheevos shows saved progress immediately and refreshes only this game when online. **Start**
 refreshes or cancels that game's request; **B** from the list returns to the same game in Spruce.

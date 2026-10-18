@@ -28,12 +28,15 @@ build-backend = "uv_build"
 [tool.cheevos]
 # SpruceOS commit the PyUI bridge and the desktop runner were last verified against.
 pyui-tested-commit = "a3c494b13046ef0e238b963f36c9cab3f3a1e3f0"
+# SpruceOS commit whose RAOfflineProxy bundle ROM identification was last verified against
+# (RAOfflineProxy 2.2.0-alpha1 nightly 54). `make proxy-check` checks it; TESTING.md has the steps.
+proxy-tested-commit = "f037b64bdfa4a6fd0f06e4221b97f1cf4751b933"
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
 src = ["src", "tests", "scripts"]
-extend-exclude = [".spruceos", "build", "dist", "dev"]
+extend-exclude = [".spruceos", ".spruceos-proxy", "build", "dist", "dev"]
 
 [tool.ruff.lint]
 select = [
@@ -70,6 +73,10 @@ max-returns = 6
 "src/cheevos/core/clock.py" = ["PLC0415"]
 "src/cheevos/core/sync/background.py" = ["PLC0415"]
 "src/cheevos/ui/screens/home.py" = ["PLC0415"]
+# The ROM identification helper loads hashing, SQLite and network code only for a path it must
+# hash: a saved association answers without them (.agents/integration.md).
+"src/cheevos/core/identification/identify.py" = ["PLC0415"]
+"src/cheevos/platform/identify_rom.py" = ["PLC0415"]
 
 [tool.ty.environment]
 python-version = "3.10"
@@ -90,7 +97,7 @@ allowed-unresolved-imports = [
 ]
 
 [tool.ty.src]
-exclude = [".spruceos", "build", "dist", "dev"]
+exclude = [".spruceos", ".spruceos-proxy", "build", "dist", "dev"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -99,6 +106,7 @@ addopts = ["-ra", "--strict-markers"]
 markers = [
   "allow_network: test may open internet sockets (default: blocked)",
   "screens: renders PyUI headless; needs a SpruceOS checkout",
+  "proxy: checks the fetched RAOfflineProxy bundle (make proxy)",
 ]
 
 [tool.coverage.run]

@@ -1,5 +1,7 @@
 # PyUI and the SPRUCE theme, fetched by scripts/fetch_pyui.sh — never part of this repo
 .spruceos/
+# SpruceOS's RAOfflineProxy bundle, fetched by scripts/fetch_proxy.sh for the compatibility check
+.spruceos-proxy/
 
 # Build and dev outputs
 build/

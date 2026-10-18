@@ -6,13 +6,16 @@ For local setup and validation, see [TESTING.md](TESTING.md).
 ## CI
 
 - **CI** (`.github/workflows/ci.yml`): on pull request creation and updates, pushes to `master`
-  and `v*` tags, checks out PyUI at `pyui-tested-commit`, then runs lint, type check and tests.
+  and `v*` tags, checks out PyUI at `pyui-tested-commit` and Spruce's RAOfflineProxy bundle at
+  `proxy-tested-commit`, then runs lint, the proxy compatibility check, type check and tests.
   Feature branch pushes don't run CI separately; their pull requests test the merge result.
   When a test fails, it uploads the screen tests' captures (`screen-test-captures`).
 - **PyUI drift** (`.github/workflows/pyui-drift.yml`): weekly, the same tests and `make screens`
   against SpruceOS's latest `Development` branch, as an early warning when PyUI changes. It
   uploads the screens either way. After re-verifying against a newer SpruceOS, bump
-  `pyui-tested-commit`.
+  `pyui-tested-commit`. The same job checks Spruce's latest RAOfflineProxy bundle for ROM
+  identification (`make proxy-check`, version and commit in its summary); bump
+  `proxy-tested-commit` as TESTING.md describes.
 - **SpruceOS PR** (the `spruceos` job in `ci.yml`): after a stable release and wiki publication
   succeed, mirrors the published device ZIP into SpruceOS's `App/Cheevos/` and opens an upstream
   PR. See the one-time setup below.
