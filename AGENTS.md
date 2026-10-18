@@ -32,6 +32,8 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
 - Ad hoc: `uv run python -m cheevos.platform.desktop --headless --res 640x480 --script "shot:a,down,shot:b"`
   (tokens: buttons, `shot:<name>`, `wait:N` idle ticks of ~1/12 s).
 - `make doc-screens`: regenerate the wiki screenshots after UI changes.
+- `make proxy proxy-check [PROXY=<bundle or checkout>]`: RAOfflineProxy compatibility of Spruce's
+  ROM identification helper (`app/identify-rom.sh`).
 
 ## Devices
 - `make deploy launch shot logs stop` with `DEVICE_HOST=<ip>` (or `DEVICE_SSH="ssh user@ip"`).
@@ -57,7 +59,10 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
 ## Ground rules
 - **Don't commit or push** unless asked: a maintainer reviews and commits changes.
 - `.spruceos/` is a sparse SpruceOS checkout with PyUI and the SPRUCE theme (`make pyui`), for
-  the desktop runner and screen tests. It's git-ignored; never edit it.
+  the desktop runner and screen tests; `.spruceos-proxy/` holds Spruce's RAOfflineProxy bundle
+  (`make proxy`). Both are git-ignored; never edit them.
+- Never add or change RAOfflineProxy files, on a device or in Spruce: Cheevos only reads its data
+  and imports its hashing wrapper (`.agents/integration.md`).
 - PyUI may be imported only in `cheevos.ui.pyui` (the bridge) and `cheevos.platform.desktop`
   (the desktop runner). `scripts/check_conventions.py` enforces this.
 - The device runs CPython 3.10.18, so use no 3.11+ features and no third-party runtime

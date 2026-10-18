@@ -10,8 +10,8 @@ SCREEN_SCRIPT ?= shot:home,a,shot:profile,b,down,a,shot:games,select,shot:games_
 SHELL_SCRIPTS := $(shell find app scripts -name '*.sh' 2>/dev/null)
 
 .DEFAULT_GOAL := help
-.PHONY: help sync pyui fmt lint conventions shellcheck typecheck test check run screens doc-screens wiki package \
-	deploy launch stop logs shot clean
+.PHONY: help sync pyui proxy proxy-check fmt lint conventions shellcheck typecheck test check run screens \
+	doc-screens wiki package deploy launch stop logs shot clean
 
 help: ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -21,6 +21,12 @@ sync: ## Install/refresh the dev environment (Python 3.10 + tools)
 
 pyui: ## Fetch PyUI and the SPRUCE theme into .spruceos/ (REF=<ref> for another commit)
 	scripts/fetch_pyui.sh $(REF)
+
+proxy: ## Fetch Spruce's RAOfflineProxy bundle into .spruceos-proxy/ (REF=<ref> for another commit)
+	scripts/fetch_proxy.sh $(REF)
+
+proxy-check: ## Check RAOfflineProxy compatibility (PROXY=<bundle or checkout>, default .spruceos-proxy)
+	$(RUN) python scripts/check_proxy_compat.py $(PROXY) $(if $(REPORT),--report $(REPORT))
 
 fmt: ## Format and auto-fix lint issues
 	$(RUN) ruff format .
@@ -44,7 +50,7 @@ typecheck: ## Type-check with ty
 	$(RUN) ty check
 
 test: ## Run the test suite with coverage
-	$(RUN) pytest --cov --cov-report=term
+	$(RUN) pytest -v --durations=10 --cov --cov-report=term
 
 check: lint typecheck test ## Everything CI runs
 
@@ -87,5 +93,5 @@ shot: ## Save the device screen: make shot [OUT=build/device.png]
 
 clean: ## Remove build outputs and caches (keeps dev/sdcard)
 	rm -rf build dist .pytest_cache .ruff_cache .coverage coverage.xml htmlcov
-	find . -name __pycache__ -type d -not -path './.spruceos/*' -not -path './.venv/*' \
-		-exec rm -rf {} +
+	find . -name __pycache__ -type d -not -path './.spruceos/*' -not -path './.spruceos-proxy/*' \
+		-not -path './.venv/*' -exec rm -rf {} +

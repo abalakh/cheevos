@@ -53,11 +53,17 @@ def build_media_dir(root: Path) -> Path:
     return root
 
 
+@pytest.fixture(scope="module")
+def media_dir(tmp_path_factory):
+    # Transports only read this source; each test still owns its caches and request history.
+    return build_media_dir(tmp_path_factory.mktemp("sync-media-host"))
+
+
 class Harness:
-    def __init__(self, tmp_path: Path, transport=None, on_device=frozenset({FFTA})):
-        self.transport = transport or FixtureTransport(
-            FIXTURES, media_dir=build_media_dir(tmp_path / "media-host")
-        )
+    def __init__(
+        self, tmp_path: Path, media_dir: Path, transport=None, on_device=frozenset({FFTA})
+    ):
+        self.transport = transport or FixtureTransport(FIXTURES, media_dir=media_dir)
         self.client = RaClient("Balah", "k" * 32, self.transport, user_agent="test", min_interval=0)
         self.data = DataCache.open(tmp_path / "data.db", "Balah")
         self.media = MediaCache.open(tmp_path / "media.db", tmp_path / "scratch")
@@ -81,8 +87,8 @@ class Harness:
 
 
 @pytest.fixture
-def harness(tmp_path):
-    return Harness(tmp_path)
+def harness(tmp_path, media_dir):
+    return Harness(tmp_path, media_dir)
 
 
 def test_first_sync_fills_the_caches(harness):
@@ -195,8 +201,8 @@ class RejectingTransport:
         return Response(status=401, body=b'{"message":"Unauthenticated."}')
 
 
-def test_rejected_key_fails_with_auth(tmp_path):
-    harness = Harness(tmp_path, transport=RejectingTransport())
+def test_rejected_key_fails_with_auth(tmp_path, media_dir):
+    harness = Harness(tmp_path, media_dir, transport=RejectingTransport())
     status = harness.engine().run(SyncOptions())
     assert status.failure is Failure.AUTH
 
@@ -208,9 +214,9 @@ class FlakyMediaTransport(FixtureTransport):
         return super().get(host, path, headers)
 
 
-def test_missing_badges_are_skipped_not_fatal(tmp_path):
-    transport = FlakyMediaTransport(FIXTURES, media_dir=build_media_dir(tmp_path / "host"))
-    harness = Harness(tmp_path, transport=transport)
+def test_missing_badges_are_skipped_not_fatal(tmp_path, media_dir):
+    transport = FlakyMediaTransport(FIXTURES, media_dir=media_dir)
+    harness = Harness(tmp_path, media_dir, transport=transport)
     status = harness.engine().run(SyncOptions())
     assert status.phase is Phase.DONE
     assert harness.media.has(avatar_key("Balah"))
@@ -220,8 +226,8 @@ def test_missing_badges_are_skipped_not_fatal(tmp_path):
     ("scope", "expect_badges"),
     [(BadgeScope.NONE, False), (BadgeScope.ALL, True)],
 )
-def test_badge_scope(tmp_path, scope, expect_badges):
-    harness = Harness(tmp_path, on_device=frozenset())
+def test_badge_scope(tmp_path, media_dir, scope, expect_badges):
+    harness = Harness(tmp_path, media_dir, on_device=frozenset())
     harness.engine().run(SyncOptions(badge_scope=scope))
     fire_emblem = harness.data.game_detail(554)
     assert fire_emblem is not None
@@ -239,8 +245,8 @@ def has_any_badge(harness, game_id):
     )
 
 
-def test_recent_scope_takes_recently_played_games_only(tmp_path):
-    harness = Harness(tmp_path, on_device=frozenset())
+def test_recent_scope_takes_recently_played_games_only(tmp_path, media_dir):
+    harness = Harness(tmp_path, media_dir, on_device=frozenset())
     harness.engine().run(SyncOptions(recent_days=30))
     assert has_any_badge(harness, 554)  # Fire Emblem, played the day before NOW
     # Feed badges are kept for offline browsing, without fetching either full set.
@@ -277,22 +283,18 @@ class StatusTransport(FixtureTransport):
         ("API_GetUserAwards", 418, Failure.ERROR),
     ],
 )
-def test_request_failures_map_to_failure_reasons(tmp_path, fail_on, status, failure):
-    transport = StatusTransport(
-        FIXTURES, media_dir=build_media_dir(tmp_path / "host"), fail_on=fail_on, status=status
-    )
-    harness = Harness(tmp_path, transport=transport)
+def test_request_failures_map_to_failure_reasons(tmp_path, media_dir, fail_on, status, failure):
+    transport = StatusTransport(FIXTURES, media_dir=media_dir, fail_on=fail_on, status=status)
+    harness = Harness(tmp_path, media_dir, transport=transport)
     harness.client._sleep = lambda _seconds: None
     status_ = harness.engine().run(SyncOptions())
     assert status_.phase is Phase.FAILED
     assert status_.failure is failure
 
 
-def test_network_drop_during_media_keeps_downloaded_images(tmp_path):
-    transport = StatusTransport(
-        FIXTURES, media_dir=build_media_dir(tmp_path / "host"), fail_on="/Badge/", status=502
-    )
-    harness = Harness(tmp_path, transport=transport)
+def test_network_drop_during_media_keeps_downloaded_images(tmp_path, media_dir):
+    transport = StatusTransport(FIXTURES, media_dir=media_dir, fail_on="/Badge/", status=502)
+    harness = Harness(tmp_path, media_dir, transport=transport)
     status = harness.engine().run(SyncOptions())
     assert status.failure is Failure.NETWORK
     assert harness.media.has(avatar_key("Balah"))  # fetched before the first badge
@@ -333,12 +335,11 @@ def test_interrupted_full_resync_resumes_as_full(harness):
     assert engine().run(SyncOptions()).details_fetched == 0  # and then it's done
 
 
-def test_a_long_rate_limit_is_remembered_until_its_time_is_up(tmp_path):
-    media_dir = build_media_dir(tmp_path / "host")
+def test_a_long_rate_limit_is_remembered_until_its_time_is_up(tmp_path, media_dir):
     transport = StatusTransport(
         FIXTURES, media_dir=media_dir, fail_on="API_GetUserAwards", status=429, retry_after="600"
     )
-    harness = Harness(tmp_path, transport=transport)
+    harness = Harness(tmp_path, media_dir, transport=transport)
     status = harness.engine().run(SyncOptions())
     assert (status.failure, status.retry_at) == (Failure.RATE_LIMITED, NOW + 600)
     assert harness.data.get_meta(RATE_LIMITED_UNTIL_KEY) == str(NOW + 600)
@@ -354,8 +355,8 @@ def test_a_long_rate_limit_is_remembered_until_its_time_is_up(tmp_path):
     assert harness.data.get_meta(RATE_LIMITED_UNTIL_KEY) is None
 
 
-def test_cancel_during_a_wait_for_the_next_request_cancels_at_once(tmp_path):
-    harness = Harness(tmp_path)
+def test_cancel_during_a_wait_for_the_next_request_cancels_at_once(tmp_path, media_dir):
+    harness = Harness(tmp_path, media_dir)
     harness.client = RaClient(
         "Balah", "k" * 32, harness.transport, user_agent="t", min_interval=30, cancel=harness.cancel
     )

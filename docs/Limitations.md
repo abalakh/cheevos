@@ -35,7 +35,9 @@ and some are limits of the data RetroAchievements offers.
 ## On this device
 The "On this device" filter lists games Spruce already recognised as RetroAchievements games: ones
 you've played with achievements on this SD card, or that RAOfflineProxy has cached. Cheevos
-doesn't scan or hash your ROMs itself, so a game you've never started won't be listed.
+doesn't scan your ROMs, so a game you've never started won't be listed. It identifies a ROM
+only when you choose **View achievement progress** for it in Spruce, and that doesn't add it
+to this list.
 
 ## Offline unlocks
 RAOfflineProxy works in casual mode only, so unlocks earned offline are always casual. Cheevos

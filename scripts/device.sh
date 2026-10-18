@@ -51,7 +51,7 @@ case "${1:-}" in
         remote "rm -rf '$APP_DIR/cheevos' && mkdir -p '$APP_DIR'"
         # ustar without macOS metadata: busybox tar on the device chokes on pax/xattr headers.
         COPYFILE_DISABLE=1 tar -C "$REPO/dist/App/Cheevos" --format ustar -cf - . |
-            remote "tar -xf - -C '$APP_DIR' && chmod +x '$APP_DIR/launch.sh' && sync"
+            remote "tar -xf - -C '$APP_DIR' && chmod +x '$APP_DIR/launch.sh' '$APP_DIR/identify-rom.sh' && sync"
         echo "Deployed to $APP_DIR"
         ;;
     launch)

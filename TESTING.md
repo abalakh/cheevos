@@ -26,6 +26,9 @@ For CI, releases and publishing, see [RELEASING.md](RELEASING.md).
    To use a checkout elsewhere, set `CHEEVOS_PYUI_DIR` (to `App/PyUI/main-ui`) and
    `CHEEVOS_THEMES_DIR` (to `Themes`). Without PyUI, unit tests still run and screen tests are
    skipped.
+4. `make proxy` fetches Spruce's RAOfflineProxy bundle into `.spruceos-proxy/` at
+   `proxy-tested-commit`, for the ROM identification compatibility check (below). Without it,
+   the tests that check the bundle are skipped.
 
 `make help` lists every target.
 
@@ -38,8 +41,11 @@ For CI, releases and publishing, see [RELEASING.md](RELEASING.md).
 | `make conventions` | `scripts/check_conventions.py`: module size caps, docstrings everywhere, layering (PyUI only in the bridge) |
 | `make typecheck` | `ty check` |
 | `make test` | pytest with coverage. Tests never touch the network: a fixture blocks sockets. |
+| `make proxy-check` | RAOfflineProxy compatibility of ROM identification (below) |
 
 Run one file or test with `uv run pytest tests/unit/test_stats.py -q` or `-k <name>`.
+`make test` prints each test's name and the ten slowest durations, so CI shows progress within
+longer test files.
 
 ## The desktop runner
 `make run` opens the real app in a window on recorded data (`tests/fixtures/ra/`, a real
@@ -186,6 +192,41 @@ Without `--baseline`, it measures the current reader only. `--games`, `--per-gam
 `--repeats` change the cache size and sample count. The RSS measurement needs macOS or Linux;
 desktop timings are comparisons, not estimates of speed on the Mini.
 
+## RAOfflineProxy compatibility
+Spruce's "View achievement progress" runs Cheevos's identification helper, which hashes ROMs
+with the installed RAOfflineProxy's `rom_hashing` wrapper and reads its cache
+(`.agents/integration.md`, "Direct launch from Spruce"). The proxy updates on its own schedule,
+so every proxy build Cheevos meets needs the same check:
+
+```sh
+make proxy proxy-check                         # Spruce's bundle at proxy-tested-commit
+make proxy REF=origin/Development proxy-check  # Spruce's latest bundle
+make proxy-check PROXY=../RAOfflineProxy       # an upstream checkout (or its linux/)
+make proxy-check PROXY=<dir> REPORT=build/proxy-compat.json
+```
+
+`scripts/check_proxy_compat.py` prints the proxy's version and source commit (`--source-commit`
+records one for a directory that isn't a git checkout) and fails, naming what changed, when:
+- `rom_hashing` lacks a function the adapter calls, its signature changed, or importing it
+  loads more of the proxy than `EXPECTED_MODULES` (`platform/proxy_hasher.py`);
+- Cheevos's archive rules give different candidates from the proxy's own
+  `rom_browser.hash_candidates_for_manual_cache` for plain, ZIP and 7z fixtures;
+- the read-only cache reader can't read what the proxy's `Storage` writes;
+- a bundled `lib/<arch>/libraproxy_rchash.so` doesn't export a function the wrapper binds.
+
+It imports the proxy's real Python modules from a copy without its libraries. Device libraries
+are never loaded on a computer: their exports are read from the ELF files, and hashing runs on
+a simulated native library (`scripts/proxy_native.py`). That proves the Python contract only;
+real hashing needs the device check below.
+
+CI checks the bundle at `proxy-tested-commit` before the tests, and the weekly drift job checks
+Spruce's latest `Development` bundle. **To bump the proxy:** run `make proxy REF=<commit>
+proxy-check`, then the device check below with that bundle installed, then set
+`proxy-tested-commit` in `pyproject.toml`. A proxy installed or updated independently of Spruce
+(its own updater, or an upstream release) isn't covered by the pinned bundle: before relying on
+one, run the same check against its source or bundle. On any device, an incompatible proxy only
+disables identification (`dependency` error); it never affects the proxy itself.
+
 ## Sync without the UI
 The sync engine runs on its own against a card:
 
@@ -224,6 +265,23 @@ them in the device's `/tmp`.
   trigger Spruce hotkeys.
 - Treat everything outside `App/Cheevos/`, `Saves/cheevos/` and `/tmp` as read-only, and leave
   `Roms/` alone entirely. A ROM library is usually irreplaceable.
+
+**ROM identification on the device.** Run the helper over SSH exactly as Spruce's menu does
+(check that the device is idle first). `--path` takes a ROM path, and only reads it; never list
+or change `Roms/`. `time` gives the start-up figure for `.agents/device.md`:
+
+```sh
+/mnt/SDCARD/App/Cheevos/identify-rom.sh --path "/mnt/SDCARD/Roms/GBA/<game>.zip" --json
+time /mnt/SDCARD/App/Cheevos/identify-rom.sh --path "<the same ROM, now saved>" --json
+```
+
+Without `--work-dir`, a ZIP is extracted under `Saves/cheevos/cache/identify-work/`; the
+helper's log lines go to `Saves/spruce/cheevos-<platform>.log`. The full device check before a
+proxy bump or release: a ROM Spruce already knows (no helper), a saved path, an unknown
+supported ROM, an unsupported ROM (`no_match`), Wi-Fi off with the proxy's cache warm and cold,
+a single-ROM ZIP, and B while checking. Then replace the proxy (Spruce update or its updater):
+`App/Cheevos/identify-rom.sh` must survive, and the proxy must still start and log in.
+Record the device, Spruce and proxy versions and the timings in the PR.
 
 To run a sync on the device without the UI, over SSH:
 

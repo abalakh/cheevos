@@ -8,14 +8,16 @@ import os
 import struct
 import subprocess
 import sys
-import zlib
 from pathlib import Path
 
 import pytest
+import sdl2
+from sdl2 import sdlimage
 
 from cheevos.core.settings import Settings, load_settings
 from cheevos.core.storage.data_cache import DataCache
 from cheevos.platform.desktop.no_set_drill import GAME_ID
+from cheevos.ui.pyui.generated import surface_rgba
 
 REPO = Path(__file__).resolve().parents[2]
 PYUI_DIR = Path(os.environ.get("CHEEVOS_PYUI_DIR", REPO / ".spruceos/App/PyUI/main-ui"))
@@ -41,36 +43,24 @@ def png_size(path: Path) -> tuple[int, int]:
 
 
 def png_rows(path: Path, count: int) -> tuple[int, list[bytes]]:
-    """Decode the first ``count`` rows of an 8-bit RGB or RGBA PNG (as SDL_image saves them)."""
-    data, pos, idat = path.read_bytes(), 8, b""
-    width = bpp = 0
-    while pos < len(data):
-        length, kind = struct.unpack(">I4s", data[pos : pos + 8])
-        body = data[pos + 8 : pos + 8 + length]
-        if kind == b"IHDR":
-            width, _height, depth, color = struct.unpack(">IIBB", body[:10])
-            assert depth == 8
-            assert color in (2, 6)
-            bpp = 3 if color == 2 else 4
-        elif kind == b"IDAT":
-            idat += body
-        pos += 12 + length
-    raw, stride = zlib.decompress(idat), width * bpp
-    rows, previous = [], bytes(stride)
-    for y in range(count):
-        kind, line = (
-            raw[y * (stride + 1)],
-            bytearray(raw[y * (stride + 1) + 1 : (y + 1) * (stride + 1)]),
-        )
-        for i in range(stride):
-            a, b = line[i - bpp] if i >= bpp else 0, previous[i]
-            c = previous[i - bpp] if i >= bpp else 0
-            p = a + b - c
-            predictor = [0, a, b, (a + b) // 2, min((a, b, c), key=lambda v: abs(p - v))][kind]
-            line[i] = (line[i] + predictor) & 0xFF
-        rows.append(bytes(line))
-        previous = rows[-1]
-    return bpp, rows
+    """Decode the first ``count`` rows as RGBA using SDL_image's native PNG decoder."""
+    # The per-byte Python PNG filters dominated screen-test time, especially at 1280x720.
+    # Use the PNG loader directly: IMG_Load can use macOS ImageIO, which rounds translucent
+    # pixels' RGB channels. Comparing the PNG's exact values keeps these assertions intact.
+    stream = sdl2.SDL_RWFromFile(str(path).encode(), b"rb")
+    assert stream, f"could not open {path}"
+    try:
+        surface = sdlimage.IMG_LoadPNG_RW(stream)
+    finally:
+        sdl2.SDL_RWclose(stream)
+    assert surface, f"could not decode {path}"
+    try:
+        width, height, pixels = surface_rgba(surface)
+    finally:
+        sdl2.SDL_FreeSurface(surface)
+    assert 0 <= count <= height
+    stride = width * 4
+    return 4, [pixels[y * stride : (y + 1) * stride] for y in range(count)]
 
 
 def gold_pixels(path: Path, top: int) -> int:

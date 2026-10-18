@@ -12,9 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Read the pinned SpruceOS commit
+      - name: Read the pinned SpruceOS commits
         id: pin
-        run: echo "commit=$(grep -E '^pyui-tested-commit' pyproject.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "commit=$(grep -E '^pyui-tested-commit' pyproject.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
+          echo "proxy=$(grep -E '^proxy-tested-commit' pyproject.toml | cut -d'"' -f2)" >> "$GITHUB_OUTPUT"
 
       # PyUI and the default theme, for the bridge, the desktop runner and headless screen tests.
       - name: Check out PyUI at the pinned commit
@@ -27,6 +29,16 @@ jobs:
             App/PyUI
             Themes/SPRUCE
 
+      # The RAOfflineProxy bundle ROM identification was verified against, fetched before the
+      # tests so they stay deterministic (scripts/check_proxy_compat.py and its tests).
+      - name: Check out RAOfflineProxy at the pinned commit
+        uses: actions/checkout@v5
+        with:
+          repository: spruceUI/spruceOS
+          ref: ${{ steps.pin.outputs.proxy }}
+          path: .spruceos-proxy
+          sparse-checkout: App/RAOfflineProxy
+
       # setup-uv has no major tags since v8, so pin the release. Keep uv on the minor that
       # pyproject's uv_build bound allows, so CI builds the way contributors do.
       - uses: astral-sh/setup-uv@v10.2.0
@@ -38,6 +50,14 @@ jobs:
 
       - name: Lint
         run: make lint
+
+      - name: RAOfflineProxy compatibility
+        run: |
+          mkdir -p build
+          make proxy-check > build/proxy-compat.txt 2>&1 || status=$?
+          cat build/proxy-compat.txt
+          { echo '```'; cat build/proxy-compat.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          exit "${status:-0}"
 
       - name: Type check
         run: make typecheck
@@ -198,7 +218,7 @@ jobs:
           rsync --archive --delete --exclude /LICENSE \
             build/spruce-release/Cheevos/ build/spruceos/App/Cheevos/
           cp build/spruce-release/Cheevos/LICENSE build/spruceos/Licenses/Cheevos/LICENSE.Cheevos.txt
-          chmod 755 build/spruceos/App/Cheevos/launch.sh
+          chmod 755 build/spruceos/App/Cheevos/launch.sh build/spruceos/App/Cheevos/identify-rom.sh
 
       - name: Build the SpruceOS pull request description
         env:

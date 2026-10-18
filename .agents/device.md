@@ -24,13 +24,19 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
                    "description": "RetroAchievements hub"}   (no "devices": every device)
   launch.sh       sources helperFunctions.sh, sets the per-platform SDL env (mirroring PyUI's
                   launcher), runs Spruce's Python with -m cheevos; stderr to /tmp
+  identify-rom.sh Spruce's game menu runs it to identify a ROM: sources appEnv.sh and execs
+                  -m cheevos.platform.identify_rom, headless ([integration.md](integration.md))
   cheevos.png     app icon
   cheevos/        the Python package, with res/icons
   cache/          created at runtime
 ```
 
 - `make package` builds it into `dist/App/Cheevos/` (no desktop runner, no tests) and zips that
-  as `dist/Cheevos-<version>.zip`, with the `Cheevos/` prefix and no `App/` folder.
+  as `dist/Cheevos-<version>.zip`, with the `Cheevos/` prefix and no `App/` folder. Both shell
+  scripts are executable: Spruce runs them directly.
+- `config.json`'s `"gameProgress"` tells Spruce what the package supports: 1 for
+  `launch.sh --game-id N`, 2 when `identify-rom.sh` ships too. Raise it only with a new contract
+  Spruce checks for.
 - The Apps launcher discovers any `App/*/config.json`. PyUI exits fully while the app runs and
   restarts when it quits.
 - **No `devices` list:** a `devices` list in an app's `config.json` hides it on every device not
@@ -57,7 +63,9 @@ always apply. The device commands are in [TESTING.md](../TESTING.md).
   refuses on the device unless Cheevos is running, and stops at the first refusal. Still,
   take a screenshot between screens rather than sending long sequences.
 - **`pgrep -f` self-match:** a plain `pgrep -f` pattern also matches the remote shell's own
-  command line. Use the `[x]` trick (`'[c]heevos'`).
+  command line. Use the `[x]` trick (`'[c]heevos'`), and keep the plain text out of the rest of
+  the same remote script too: a later `grep "python3.10 -m cheevos..."` made an idle check
+  find "Cheevos" (the shell itself).
 - **Backups must stay off device `/tmp`.** It is RAM-backed tmpfs. An 18 MB app backup
   during integration testing caused memory pressure, thread creation failures and a device
   freeze. Stream backups over SSH to the development machine and deployment archives straight
@@ -141,6 +149,16 @@ factory and game-menu fixes have not yet been timed on a device.
   `sdl2.ext`, whose `resources` module imports `urllib.request` with `http.client`, `email`
   and `ssl` (0.2 s). `Display.init` took about 1 s (0.63 s re-initialising, 0.32 s loading
   fonts). Don't plant stub modules to skip them: Spruce updates PyUI without a Cheevos release.
+- **ROM identification helper** (`identify-rom.sh`), measured 2026-10-18 on the Mini+ with
+  Spruce 4.5.5 and RAOfflineProxy 2.2.0-alpha1 nightly 54, warm, from the shell to the JSON:
+  a saved path 0.6-0.7 s (1.3 s on the first run, compiling bytecode): `appEnv.sh` 0.05 s,
+  Python 0.12 s, the helper's imports 0.43 s (argparse, logging, dataclasses and pathlib lead),
+  the lookup under 10 ms. A hash the proxy has cached (CHD, CUE): 1.4-1.6 s. A new ROM asked
+  of RA: 2.7-3.1 s for a small ROM, 6.2-6.7 s for a 16-32 MB zipped GBA ROM (extraction to SD
+  dominates). Helper RSS 8.5 MB for a saved path, at most 15 MB with TLS; MemAvailable stayed at
+  13 MB or more with PyUI, the proxy service and the helper resident. In the game menu, Spruce
+  shows "Checking RetroAchievements..." for that time, then hands over to Cheevos (3 s more to
+  its first frame).
 - **How it was measured:** a patched build (never shipped) logs the first frame's time from
   the process start (`/proc/self/stat`), and can run `cProfile` up to it or start Python with
   `-X importtime`. A launch with `-X` doesn't match `pgrep -f 'python3[.]10 -m [c]heevos'`
