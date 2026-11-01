@@ -16,7 +16,7 @@ Headless capture (scripted input, PNGs in ``build/screens/<WxH>/``)::
 In another language (a translation in ``res/lang``, or the generated ``Pseudo``; PNGs in
 ``build/screens/<Language>/<WxH>/``)::
 
-    python -m cheevos.platform.desktop --lang Catalan
+    python -m cheevos.platform.desktop --lang Ukrainian
 
 Keyboard (RetroArch layout plus Menu): arrows = D-pad, X = A, Z = B, S = X, A = Y, Q/W = L1/R1,
 1/2 = L2/R2, Enter = Start, Right Shift = Select, M = Menu, F8 = screenshot, Esc = quit.
@@ -192,7 +192,7 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
     parser.add_argument(
         "--lang",
         metavar="LANGUAGE",
-        help=f'a translation in res/lang, e.g. "Catalan", or "{translations.PSEUDO}"',
+        help=f'a translation in res/lang, e.g. "Ukrainian", or "{translations.PSEUDO}"',
     )
     parser.add_argument(
         "--out", type=Path, help="screenshots (default: build/screens[/<LANGUAGE>])"

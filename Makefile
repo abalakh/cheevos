@@ -57,10 +57,10 @@ test: ## Run the test suite with coverage
 
 check: lint typecheck test ## Everything CI runs
 
-run: ## Desktop window: make run [RES=752x560] [SCALE=1] [UI_LANGUAGE=Catalan]
+run: ## Desktop window: make run [RES=752x560] [SCALE=1] [UI_LANGUAGE=Ukrainian]
 	$(RUN) python -m cheevos.platform.desktop --res $(RES) --scale $(SCALE) $(LANG_OPTION)
 
-screens: ## Walk-through PNGs in build/screens/[<UI_LANGUAGE>/]<WxH>/ (UI_LANGUAGE=Catalan or Pseudo)
+screens: ## Walk-through PNGs in build/screens/[<UI_LANGUAGE>/]<WxH>/ (UI_LANGUAGE=Ukrainian or Pseudo)
 	@cards=$$(mktemp -d) || exit 1; \
 	trap 'rm -rf "$$cards"' 0; \
 	trap 'exit 1' 1 2 15; \

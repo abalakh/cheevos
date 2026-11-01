@@ -38,19 +38,25 @@ whole, so a change to `App/Cheevos/` in Spruce is lost at the next one.
 1. Run `make languages`. It writes every string in English to `build/lang/English.json`.
 2. Copy it to `src/cheevos/res/lang/<Language>.json`, named exactly as Spruce's own file for the
    language in `App/PyUI/lang/` (`Catalan.json`, `Chinese (S).json`), and translate the values.
-   Keep the names on the left as they are.
+   Keep the names on the left as they are. `Ukrainian.json` there is a complete example.
    - Keep every `{field}`: the app fills them in. `{day:02d}` may become `{day}`.
    - A text with `{count}` that counts something takes plural forms:
      `{"one": "{count} punt", "other": "{count} punts"}`. Use the forms your language needs
      (`one`, `few`, `many`, `other`; `other` is required). The rules for each language are in
      `src/cheevos/ui/plurals.py`.
+   - A text with several numbers can't take plural forms. Put a label before each number
+     instead, as Ukrainian does: `"Хардкор: {hardcore} · казуал: {softcore}"`.
    - Lists keep their length: 12 `MONTHS`, 4 `SIZE_UNITS`.
    - Leave a value as `""`, or out, to keep it in English for now. Keys starting with `_` are
      notes and are ignored, e.g. `"_translators": "Your name"`.
 3. Run `make languages` again until it reports nothing left out, and `make check`.
 4. Run `make screens UI_LANGUAGE=<Language>` and look through `build/screens/<Language>/`: text
-   that's cut short or crowded needs a shorter wording. Attach a few screenshots to the pull
-   request.
+   that's cut short or crowded needs a shorter wording. The walk-through doesn't reach every
+   screen, so browse the rest in `CHEEVOS_SIMULATE=showcase make run UI_LANGUAGE=<Language>`.
+   Popups (the options under Y, the choices in Settings) are the tightest: a line there has
+   room for about as much as "Filter: Progression and win". A value may drop its label when it
+   reads well alone, as Ukrainian's sort orders do ("За назвою" for "Sort: Title"). Attach a
+   few screenshots to the pull request.
 
 Game, achievement and console names come from RetroAchievements and stay in English.
 

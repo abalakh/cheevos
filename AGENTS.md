@@ -29,7 +29,7 @@ Instructions for coding agents. Claude Code reads this file itself (v2.1.277+), 
   X=A, Z=B, S=X, A=Y, Q/W=L1/R1, Enter=Start, RShift=Select, M=Menu, F8=screenshot, Esc=quit.
 - Drills: `CHEEVOS_SIMULATE=offline|clock|auth|empty|proxy|showcase|awards|setup make run`.
 - `make screens`: headless PNGs in `build/screens/<WxH>/`. Read them to check UI changes.
-  `UI_LANGUAGE=Catalan` (a translation in `src/cheevos/res/lang/`) or `UI_LANGUAGE=Pseudo`
+  `UI_LANGUAGE=Ukrainian` (a translation in `src/cheevos/res/lang/`) or `UI_LANGUAGE=Pseudo`
   renders them in another language, into `build/screens/<Language>/<WxH>/`; `make run` takes it
   too.
 - `make languages`: check the translations; writes the English template to

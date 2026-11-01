@@ -421,15 +421,22 @@ class _Page:
             The row.
         """
         width = self._area.width - PADDING * 2
-        number = width // 6
-        name = width - number * 3
+        # A sixth of the width each, or more for a title that wouldn't fit (a narrow screen, a
+        # longer language)
+        titles = (strings.PLAYED, strings.BEATEN, strings.MASTERED)
+        numbers = [
+            max(width // 6, ui.text_width(ui.displayable(title), Text.BODY) + PADDING)
+            for title in titles
+        ]
+        name = width - sum(numbers)
 
         def draw(top: int) -> None:
             """Draw the line."""
             label = ui.fit_text(cells[0], Text.BODY, name - PADDING)
             ui.text(label, PADDING, top, accent=header)
-            for index, cell in enumerate(cells[1:]):
-                right = PADDING + name + number * (index + 1)
+            right = PADDING + name
+            for cell, number in zip(cells[1:], numbers, strict=True):
+                right += number
                 ui.text(cell, right, top, align=Align.TOP_RIGHT, accent=header)
 
         return Row(ui.line_height(Text.BODY) + PADDING // 4, draw)

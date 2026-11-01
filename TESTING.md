@@ -149,11 +149,11 @@ different times come out the same.
 The app follows Spruce's UI language where it has a translation in `src/cheevos/res/lang/`
 ([.agents/product.md](.agents/product.md), "Languages"). To see it in one:
 
-- `make screens UI_LANGUAGE=Catalan` renders the walk-through in Catalan into
-  `build/screens/Catalan/<WxH>/`, and `make run UI_LANGUAGE=Catalan` opens the window in it. The
-  runner sets PyUI's language too, so PyUI's own text (the theme's button hints, the keyboard)
-  follows PyUI's `lang/Catalan.json` from `.spruceos/`. The log names each value the app left out
-  and why. Quote names with spaces: `UI_LANGUAGE="Chinese (S)"`.
+- `make screens UI_LANGUAGE=Ukrainian` renders the walk-through in Ukrainian into
+  `build/screens/Ukrainian/<WxH>/`, and `make run UI_LANGUAGE=Ukrainian` opens the window in it.
+  The runner sets PyUI's language too, so PyUI's own text (the theme's button hints, the
+  keyboard) follows PyUI's `lang/Ukrainian.json` from `.spruceos/`. The log names each value the
+  app left out and why. Quote names with spaces: `UI_LANGUAGE="Chinese (S)"`.
 - `UI_LANGUAGE=Pseudo` uses a generated translation: every string accented, about 40% longer
   and in brackets, with Catalan's number separators. Text without brackets isn't translatable;
   a missing `]` means the text was cut; crowded rows show where a longer language won't fit.

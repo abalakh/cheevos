@@ -113,7 +113,10 @@ theme, display, controller.
 - **Popups:** a `POPUP` view freezes the current frame as its backdrop
   (`Display.lock_current_image`) until `view_finished()` is called. Forget it and every later
   screen is drawn over the frozen frame. `PreparedView.show()` (and so `choose()`) always calls
-  it.
+  it. Its background is the theme's `bg-pop-menu-4` image (half the screen wide in SPRUCE) and
+  text isn't clipped to it: a longer line runs on over the screen behind. At 640x480 a line has
+  300 px, all of which "Filter: Progression and win" takes; Settings' "On-device and recent
+  games" already runs about 20 px over.
 - **Showing a view again:** preparing a big list is the slow part (2,940 games: 0.9 s on a Mini),
   so the games list keeps its `PreparedView` and shows it again, back from a game (60 ms). PyUI's
   list keeps its selection and scroll position, and `view_finished()` does nothing for lists and
@@ -272,7 +275,10 @@ theme, display, controller.
   emoji. Every string goes through `text.displayable(value, role)`, which checks glyphs with
   `TTF_GlyphIsProvided32` and falls back to ASCII (accents: the NFKD base letter). Scripts the
   font lacks entirely (Chinese in Pico-8) draw as boxes: nothing uses PyUI's fallback font
-  (`allow_fallback_font_for_missing_glyphs`), PyUI's own menus included.
+  (`allow_fallback_font_for_missing_glyphs`), PyUI's own menus included. SPRUCE's `nunwen.ttf`
+  draws Cyrillic letters shaped like Latin ones (а, о, р) in the Latin letters' heavier weight,
+  and places the dots of ї, Ї and ё about 0.14 em too far left (its composites offset the
+  `dieresis` glyph, Latin ï uses `uni0308`). Both are in the font, so PyUI's menus show them too.
 - **Image scaling:** PyUI scales images with linear filtering, which blurs pixel art.
   `primitives.sharp_scaled` enlarges by the next whole factor above the fit with
   nearest-neighbour (BMP in the RAM scratch), then PyUI shrinks it into the box: "sharp
