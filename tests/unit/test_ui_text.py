@@ -29,6 +29,7 @@ def fake_font(monkeypatch):
     display = SimpleNamespace(
         fonts={"loaded": True},
         get_text_width_from_glyphs=lambda _purpose, value: sum(map(advance, value)),
+        get_text_dimensions=lambda _purpose, value: (sum(map(advance, value)), 20),
         count_chars_that_fit=count_chars_that_fit,
         requires_fallback_font=lambda value, _purpose: any(char in LACKING for char in value),
     )
@@ -104,3 +105,17 @@ def test_description_room_takes_the_icon_column_from_the_row_background(monkeypa
     monkeypatch.setitem(sys.modules, "themes.theme", SimpleNamespace(Theme=theme))
     monkeypatch.setitem(sys.modules, "display.display", SimpleNamespace(Display=display))
     assert text.description_room() == 480 - 7 - 80 - 7 * 2
+
+
+def test_lines_break_between_words():
+    assert text.wrap("aaa bbb ccc dd", Text.BODY, 70) == ["aaa bbb", "ccc dd"]
+
+
+def test_text_without_spaces_breaks_where_the_line_ends():
+    # Chinese and Japanese put no spaces between words.
+    assert text.wrap("一二三四五六七八", Text.BODY, 30) == ["一二三", "四五六", "七八"]
+    assert text.wrap("ab 一二三四五", Text.BODY, 30) == ["ab", "一二三", "四五"]
+
+
+def test_a_character_wider_than_the_line_still_gets_a_line():
+    assert text.wrap("WWW", Text.BODY, 10) == ["W", "W", "W"]

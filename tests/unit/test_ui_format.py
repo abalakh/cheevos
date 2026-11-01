@@ -3,6 +3,7 @@ import time
 import pytest
 
 from cheevos.ui import format as fmt
+from cheevos.ui import strings
 from cheevos.ui.pyui.text import _plain
 
 NOW = 1_791_158_400
@@ -30,6 +31,18 @@ def test_ago_falls_back_to_date_after_a_week():
 def test_ago_handles_missing_and_future():
     assert fmt.ago(None, NOW) == ""
     assert fmt.ago(NOW + 60, NOW) == "just now"
+
+
+def test_counts_take_their_plural_form():
+    assert fmt.count(strings.AWARDS_EVENTS, 1) == "1 event"
+    assert fmt.count(strings.AWARDS_EVENTS, 1_200) == "1,200 events"
+    assert fmt.count(strings.GAMES_SUMMARY, 1, finished="0") == "1 game · 0 mastered or beaten"
+    assert fmt.count(strings.JUST_NOW, 0) == "just now"
+
+
+def test_decimals():
+    assert fmt.decimal(1.25, 2) == "1.25"
+    assert fmt.decimal(3, 1) == "3.0"
 
 
 def test_points_and_numbers():

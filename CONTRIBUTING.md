@@ -30,6 +30,30 @@ and it's also the best reference for people changing the code.
 
 CI and the maintainer's publishing workflow are in [RELEASING.md](RELEASING.md).
 
+## Translating
+Cheevos shows itself in the language chosen in Spruce's settings, when it has a translation for
+it. Translations live in this repository, not in Spruce: SpruceOS copies each Cheevos release
+whole, so a change to `App/Cheevos/` in Spruce is lost at the next one.
+
+1. Run `make languages`. It writes every string in English to `build/lang/English.json`.
+2. Copy it to `src/cheevos/res/lang/<Language>.json`, named exactly as Spruce's own file for the
+   language in `App/PyUI/lang/` (`Catalan.json`, `Chinese (S).json`), and translate the values.
+   Keep the names on the left as they are.
+   - Keep every `{field}`: the app fills them in. `{day:02d}` may become `{day}`.
+   - A text with `{count}` that counts something takes plural forms:
+     `{"one": "{count} punt", "other": "{count} punts"}`. Use the forms your language needs
+     (`one`, `few`, `many`, `other`; `other` is required). The rules for each language are in
+     `src/cheevos/ui/plurals.py`.
+   - Lists keep their length: 12 `MONTHS`, 4 `SIZE_UNITS`.
+   - Leave a value as `""`, or out, to keep it in English for now. Keys starting with `_` are
+     notes and are ignored, e.g. `"_translators": "Your name"`.
+3. Run `make languages` again until it reports nothing left out, and `make check`.
+4. Run `make screens UI_LANGUAGE=<Language>` and look through `build/screens/<Language>/`: text
+   that's cut short or crowded needs a shorter wording. Attach a few screenshots to the pull
+   request.
+
+Game, achievement and console names come from RetroAchievements and stay in English.
+
 ## Pull requests
 - One topic per pull request. Say what changed and why, and add screenshots for UI changes.
   If you tried it on a device, say which one.

@@ -1,9 +1,46 @@
-"""Every user-facing string, in one place (ready to map onto PyUI's ``Language`` later).
+"""Every user-facing string, in English, in one place.
 
-Templates use ``str.format`` named fields.
+Templates use ``str.format`` named fields. A translation in ``res/lang`` replaces these values
+when a session starts (:mod:`cheevos.ui.language`), so read them as ``strings.NAME`` when the
+text is needed, never at import (.agents/code.md, "User-facing strings").
 """
 
 from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True, slots=True)
+class Plural:
+    """A template with a form for each plural category, picked by ``{count}``.
+
+    The categories are CLDR's: ``one``, ``few``, ``many`` and ``other``. Each language uses the
+    ones its grammar needs (:mod:`cheevos.ui.plurals`), and a missing form falls back to
+    ``other``.
+
+    Attributes:
+        other: The general form; every language has it.
+        one: E.g. English's singular.
+        few: E.g. Polish's 2-4.
+        many: E.g. Polish's 5 and above.
+    """
+
+    other: str
+    one: str | None = None
+    few: str | None = None
+    many: str | None = None
+
+    def form(self, category: str) -> str:
+        """Return the template for a plural category.
+
+        Args:
+            category: ``"one"``, ``"few"``, ``"many"`` or ``"other"``.
+
+        Returns:
+            That form, or ``other`` when there's none.
+        """
+        return getattr(self, category, None) or self.other
+
 
 APP_TITLE = "Cheevos"
 
@@ -30,7 +67,7 @@ SYNC_NEVER = "Not synced yet"
 SYNC_OFFLINE = "Offline · showing saved data"
 SYNC_AUTH = "API key rejected"
 SYNC_UNAVAILABLE = "RetroAchievements unavailable"
-SYNC_RATE_LIMITED = "RetroAchievements asked to wait {minutes} min"
+SYNC_RATE_LIMITED = Plural(other="RetroAchievements asked to wait {count} min")
 SYNC_CANCELLED = "Sync cancelled"
 SYNC_ERROR = "Sync failed · see the log"
 
@@ -40,15 +77,17 @@ UNRANKED = "Unranked"
 RANK = "#{rank}"
 WAITING_FOR_SYNC = "Waiting for the first sync"
 GAMES = "Games"
-GAMES_SUMMARY = "{count} games · {finished} mastered or beaten"
+GAMES_SUMMARY = Plural(
+    one="{count} game · {finished} mastered or beaten",
+    other="{count} games · {finished} mastered or beaten",
+)
 RECENT = "Recent unlocks"
 NOTHING_UNLOCKED = "Nothing unlocked yet"
 AWARDS = "Awards"
-AWARDS_MASTERED = "{count} mastered"
-AWARDS_COMPLETED = "{count} completed"
-AWARDS_EVENTS = "{count} events"
-AWARDS_EVENT = "1 event"
-AWARDS_SITE = "{count} site"
+AWARDS_MASTERED = Plural(other="{count} mastered")
+AWARDS_COMPLETED = Plural(other="{count} completed")
+AWARDS_EVENTS = Plural(one="{count} event", other="{count} events")
+AWARDS_SITE = Plural(other="{count} site")
 AWARDS_NONE = "No awards yet"
 SETTINGS = "Settings"
 SETTINGS_SUMMARY = "Badges, sync, API key, about"
@@ -59,7 +98,7 @@ LAST_ACTIVITY = "{console} · {ago}"
 GAME_NEVER_PLAYED = "{console} · {status}"
 PERCENT = "{percent}%"
 COUNT_PENDING = "{earned}+{pending}/{total}"  # +N: unlocked offline, waiting to sync
-NOT_SYNCED = "{detail} · {count} not synced"
+NOT_SYNCED = Plural(other="{detail} · {count} not synced")
 HINT_DETAILS = "Details"
 HINT_FILTER = "Filter"
 HINT_PROGRESS = "Progress"
@@ -161,8 +200,7 @@ PLAYED = "Played"
 BEATEN = "Beaten"
 MASTERED = "Mastered"
 ALL_CONSOLES = "All consoles"
-MORE_CONSOLE = "and 1 more console"
-MORE_CONSOLES = "and {count} more consoles"
+MORE_CONSOLES = Plural(one="and {count} more console", other="and {count} more consoles")
 MONTH_EMPTY = "No unlocks in the last 30 days"
 MONTH_START = "30 days ago"
 MONTH_END = "Today"
@@ -192,20 +230,22 @@ AWARD_VIEWS = {"carousel": "Carousel", "grid": "Grid", "list": "List"}
 # How awards read (.agents/product.md, "Awards"): events as RA's profile tooltips word them; site
 # awards shorter than RA's, threshold first, so the line fits beside the date in every view.
 EVENT_COMPLETED = "Awarded for completing this event"
-EVENT_POINT = "Awarded for earning at least 1 point"
-EVENT_POINTS = "Awarded for earning at least {points} points"
+EVENT_POINTS = Plural(
+    one="Awarded for earning at least {count} point",
+    other="Awarded for earning at least {count} points",
+)
 EVENT_AWARD = "Event award"
 PLAYTEST = "Playtester Award"
 UNLOCKS_YIELD = "Achievements Earned by Others"
-UNLOCKS_YIELD_TEXT = "Over {count} unlocks"
+UNLOCKS_YIELD_TEXT = Plural(other="Over {count} unlocks")
 POINTS_YIELD = "Achievement Points Earned by Others"
-POINTS_YIELD_TEXT = "Over {count} points"
+POINTS_YIELD_TEXT = Plural(other="Over {count} points")
 DEVELOPER_TEXT = "For making achievements"
 PATREON = "Patreon Supporter"
 PATREON_TEXT = "Thank you for your support!"
 PATREON_TIER_TEXT = "$2 Patreon supporter"
 MEDIA = "Media Contribution"
-MEDIA_TEXT = "{count} approved screenshots"
+MEDIA_TEXT = Plural(one="{count} approved screenshot", other="{count} approved screenshots")
 MEDIA_ANY_TEXT = "Approved screenshots"
 LEGEND = "Certified Legend"
 LEGEND_TEXT = "A Certified RetroAchievements Legend"
@@ -233,7 +273,7 @@ BADGE_SCOPES = {
     "none": "Only while browsing",
 }
 RECENT_WINDOW = "Recent games"
-RECENT_DAYS = "Played in the last {days} days"
+RECENT_DAYS = Plural(one="Played in the last {count} day", other="Played in the last {count} days")
 HIDE_LOCKED = "Hide locked descriptions"
 HIDE_LOCKED_MODES = {"off": "Off", "story": "Story only", "all": "All"}
 HIDE_LOCKED_HINTS = {
@@ -296,9 +336,17 @@ APP_FAILED = "Cheevos stopped after an error. Details: {log}"
 LOADING = "Loading…"
 HINT_OK = "OK"
 JUST_NOW = "just now"
-MINUTES_AGO = "{count} min ago"
-HOURS_AGO = "{count} h ago"
+MINUTES_AGO = Plural(other="{count} min ago")
+HOURS_AGO = Plural(other="{count} h ago")
 YESTERDAY = "yesterday"
-DAYS_AGO = "{count} days ago"
-POINT = "{count} pt"
-POINTS = "{count} pts"
+DAYS_AGO = Plural(other="{count} days ago")
+POINTS = Plural(one="{count} pt", other="{count} pts")
+
+# --- dates and numbers ------------------------------------------------------------------------
+MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+DATE = "{day:02d} {month} {year}"  # month: one of MONTHS
+DATETIME = "{date} {time}"  # time: 24-hour HH:MM
+THOUSANDS_SEPARATOR = ","
+DECIMAL_SEPARATOR = "."
+SIZE = "{value} {unit}"
+SIZE_UNITS = ("B", "KB", "MB", "GB")

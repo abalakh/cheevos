@@ -20,14 +20,14 @@ def awards_summary(counts: GalleryCounts) -> str:
     Returns:
         E.g. ``"12 mastered · 3 completed · 5 events"``.
     """
-    events = strings.AWARDS_EVENTS.format(count=fmt.number(counts.events))
     parts = [
-        (counts.mastered, strings.AWARDS_MASTERED.format(count=fmt.number(counts.mastered))),
-        (counts.completed, strings.AWARDS_COMPLETED.format(count=fmt.number(counts.completed))),
-        (counts.events, strings.AWARDS_EVENT if counts.events == 1 else events),
-        (counts.site, strings.AWARDS_SITE.format(count=fmt.number(counts.site))),
+        (strings.AWARDS_MASTERED, counts.mastered),
+        (strings.AWARDS_COMPLETED, counts.completed),
+        (strings.AWARDS_EVENTS, counts.events),
+        (strings.AWARDS_SITE, counts.site),
     ]
-    return " · ".join(text for count, text in parts if count) or strings.AWARDS_NONE
+    shown = [fmt.count(template, count) for template, count in parts if count]
+    return " · ".join(shown) or strings.AWARDS_NONE
 
 
 class Home:
@@ -87,7 +87,7 @@ class Home:
     def _games_row(self) -> MenuItem:
         """Summarise the library."""
         count, finished = self._ctx.data.game_counts()
-        text = strings.GAMES_SUMMARY.format(count=count, finished=finished)
+        text = fmt.count(strings.GAMES_SUMMARY, count, finished=fmt.number(finished))
         return MenuItem(strings.GAMES, text, self._ctx.icon("gamepad"), str(count), "games")
 
     def _recent_row(self) -> MenuItem:

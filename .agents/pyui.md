@@ -28,7 +28,10 @@ views, without patching PyUI.
   an error" with the log's path. PyUI is already up and owns its device, configs, theme, display,
   controller, view state (`PyUiState`), logger and signal handlers; Cheevos sets none of them
   up. Spruce's environment (`PLATFORM`, `SSL_CERT_FILE`) is PyUI's. PyUI's configs and Spruce's
-  are read, never written, except the API key copy below.
+  are read, never written, except the API key copy below. `session` first applies Spruce's UI
+  language (`host.language()`, PyUI's `PyUiConfig.get_language()`); PyUI has already loaded its
+  own `Language`, and Cheevos doesn't call `Language.init()` ([product.md](product.md),
+  "Languages").
 - **Leave PyUI as we found it.** `session` undoes everything it puts into PyUI, in reverse and
   even after an error (an `ExitStack`): the texture budget (`host.enter`/`leave`); the bottom-
   and top-bar hooks (`status_bar.installed`, `title_bar.installed`, inside `app.run`); the
@@ -99,6 +102,9 @@ theme, display, controller.
   `PyUiLogger._logger` instead (`install_logger`).
 - **Configs:** `UserConfig.FILEPATH` is hard-coded to the SD card, so the runner points it at
   the fake card; PyUI's view state goes to `Saves/cheevos/pyui-state.json` there.
+- **Language:** `--lang <Language>` writes `"language"` into the runner's PyUI config, so PyUI's
+  own text and the app both follow it, as on a device. `--lang Pseudo` leaves PyUI in English
+  (it has no such file) and hands the app a generated translation instead.
 
 ## View gotchas
 - **Timeouts:** `view.get_selection()` never returns `None`. On a timeout or cursor move it
@@ -264,7 +270,9 @@ theme, display, controller.
 - **Image measurement:** `Display.get_image_dimensions` loads the file every call. Cache widths.
 - **Fonts:** theme fonts vary. Pico-8 has no "·" or "…" and no accented letters, and no theme has
   emoji. Every string goes through `text.displayable(value, role)`, which checks glyphs with
-  `TTF_GlyphIsProvided32` and falls back to ASCII (accents: the NFKD base letter).
+  `TTF_GlyphIsProvided32` and falls back to ASCII (accents: the NFKD base letter). Scripts the
+  font lacks entirely (Chinese in Pico-8) draw as boxes: nothing uses PyUI's fallback font
+  (`allow_fallback_font_for_missing_glyphs`), PyUI's own menus included.
 - **Image scaling:** PyUI scales images with linear filtering, which blurs pixel art.
   `primitives.sharp_scaled` enlarges by the next whole factor above the fit with
   nearest-neighbour (BMP in the RAM scratch), then PyUI shrinks it into the box: "sharp

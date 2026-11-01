@@ -6,12 +6,15 @@ RES ?= 640x480
 SCALE ?= 2
 SCREEN_RESOLUTIONS ?= 640x480 752x560 1280x720
 # Walk-through of the real app on recorded fixtures (desktop fixture mode).
+# The app's language for run and screens: a translation in src/cheevos/res/lang, or Pseudo.
+UI_LANGUAGE ?=
+LANG_OPTION = $(if $(UI_LANGUAGE),--lang "$(UI_LANGUAGE)")
 SCREEN_SCRIPT ?= shot:home,a,shot:profile,b,down,a,shot:games,select,shot:games_details,select,down,a,shot:game,right,a,shot:achievement,a,shot:screenshot,b,b,y,shot:options,b,b,b,down,a,shot:recent,b,down,a,shot:awards,a,down,a,shot:settings
 SHELL_SCRIPTS := $(shell find app scripts -name '*.sh' 2>/dev/null)
 
 .DEFAULT_GOAL := help
 .PHONY: help sync pyui proxy proxy-check fmt lint conventions shellcheck typecheck test check run screens \
-	doc-screens wiki package deploy launch stop logs shot clean
+	languages doc-screens wiki package deploy launch stop logs shot clean
 
 help: ## Show this help
 	@grep -E '^[a-z-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "} {printf "  %-12s %s\n", $$1, $$2}'
@@ -54,18 +57,21 @@ test: ## Run the test suite with coverage
 
 check: lint typecheck test ## Everything CI runs
 
-run: ## Desktop window: make run [RES=752x560] [SCALE=1]
-	$(RUN) python -m cheevos.platform.desktop --res $(RES) --scale $(SCALE)
+run: ## Desktop window: make run [RES=752x560] [SCALE=1] [UI_LANGUAGE=Catalan]
+	$(RUN) python -m cheevos.platform.desktop --res $(RES) --scale $(SCALE) $(LANG_OPTION)
 
-screens: ## Headless PNGs of the walk-through into build/screens/<WxH>/
+screens: ## Walk-through PNGs in build/screens/[<UI_LANGUAGE>/]<WxH>/ (UI_LANGUAGE=Catalan or Pseudo)
 	@cards=$$(mktemp -d) || exit 1; \
 	trap 'rm -rf "$$cards"' 0; \
 	trap 'exit 1' 1 2 15; \
 	for res in $(SCREEN_RESOLUTIONS); do \
 		CHEEVOS_SDCARD_ROOT="$$cards/$$res" $(RUN) python -m cheevos.platform.desktop \
-			--headless --res $$res --script "$(SCREEN_SCRIPT)" || exit 1; \
+			--headless --res $$res --script "$(SCREEN_SCRIPT)" $(LANG_OPTION) || exit 1; \
 	done
-	@echo "Screens written to build/screens/"
+	@echo "Screens written to build/screens/$(if $(UI_LANGUAGE),$(UI_LANGUAGE)/)"
+
+languages: ## Check translations; write the English template to build/lang/English.json
+	$(RUN) python scripts/check_languages.py --template build/lang/English.json
 
 doc-screens: ## Render the wiki screenshots into docs/images (showcase drill)
 	$(RUN) python scripts/doc_screens.py

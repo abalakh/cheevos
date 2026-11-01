@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import sys
 import threading
@@ -10,6 +11,7 @@ from cheevos import native
 from cheevos.app import AppEnvironment
 from cheevos.core.ra_client.redact import install_redaction, uninstall_redaction
 from cheevos.platform.paths import Paths
+from cheevos.ui import strings
 from cheevos.ui.pyui import host as pyui_host
 
 KEY = "A" * 32
@@ -29,6 +31,7 @@ def host(monkeypatch):
         enter=lambda: calls.append("enter"),
         leave=lambda: calls.append("leave"),
         show_message=Mock(),
+        language=lambda: "English",
         set_spruce_setting=lambda *args: calls.append(("setting", *args)),
     )
     monkeypatch.setattr(native, "host", fake)
@@ -95,6 +98,19 @@ def test_without_a_key_file_spruce_gets_an_empty_key(tmp_path, host, monkeypatch
     monkeypatch.setattr(native.app, "run", lambda **_kwargs: None)
     native.session(AppEnvironment(paths=Paths(sdcard=tmp_path)), started_at=0)
     assert ("setting", "RetroAchievements Settings", "webApiKey", "") in host.calls
+
+
+def test_the_session_is_in_spruces_language(tmp_path, host, monkeypatch):
+    lang_dir = tmp_path / "lang"
+    lang_dir.mkdir()
+    (lang_dir / "Catalan.json").write_text('{"SYNC": "Sincronitza"}', encoding="utf-8")
+    host.language = lambda: "Catalan"
+    seen = []
+    monkeypatch.setattr(native.app, "run", lambda **_kwargs: seen.append(strings.SYNC))
+    env = AppEnvironment(paths=Paths(sdcard=tmp_path), lang_dir=lang_dir)
+    native.session(env, started_at=0)
+    native.session(dataclasses.replace(env, language="English"), started_at=0)
+    assert seen == ["Sincronitza", "Sync"]
 
 
 def test_uninstalling_the_redaction_puts_the_record_factory_back(caplog):

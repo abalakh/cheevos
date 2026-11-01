@@ -136,7 +136,10 @@ def test_event_awards_read_like_ras_tooltips():
     )
     assert text(AWARDS[5]).description == "Awarded for completing this event"
     one = EventInfo(5, "Roulette", "", (EventTier(1, "Spin", 1, ""),), 9)
-    assert describe(award(T.EVENT, 5, 1), {5: one}).description == strings.EVENT_POINT
+    assert (
+        describe(award(T.EVENT, 5, 1), {5: one}).description
+        == "Awarded for earning at least 1 point"
+    )
     unknown = text(award(T.EVENT, 999, 2, title="Some Event", image="/Images/e.png"))
     assert (unknown.title, unknown.description) == ("Some Event", "Event award")
     assert unknown.image == ("award/Images/e", "/Images/e.png")

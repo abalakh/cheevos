@@ -75,7 +75,7 @@ src/cheevos/
   ui/
     pyui/                bridge: host (what a session borrows from PyUI: textures,
                          messages, Spruce's settings), views (lists, grids, carousel,
-                         popups), primitives (drawing, input), text (fitting, glyph
+                         popups), primitives (drawing, input), text (fitting, wrapping, glyph
                          fallbacks), status_bar,
                          bar_layout, glyphs, generated (PNG swatches, button glyphs),
                          award_images (static awards), row_bars, bar_colors, image_frames
@@ -87,7 +87,11 @@ src/cheevos/
                          settings, setup, status (bottom-bar sync status), rows, common
     context.py           what screens share (AppContext)
     media.py             image resolver with outline-icon fallbacks
-    strings.py           every user-facing string (ready for PyUI Language later)
+    strings.py           every user-facing string, in English
+    language.py          the session's language: a translation from res/lang, checked against
+                         strings, over the English values
+    plurals.py           plural rules for the languages PyUI offers
+    format.py            numbers, dates, relative times and counts, in the session's language
   platform/
     paths.py             every path, from CHEEVOS_SDCARD_ROOT (default /mnt/SDCARD)
     identify_rom.py      the identification helper's entry point (identify-rom.sh runs it)
@@ -97,15 +101,17 @@ src/cheevos/
                          from the proxy)
     desktop/             dev only: runner CLI on PyUI's DESKTOP device (pyui_setup brings
                          PyUI up), fixture/live environments, drills (showcase_awards: the
-                         showcase's event and site badges)
+                         showcase's event and site badges), translations (the English
+                         template and the pseudo-language)
   res/icons/             original outlines: 24/48 px status, 96/144 px lists and fallbacks
   res/awards/            pre-rendered awards: dark/light and black/white contrast variants
+  res/lang/              translations, <Language>.json as PyUI names its language files
 app/                     packaging: config.json, identify-rom.sh, cheevos.png
 assets/                  icon sources (SVG)
 tests/                   unit and screen tests, fixtures/
 scripts/                 check_conventions, record_fixtures, fetch_dev_media, fetch_pyui.sh,
                          build_package, release_notes, render_icons, make_synthetic_cache,
-                         doc_screens, device.sh (with device_session: make launch's
+                         check_languages, doc_screens, device.sh (with device_session: make launch's
                          dev-only session), fetch_proxy.sh, check_proxy_compat (with
                          proxy_native: ELF exports, a simulated native hasher)
 docs/                    the user guide, published as the GitHub wiki (images/ from doc_screens)
@@ -159,6 +165,9 @@ knowing about:
 3. **Layering**: checks `import` and `from … import` of PyUI top-level modules (`display`,
    `views`, `themes`, `controller`, `devices`, `menus`, `utils`, `apps`, `games`, `audio`) and of
    `cheevos.ui` from inside `cheevos.core`.
+4. **Strings read at import** (CV007): `strings.NAME` in a module constant, default value,
+   decorator or class attribute, or `from cheevos.ui.strings import`, would stay English
+   ([product.md](product.md), "Languages").
 
 Tooling gotchas:
 - **Formatter vs. regex edits:** `ruff format` re-wraps long calls, so a regex edit of
@@ -229,8 +238,15 @@ Tooling gotchas:
   - Every SD-card path comes from `cheevos.platform.paths`, rooted at `CHEEVOS_SDCARD_ROOT`
     (default `/mnt/SDCARD`).
   - Never hard-code `/mnt/SDCARD` anywhere else.
-- **User-facing strings** live in `cheevos/ui/strings.py`, keyed, so they can map to PyUI's
-  `Language.label()` later.
+- **User-facing strings** live in `cheevos/ui/strings.py`, in English, and are translated per
+  session ([product.md](product.md), "Languages"):
+  - Read `strings.NAME` when the text is shown, never at import (CV007).
+  - A string that counts something by `{count}` is a `Plural`, formatted with `fmt.count()`
+    (also for English's "1 event" / "5 events").
+  - Numbers, decimals, percentages, sizes and dates go through `ui/format.py`, never f-string
+    format specs or `strftime`.
+  - Renaming a string, or changing its fields, leaves translations behind: `make languages`
+    shows what they lose.
 
 ## Tests
 - **Layout**: `tests/unit/` mirrors `src/cheevos/core/`, `tests/screens/` holds headless render

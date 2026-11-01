@@ -299,6 +299,49 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
   - A list title that doesn't fit ends with "..." before the value on its right; the selected
     one scrolls after a second so it can be read (PyUI's behaviour, as in Spruce's own lists).
 
+## Languages
+- **Follows Spruce.** Cheevos shows itself in Spruce's UI language (PyUI's setting,
+  `PyUiConfig.get_language()`), read when a session starts (`ui/language.py`). It has no
+  language setting of its own.
+- **Translations ship with Cheevos**, one per language in `src/cheevos/res/lang/<Language>.json`,
+  named as PyUI names its language files (`Catalan.json`, `Chinese (S).json`), as Spruce's file
+  manager names its own (SpruceOS #1962). Not in PyUI's `lang/` files: Cheevos' keys and fields
+  change with its releases, so the translations are versioned and checked with the app (agreed
+  2026-11-01, abalakh/cheevos#16). Contributors' workflow: CONTRIBUTING.md, "Translating".
+- **A file** maps the names in `ui/strings.py` to values of the same shape:
+  - text for text;
+  - for a `Plural`, text or `{"one": ..., "few": ..., "many": ..., "other": ...}` (`other`
+    required);
+  - for a dict of labels (filters, sorts, views), any of its keys;
+  - for a tuple (`MONTHS`, `SIZE_UNITS`, `ABOUT_TEXT`), a list of the same length.
+  Keys starting with `_` are notes for translators; `""` means not translated yet.
+- **Anything missing stays English**, and so does a value that wouldn't format like the English
+  one: an unknown or missing field, another format spec than English's, a stray brace. Each is
+  logged as a warning, and `make languages` lists them with what isn't translated yet. A plural
+  form other than `other` may leave fields out ("ahir", no `{count}`).
+- **Plurals**: CLDR's categories (`one`, `few`, `many`, `other`), with a rule per language PyUI
+  has (`ui/plurals.py`); other languages get English's. Every string that counts something by
+  `{count}` is a `Plural`, and `format.count()` picks the form and formats the count with the
+  language's thousands separator.
+- **Dates and numbers** come from strings too: `MONTHS`, `DATE`, `DATETIME` (24-hour time),
+  `THOUSANDS_SEPARATOR`, `DECIMAL_SEPARATOR`, `PERCENT`, `SIZE`, `SIZE_UNITS`. Never `strftime`'s
+  `%b`: the devices run the C locale, so it's always English.
+- **Read strings when the text is shown**, never at import: the translation is applied after the
+  modules load. `scripts/check_conventions.py` (CV007) rejects module constants, defaults and
+  class attributes that read `strings.NAME`, and `from cheevos.ui.strings import`.
+- **Stays English**: what RetroAchievements sends (game, achievement, event and console names,
+  descriptions, rich presence), the logs, and button names in the bottom bar's text fallback
+  ("Start: Done").
+- **PyUI's own text** on Cheevos' screens (the theme's "A Okay B Back" hints, the on-screen
+  keyboard, "The app stopped after an error") follows PyUI's language files.
+- **Scripts and fonts**: the SPRUCE theme's `nunwen.ttf`, also PyUI's fallback font, has Latin,
+  Cyrillic, Greek, Chinese, Japanese, Korean and Vietnamese, but not Thai, Khmer, Lao or
+  Devanagari (checked 2026-11-01). Other themes may lack accents (shown as the plain letter) or
+  Chinese and Japanese (boxes, as in PyUI's own menus: PyUI never uses its fallback font). Text
+  without spaces breaks where the line ends (`text.wrap`).
+- **Checking a translation**: `make screens UI_LANGUAGE=<Language>`; `UI_LANGUAGE=Pseudo` shows
+  every string accented, longer and bracketed (TESTING.md, "Languages").
+
 ## Offline and error behaviour
 
 | Situation | Behaviour |

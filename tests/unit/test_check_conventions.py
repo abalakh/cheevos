@@ -97,3 +97,42 @@ def test_main_reports_and_fails(tmp_path, capsys):
     assert "CV003" in capsys.readouterr().out
     good = write(tmp_path, "src/cheevos/good.py", '"""Module."""\n')
     assert cc.main([str(good)]) == 0
+
+
+def test_strings_are_read_when_shown_not_at_import(tmp_path):
+    source = '''"""Module."""
+from cheevos.ui import strings
+from cheevos.ui.strings import SYNC
+
+LABELS = {"sync": strings.SYNC}
+
+
+class Hints:
+    """Hints."""
+
+    first = strings.HINT_OK
+
+
+def show(label=strings.LOADING, *, done=lambda: strings.SYNC):
+    """Show."""
+    return label, done(), strings.SYNC, strings.Plural
+
+
+@decorate(strings.EXIT)
+def other():
+    """Other."""
+'''
+    found = cc.check_file(write(tmp_path, "src/cheevos/ui/screens/demo.py", source))
+    assert [(v.code, v.line) for v in found] == [
+        ("CV007", 3),
+        ("CV007", 5),
+        ("CV007", 11),
+        ("CV007", 14),
+        ("CV007", 19),
+    ]
+
+
+def test_the_strings_module_and_tests_may_read_strings_anywhere(tmp_path):
+    source = '"""Module."""\nfrom cheevos.ui import strings\n\nNAMES = [strings.SYNC]\n'
+    assert codes(write(tmp_path, "src/cheevos/ui/language.py", source)) == []
+    assert codes(write(tmp_path, "tests/unit/test_demo.py", source)) == []

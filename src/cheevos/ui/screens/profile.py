@@ -123,8 +123,7 @@ def _per_week(rate: float | None) -> str:
         return strings.UNKNOWN
     if rate >= SMALL_RATE:
         return fmt.number(round(rate))
-    shown = f"{rate:.1f}"
-    return "0" if shown == "0.0" else shown
+    return "0" if round(rate, 1) == 0 else fmt.decimal(rate, 1)
 
 
 class _Page:
@@ -280,7 +279,9 @@ class _Page:
         Returns:
             Two rows.
         """
-        ratio = f"{stats.retro_ratio:.2f}" if stats.retro_ratio is not None else strings.UNKNOWN
+        ratio = (
+            fmt.decimal(stats.retro_ratio, 2) if stats.retro_ratio is not None else strings.UNKNOWN
+        )
         unlocks = strings.STAT_UNLOCKS_VALUE.format(
             hardcore=fmt.number(stats.unlocks_hardcore), casual=fmt.number(stats.unlocks_casual)
         )
@@ -390,8 +391,7 @@ class _Page:
         ]
         hidden = len(consoles) - len(shown)
         if hidden:
-            template = strings.MORE_CONSOLE if hidden == 1 else strings.MORE_CONSOLES
-            rows.append(self._note(template.format(count=fmt.number(hidden))))
+            rows.append(self._note(fmt.count(strings.MORE_CONSOLES, hidden)))
         return rows
 
     def _note(self, text: str) -> Row:

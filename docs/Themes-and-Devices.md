@@ -14,6 +14,12 @@ Themes with their own button hints in the bottom bar ("A Okay B Back") keep them
 its hints after them. Theme fonts don't have emoji, so emoji in rich presence texts are left out.
 Some pixel fonts lack accented letters; Cheevos then shows the plain letter ("Pokemon").
 
+## Language
+Cheevos follows the language chosen in Spruce's settings, when it has a translation for it.
+Otherwise it's in English, and so is any text a translation doesn't cover yet. Game,
+achievement and console names, descriptions and rich presence come from RetroAchievements in
+English. Translations are welcome: see "Translating" in the project's CONTRIBUTING.md.
+
 ## Resolutions
 Every resolution Spruce's default theme supports is laid out properly: 640×480, 720×480,
 752×560, 720×720, 960×720, 1024×768, 1280×720 and 480×800. Icons are drawn at whole-pixel sizes

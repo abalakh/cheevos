@@ -1,6 +1,8 @@
 """Shared test configuration."""
 
 import socket
+import sys
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -8,6 +10,15 @@ import pytest
 
 class NetworkBlockedError(RuntimeError):
     """Raised when a test tries to open a network socket."""
+
+
+@pytest.fixture(autouse=True)
+def _english() -> Iterator[None]:
+    """Put the strings back to English after a test that showed another language."""
+    yield
+    language = sys.modules.get("cheevos.ui.language")  # not imported here: some tests drop it
+    if language is not None:
+        language.reset()
 
 
 @pytest.fixture(autouse=True)

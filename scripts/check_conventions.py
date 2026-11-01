@@ -8,6 +8,8 @@ Checks:
     CV004  PyUI or sdl2 imported outside the bridge (``cheevos.ui.pyui``) and desktop runner
     CV005  ``cheevos.core`` importing ``cheevos.ui``
     CV006  ``cheevos.platform.desktop`` imported from code that ships to devices
+    CV007  a user-facing string read at import time, which would stay English (strings are
+           translated when a session starts)
 
 Usage: ``python scripts/check_conventions.py [PATH ...]`` (defaults: src scripts tests).
 Exits with status 1 when any violation is found.
@@ -48,6 +50,9 @@ PYUI_TOP_LEVEL = frozenset(
 SDL_TOP_LEVEL = frozenset({"sdl2"})
 PYUI_ALLOWED_PACKAGES = ("cheevos.ui.pyui", "cheevos.platform.desktop")
 DESKTOP_PACKAGE = "cheevos.platform.desktop"
+STRINGS_MODULE = "cheevos.ui.strings"
+# The strings module itself, and the module that replaces its values with a translation.
+STRINGS_OWNERS = frozenset({STRINGS_MODULE, "cheevos.ui.language"})
 DEFAULT_PATHS = ("src", "scripts", "tests")
 
 
@@ -207,6 +212,68 @@ def check_layers(path: Path, tree: ast.Module) -> Iterator[Violation]:
             )
 
 
+def _import_time_nodes(node: ast.AST) -> Iterator[ast.AST]:
+    """List a node and the nodes inside it that Python evaluates when the module is imported.
+
+    Function and lambda bodies run later; their decorators and default values don't.
+
+    Args:
+        node: A module, or a node inside one.
+
+    Yields:
+        Every node evaluated at import time.
+    """
+    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+        evaluated: list[ast.expr] = [*node.args.defaults, *filter(None, node.args.kw_defaults)]
+        if not isinstance(node, ast.Lambda):
+            evaluated.extend(node.decorator_list)
+        for expression in evaluated:
+            yield from _import_time_nodes(expression)
+        return
+    yield node
+    for child in ast.iter_child_nodes(node):
+        yield from _import_time_nodes(child)
+
+
+def check_import_time_strings(path: Path, tree: ast.Module) -> Iterator[Violation]:
+    """Require user-facing strings to be read when they are shown, not at import.
+
+    A session applies its translation after the app's modules are imported, so a string kept
+    in a module constant, a default value or a class attribute would stay English.
+
+    Args:
+        path: File being checked (only files under ``src/cheevos`` are subject to the rule).
+        tree: Parsed module.
+
+    Yields:
+        CV007 violations.
+    """
+    owner = module_name(path)
+    if owner is None or not _within(owner, "cheevos") or owner in STRINGS_OWNERS:
+        return
+    for node in _import_time_nodes(tree):
+        if isinstance(node, ast.ImportFrom) and node.module == STRINGS_MODULE:
+            yield Violation(
+                path,
+                node.lineno,
+                "CV007",
+                "import the strings module and read strings.NAME when the text is shown",
+            )
+        elif (
+            isinstance(node, ast.Attribute)
+            and isinstance(node.value, ast.Name)
+            and node.value.id == "strings"
+            and node.attr.isupper()
+        ):
+            yield Violation(
+                path,
+                node.lineno,
+                "CV007",
+                f"strings.{node.attr} is read at import time and would stay English; "
+                "read it inside a function",
+            )
+
+
 def check_file(path: Path) -> list[Violation]:
     """Run every check on one Python file.
 
@@ -222,6 +289,7 @@ def check_file(path: Path) -> list[Violation]:
     if not is_test_file(path):
         violations.extend(check_docstrings(path, tree))
     violations.extend(check_layers(path, tree))
+    violations.extend(check_import_time_strings(path, tree))
     return violations
 
 

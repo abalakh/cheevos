@@ -13,6 +13,11 @@ Headless capture (scripted input, PNGs in ``build/screens/<WxH>/``)::
 
     python -m cheevos.platform.desktop --headless --res 752x560 --script "shot:home,down,shot:games"
 
+In another language (a translation in ``res/lang``, or the generated ``Pseudo``; PNGs in
+``build/screens/<Language>/<WxH>/``)::
+
+    python -m cheevos.platform.desktop --lang Catalan
+
 Keyboard (RetroArch layout plus Menu): arrows = D-pad, X = A, Z = B, S = X, A = Y, Q/W = L1/R1,
 1/2 = L2/R2, Enter = Start, Right Shift = Select, M = Menu, F8 = screenshot, Esc = quit.
 """
@@ -20,6 +25,7 @@ Keyboard (RetroArch layout plus Menu): arrows = D-pad, X = A, Z = B, S = X, A = 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import datetime as dt
 import json
 import logging
@@ -29,8 +35,13 @@ import time
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from cheevos.platform.desktop import pyui_setup
+from cheevos.platform.desktop import pyui_setup, translations
+from cheevos.ui import language
+
+if TYPE_CHECKING:
+    from cheevos.app import AppEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +70,8 @@ class RunnerOptions:
         game_id: Optional target for a game-only session launched from Spruce.
         clock: Time the top bar shows instead of the time of day, for screenshots that only
             change when the screens do.
+        language: Show the app (and PyUI) in this language instead of English: a translation
+            in ``res/lang``, or the generated pseudo-language.
     """
 
     width: int
@@ -76,6 +89,7 @@ class RunnerOptions:
     verbose: bool
     game_id: int | None = None
     clock: dt.time | None = None
+    language: str | None = None
 
 
 def _resolution(text: str) -> tuple[int, int]:
@@ -175,7 +189,14 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
     parser.add_argument(
         "--quit-after-script", action="store_true", help="exit when the script is consumed"
     )
-    parser.add_argument("--out", type=Path, default=_REPO_ROOT / "build" / "screens")
+    parser.add_argument(
+        "--lang",
+        metavar="LANGUAGE",
+        help=f'a translation in res/lang, e.g. "Catalan", or "{translations.PSEUDO}"',
+    )
+    parser.add_argument(
+        "--out", type=Path, help="screenshots (default: build/screens[/<LANGUAGE>])"
+    )
     parser.add_argument("--verbose", action="store_true", help="show PyUI's log output")
     parser.add_argument(
         "--clock", type=_time_of_day, help="top-bar time, e.g. 10:30 (default: the time of day)"
@@ -187,6 +208,8 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
     if args.headless and not args.script.strip(", "):
         parser.error("--headless needs --script (otherwise it would wait for input forever)")
     width, height = args.res
+    lang = None if args.lang in (None, "", language.ENGLISH) else args.lang
+    screens = _REPO_ROOT / "build" / "screens"
     return RunnerOptions(
         width=width,
         height=height,
@@ -195,7 +218,7 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
         scale=1 if args.headless else args.scale,
         script=args.script,
         quit_after_script=args.headless or args.quit_after_script,
-        out_dir=args.out,
+        out_dir=args.out or (screens / lang if lang else screens),
         pyui_dir=_env_path("CHEEVOS_PYUI_DIR", _SPRUCE_CHECKOUT / "App" / "PyUI" / "main-ui"),
         themes_dir=_env_path("CHEEVOS_THEMES_DIR", _SPRUCE_CHECKOUT / "Themes"),
         sd_root=_env_path(
@@ -206,6 +229,7 @@ def parse_options(argv: list[str] | None = None) -> RunnerOptions:
         verbose=args.verbose,
         game_id=args.game_id,
         clock=args.clock,
+        language=lang,
     )
 
 
@@ -242,6 +266,8 @@ def _write_pyui_config(options: RunnerOptions) -> Path:
     config_path = options.sd_root / "Saves" / "pyui-config.json"
     config_path.parent.mkdir(parents=True, exist_ok=True)
     config = {"theme": options.theme, "themeDir": f"{options.themes_dir}{os.sep}"}
+    if options.language not in (None, translations.PSEUDO):
+        config["language"] = options.language  # PyUI's own text too; the app follows it
     config_path.write_text(json.dumps(config, indent=4), encoding="utf-8")
     return config_path
 
@@ -321,6 +347,44 @@ def _fix_top_bar_clock(shown: dt.time) -> None:
     top_bar.datetime = FixedDatetime
 
 
+def check_language(name: str | None) -> str | None:
+    """Check that the app has a translation for a language.
+
+    Args:
+        name: The language, or ``None`` for English.
+
+    Returns:
+        What is wrong, or ``None``.
+    """
+    if name in (None, translations.PSEUDO) or (language.LANG_DIR / f"{name}.json").is_file():
+        return None
+    available = sorted(path.stem for path in language.LANG_DIR.glob("*.json"))
+    return (
+        f"No translation at {language.LANG_DIR / f'{name}.json'}. Translations: "
+        f"{', '.join([*available, translations.PSEUDO])} (the name is PyUI's file name for it)"
+    )
+
+
+def _app_environment(options: RunnerOptions) -> AppEnvironment:
+    """Create the app's environment: recorded fixtures or the live API, in the chosen language.
+
+    Args:
+        options: Runner options.
+
+    Returns:
+        The environment.
+    """
+    from cheevos.platform.desktop.environments import fixture_environment, live_environment
+
+    sd_root = options.sd_root
+    env = live_environment(sd_root) if options.live else fixture_environment(sd_root)
+    if options.language != translations.PSEUDO:
+        return env  # PyUI's language, which the PyUI config sets
+    lang_dir = sd_root / "Saves" / "cheevos" / "lang"
+    translations.write(lang_dir, translations.PSEUDO, translations.pseudo())
+    return dataclasses.replace(env, language=translations.PSEUDO, lang_dir=lang_dir)
+
+
 def run(options: RunnerOptions) -> int:
     """Bring up PyUI on its desktop device and run the app.
 
@@ -331,17 +395,13 @@ def run(options: RunnerOptions) -> int:
         Process exit code.
     """
     started_at = time.monotonic()
-    if problem := start_pyui(options):
+    if problem := check_language(options.language) or start_pyui(options):
         logger.error("%s", problem)
         return 2
     from cheevos import native
-    from cheevos.platform.desktop.environments import fixture_environment, live_environment
 
-    env = (
-        live_environment(options.sd_root) if options.live else fixture_environment(options.sd_root)
-    )
     try:
-        native.session(env, started_at=started_at, game_id=options.game_id)
+        native.session(_app_environment(options), started_at=started_at, game_id=options.game_id)
     except SystemExit as exc:  # Esc, closing the window, or the end of a headless script
         return int(exc.code or 0)
     return _check_script_finished()

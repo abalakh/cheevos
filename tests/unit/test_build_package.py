@@ -27,6 +27,8 @@ def test_device_package_includes_license_and_excludes_desktop(tmp_path) -> None:
         for style in ("dark", "light", "black", "white"):
             for kind in ("mastered", "completed", "beaten-hardcore", "beaten-softcore"):
                 assert f"Cheevos/cheevos/res/awards/{kind}-{style}.png" in release.namelist()
+        # Tells whoever finds the folder in Spruce's App/Cheevos where translations go.
+        assert "Cheevos/cheevos/res/lang/README.md" in release.namelist()
         assert release.getinfo("Cheevos/identify-rom.sh").external_attr >> 16 & 0o777 == 0o755
         assert "Cheevos/cheevos/platform/identify_rom.py" in release.namelist()
         assert not any("desktop/" in name or "__pycache__/" in name for name in release.namelist())

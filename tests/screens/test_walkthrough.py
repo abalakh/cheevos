@@ -17,6 +17,7 @@ from sdl2 import sdlimage
 from cheevos.core.settings import Settings, load_settings
 from cheevos.core.storage.data_cache import DataCache
 from cheevos.platform.desktop.no_set_drill import GAME_ID
+from cheevos.ui import language
 from cheevos.ui.pyui.generated import surface_rgba
 
 REPO = Path(__file__).resolve().parents[2]
@@ -77,7 +78,9 @@ def gold_pixels(path: Path, top: int) -> int:
     )
 
 
-def run_app(tmp_path: Path, script: str, *, res: str = "640x480", simulate: str = "") -> str:
+def run_app(
+    tmp_path: Path, script: str, *, res: str = "640x480", simulate: str = "", lang: str = ""
+) -> str:
     env = {**os.environ, "CHEEVOS_SDCARD_ROOT": str(tmp_path / "sdcard")}
     if simulate:
         env["CHEEVOS_SIMULATE"] = simulate
@@ -93,6 +96,7 @@ def run_app(tmp_path: Path, script: str, *, res: str = "640x480", simulate: str 
             script,
             "--out",
             str(tmp_path / "shots"),
+            *(["--lang", lang] if lang else []),
         ],
         capture_output=True,
         text=True,
@@ -119,6 +123,15 @@ def test_full_walkthrough(tmp_path, options_button):
     run_app(tmp_path, script)
     names = [token[5:] for token in WALKTHROUGH.split(",") if token.startswith("shot:")]
     assert_shots(tmp_path, names)
+
+
+def test_walkthrough_in_another_language(tmp_path):
+    # The pseudo-language translates every string: one that wouldn't format stops a screen.
+    log = run_app(tmp_path, WALKTHROUGH, lang="Pseudo")
+    assert_shots(tmp_path, [token[5:] for token in WALKTHROUGH.split(",") if token[:5] == "shot:"])
+    total = len(language.english())
+    assert f"Showing Pseudo: {total} of {total} strings translated" in log
+    assert "Pseudo.json:" not in log
 
 
 @pytest.mark.parametrize(
