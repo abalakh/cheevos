@@ -243,6 +243,9 @@ Tooling gotchas:
   - Read `strings.NAME` when the text is shown, never at import (CV007).
   - A string that counts something by `{count}` is a `Plural`, formatted with `fmt.count()`
     (also for English's "1 event" / "5 events").
+  - One `Plural` per count. A line with several counts is a template that only places them
+    (`PROXY_STATUS = "On · {state} · {waiting} · {cached}"`), each filled from its own
+    `Plural` (`PROXY_WAITING`, `PROXY_CACHED`): one template can't agree with two numbers.
   - Numbers, decimals, percentages, sizes and dates go through `ui/format.py`, never f-string
     format specs or `strftime`.
   - Renaming a string, or changing its fields, leaves translations behind: `make languages`

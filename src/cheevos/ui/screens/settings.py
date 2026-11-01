@@ -111,7 +111,9 @@ def _proxy_rows(ctx: AppContext) -> list[MenuItem]:
     )
     waiting = len(ctx.pending_awards())
     status = strings.PROXY_STATUS.format(
-        state=state, waiting=waiting, cached=len(ctx.proxy.cached_game_ids())
+        state=state,
+        waiting=fmt.count(strings.PROXY_WAITING, waiting),
+        cached=fmt.count(strings.PROXY_CACHED, len(ctx.proxy.cached_game_ids())),
     )
     return [MenuItem(strings.PROXY, status, ctx.icon("cloud"), str(waiting or ""), "proxy")]
 

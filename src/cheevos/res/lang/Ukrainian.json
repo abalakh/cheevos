@@ -27,17 +27,32 @@
     "SYNC_RATE_LIMITED": "RetroAchievements просить зачекати {count} хв",
     "SYNC_CANCELLED": "Синхронізацію скасовано",
     "SYNC_ERROR": "Помилка синхронізації · див. журнал",
-    "PROFILE_POINTS": "Хардкор: {hardcore} · Казуал: {softcore} · RetroPoints: {retro}",
+    "PROFILE_POINTS": "{hardcore} · {softcore} · {retro}",
+    "HARDCORE_POINTS": {
+        "one": "{count} хардкорне",
+        "few": "{count} хардкорні",
+        "many": "{count} хардкорних",
+        "other": "{count} хардкорних"
+    },
+    "CASUAL_POINTS": {
+        "one": "{count} казуальне",
+        "few": "{count} казуальні",
+        "many": "{count} казуальних",
+        "other": "{count} казуальних"
+    },
+    "RETRO_POINTS": "{count} RetroPoints",
     "UNRANKED": "Без рейтингу",
     "RANK": "#{rank}",
     "WAITING_FOR_SYNC": "Очікування першої синхронізації",
     "GAMES": "Ігри",
-    "GAMES_SUMMARY": {
-        "one": "{count} гра · {finished} пройдено",
-        "few": "{count} гри · {finished} пройдено",
-        "many": "{count} ігор · {finished} пройдено",
-        "other": "{count} ігор · {finished} пройдено"
+    "GAMES_SUMMARY": "{games} · {finished}",
+    "GAME_COUNT": {
+        "one": "{count} гра",
+        "few": "{count} гри",
+        "many": "{count} ігор",
+        "other": "{count} ігор"
     },
+    "FINISHED_COUNT": "{count} пройдено",
     "RECENT": "Нещодавні досягнення",
     "NOTHING_UNLOCKED": "Ще нічого не розблоковано",
     "AWARDS": "Нагороди",
@@ -130,7 +145,7 @@
     "HINT_CAROUSEL": "Карусель",
     "NO_ACHIEVEMENT_SET": "Ця гра не має досягнень.",
     "NO_ACHIEVEMENTS": "Немає досягнень за цим фільтром.",
-    "DETAIL_META": "{points} · {retro} RetroPoints",
+    "DETAIL_META": "{points} · {retro}",
     "DETAIL_UNLOCKED": "Розблоковано ({mode}) {when}",
     "DETAIL_PENDING": "Розблоковано офлайн · очікує синхронізації з {when}",
     "DETAIL_LOCKED": "Заблоковано",
@@ -149,8 +164,16 @@
     "STAT_RATIO": "RetroRatio",
     "STAT_UNLOCKS": "Досягнення: хардкор · казуал",
     "STAT_UNLOCKS_VALUE": "{hardcore} · {casual}",
+    "STAT_UNLOCKS_HARDCORE": "{count}",
+    "STAT_UNLOCKS_CASUAL": "{count}",
     "STAT_BEATEN": "Пройдено ігор",
-    "STAT_BEATEN_VALUE": "{count} (офіційних: {retail})",
+    "STAT_BEATEN_VALUE": "{beaten} ({retail})",
+    "STAT_BEATEN_RETAIL": {
+        "one": "{count} офіційна",
+        "few": "{count} офіційні",
+        "many": "{count} офіційних",
+        "other": "{count} офіційних"
+    },
     "STAT_STARTED_BEATEN": "Пройдено з розпочатих",
     "STAT_WEEK": "Очки за 7 днів",
     "STAT_MONTH": "Очки за 30 днів",
@@ -242,7 +265,19 @@
     "PROXY_OFF": "Вимкнено · досягнення лише з Wi-Fi",
     "PROXY_DISABLED": "RAOfflineProxy вимкнено. Увімкніть його в Налаштування Spruce > RetroAchievements, щоб отримувати досягнення без Wi-Fi (лише в казуальному режимі).",
     "PROXY_ABOUT": "RAOfflineProxy зберігає досягнення, отримані без Wi-Fi, і надсилає їх на RetroAchievements, коли ви знову онлайн (лише в казуальному режимі). Доти вони показані як «Очікує синхронізації» в нещодавніх досягненнях і в кожній грі та враховуються у списку ігор.",
-    "PROXY_STATUS": "Увімкнено · {state} · очікують: {waiting} · ігор у кеші: {cached}",
+    "PROXY_STATUS": "Увімкнено · {state} · {waiting} · {cached}",
+    "PROXY_WAITING": {
+        "one": "{count} очікує",
+        "few": "{count} очікують",
+        "many": "{count} очікують",
+        "other": "{count} очікують"
+    },
+    "PROXY_CACHED": {
+        "one": "{count} гра в кеші",
+        "few": "{count} гри в кеші",
+        "many": "{count} ігор у кеші",
+        "other": "{count} ігор у кеші"
+    },
     "PROXY_ONLINE": "онлайн",
     "PROXY_OFFLINE": "офлайн",
     "PROXY_UNKNOWN": "стан невідомий",

@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 from typing import cast
 
+from cheevos.core.models import UserProfile
 from cheevos.core.sync.progress import Phase
 from cheevos.ui.context import AppContext
 from cheevos.ui.screens.home import Home
@@ -29,3 +30,13 @@ def test_no_sync_when_the_setting_is_off():
     shown, starts = home(sync_when_shown=False)
     shown.tick()
     assert starts == []
+
+
+def test_each_count_on_home_takes_its_own_plural_form():
+    profile = UserProfile("Balah", "", "", None, 1, 2, 1, None, None, "", None)
+    data = SimpleNamespace(load_profile=lambda: profile, game_counts=lambda: (1, 1))
+    ctx = SimpleNamespace(data=data, icon=lambda name: name)
+    shown = Home(cast(AppContext, ctx))
+
+    assert shown._profile_row().description == "1 HC · 2 casual · 1 RetroPoint"
+    assert shown._games_row().description == "1 game · 1 mastered or beaten"

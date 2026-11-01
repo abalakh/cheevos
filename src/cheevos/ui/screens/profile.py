@@ -283,10 +283,12 @@ class _Page:
             fmt.decimal(stats.retro_ratio, 2) if stats.retro_ratio is not None else strings.UNKNOWN
         )
         unlocks = strings.STAT_UNLOCKS_VALUE.format(
-            hardcore=fmt.number(stats.unlocks_hardcore), casual=fmt.number(stats.unlocks_casual)
+            hardcore=fmt.count(strings.STAT_UNLOCKS_HARDCORE, stats.unlocks_hardcore),
+            casual=fmt.count(strings.STAT_UNLOCKS_CASUAL, stats.unlocks_casual),
         )
         beaten = strings.STAT_BEATEN_VALUE.format(
-            count=fmt.number(stats.games_beaten), retail=fmt.number(stats.games_beaten_retail)
+            beaten=fmt.number(stats.games_beaten),
+            retail=fmt.count(strings.STAT_BEATEN_RETAIL, stats.games_beaten_retail),
         )
         started = _percent(stats.started_beaten)
         return [

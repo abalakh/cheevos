@@ -36,7 +36,7 @@ def test_ago_handles_missing_and_future():
 def test_counts_take_their_plural_form():
     assert fmt.count(strings.AWARDS_EVENTS, 1) == "1 event"
     assert fmt.count(strings.AWARDS_EVENTS, 1_200) == "1,200 events"
-    assert fmt.count(strings.GAMES_SUMMARY, 1, finished="0") == "1 game · 0 mastered or beaten"
+    assert fmt.count(strings.GAME_COUNT, 1) == "1 game"
     assert fmt.count(strings.JUST_NOW, 0) == "just now"
 
 

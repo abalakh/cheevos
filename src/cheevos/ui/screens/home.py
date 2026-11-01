@@ -71,9 +71,9 @@ class Home:
                 key="profile",
             )
         points = strings.PROFILE_POINTS.format(
-            hardcore=fmt.number(profile.hardcore_points),
-            softcore=fmt.number(profile.softcore_points),
-            retro=fmt.number(profile.retro_points),
+            hardcore=fmt.count(strings.HARDCORE_POINTS, profile.hardcore_points),
+            softcore=fmt.count(strings.CASUAL_POINTS, profile.softcore_points),
+            retro=fmt.count(strings.RETRO_POINTS, profile.retro_points),
         )
         rank = strings.RANK.format(rank=fmt.number(profile.rank)) if profile.rank else ""
         return MenuItem(
@@ -87,7 +87,10 @@ class Home:
     def _games_row(self) -> MenuItem:
         """Summarise the library."""
         count, finished = self._ctx.data.game_counts()
-        text = fmt.count(strings.GAMES_SUMMARY, count, finished=fmt.number(finished))
+        text = strings.GAMES_SUMMARY.format(
+            games=fmt.count(strings.GAME_COUNT, count),
+            finished=fmt.count(strings.FINISHED_COUNT, finished),
+        )
         return MenuItem(strings.GAMES, text, self._ctx.icon("gamepad"), str(count), "games")
 
     def _recent_row(self) -> MenuItem:

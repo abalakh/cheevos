@@ -72,15 +72,18 @@ SYNC_CANCELLED = "Sync cancelled"
 SYNC_ERROR = "Sync failed · see the log"
 
 # --- home -------------------------------------------------------------------------------------
-PROFILE_POINTS = "{hardcore} HC · {softcore} casual · {retro} RetroPoints"
+# A line holding several counts places them; each count has its own plural forms.
+PROFILE_POINTS = "{hardcore} · {softcore} · {retro}"
+HARDCORE_POINTS = Plural(other="{count} HC")
+CASUAL_POINTS = Plural(other="{count} casual")
+RETRO_POINTS = Plural(one="{count} RetroPoint", other="{count} RetroPoints")
 UNRANKED = "Unranked"
 RANK = "#{rank}"
 WAITING_FOR_SYNC = "Waiting for the first sync"
 GAMES = "Games"
-GAMES_SUMMARY = Plural(
-    one="{count} game · {finished} mastered or beaten",
-    other="{count} games · {finished} mastered or beaten",
-)
+GAMES_SUMMARY = "{games} · {finished}"
+GAME_COUNT = Plural(one="{count} game", other="{count} games")
+FINISHED_COUNT = Plural(other="{count} mastered or beaten")
 RECENT = "Recent unlocks"
 NOTHING_UNLOCKED = "Nothing unlocked yet"
 AWARDS = "Awards"
@@ -160,7 +163,7 @@ HINT_LIST = "List"
 HINT_CAROUSEL = "Carousel"
 NO_ACHIEVEMENT_SET = "This game has no achievements."
 NO_ACHIEVEMENTS = "No achievements match this filter."
-DETAIL_META = "{points} · {retro} RetroPoints"
+DETAIL_META = "{points} · {retro}"  # retro: RETRO_POINTS
 DETAIL_UNLOCKED = "Unlocked ({mode}) {when}"
 DETAIL_PENDING = "Unlocked offline · waiting to sync since {when}"
 DETAIL_LOCKED = "Locked"
@@ -180,9 +183,12 @@ STAT_CASUAL = "Casual points"
 STAT_RETRO = "RetroPoints"
 STAT_RATIO = "RetroRatio"
 STAT_UNLOCKS = "Achievements unlocked"
-STAT_UNLOCKS_VALUE = "{hardcore} HC · {casual} casual"
+STAT_UNLOCKS_VALUE = "{hardcore} · {casual}"
+STAT_UNLOCKS_HARDCORE = Plural(other="{count} HC")
+STAT_UNLOCKS_CASUAL = Plural(other="{count} casual")
 STAT_BEATEN = "Games beaten"
-STAT_BEATEN_VALUE = "{count} ({retail} retail)"
+STAT_BEATEN_VALUE = "{beaten} ({retail})"
+STAT_BEATEN_RETAIL = Plural(other="{count} retail")
 STAT_STARTED_BEATEN = "Started games beaten"
 STAT_WEEK = "Points, last 7 days"
 STAT_MONTH = "Points, last 30 days"
@@ -260,7 +266,9 @@ PROXY_ABOUT = (
     'you\'re back online (Casual mode only). Until then they show as "Pending sync" in Recent '
     "unlocks and in each game, and count towards the games list."
 )
-PROXY_STATUS = "On · {state} · {waiting} waiting · {cached} games cached"
+PROXY_STATUS = "On · {state} · {waiting} · {cached}"
+PROXY_WAITING = Plural(other="{count} waiting")
+PROXY_CACHED = Plural(one="{count} game cached", other="{count} games cached")
 PROXY_ONLINE = "online"
 PROXY_OFFLINE = "offline"
 PROXY_UNKNOWN = "status unknown"

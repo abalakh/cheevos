@@ -322,7 +322,9 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
 - **Plurals**: CLDR's categories (`one`, `few`, `many`, `other`), with a rule per language PyUI
   has (`ui/plurals.py`); other languages get English's. Every string that counts something by
   `{count}` is a `Plural`, and `format.count()` picks the form and formats the count with the
-  language's thousands separator.
+  language's thousands separator. A line with several counts (`PROFILE_POINTS`,
+  `GAMES_SUMMARY`, `PROXY_STATUS`) only places them, each from its own `Plural`, so every
+  number agrees with its word and a translation can reorder them.
 - **Dates and numbers** come from strings too: `MONTHS`, `DATE`, `DATETIME` (24-hour time),
   `THOUSANDS_SEPARATOR`, `DECIMAL_SEPARATOR`, `PERCENT`, `SIZE`, `SIZE_UNITS`. Never `strftime`'s
   `%b`: the devices run the C locale, so it's always English.

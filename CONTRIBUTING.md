@@ -44,8 +44,9 @@ whole, so a change to `App/Cheevos/` in Spruce is lost at the next one.
      `{"one": "{count} punt", "other": "{count} punts"}`. Use the forms your language needs
      (`one`, `few`, `many`, `other`; `other` is required). The rules for each language are in
      `src/cheevos/ui/plurals.py`.
-   - A text with several numbers can't take plural forms. Put a label before each number
-     instead, as Ukrainian does: `"Хардкор: {hardcore} · казуал: {softcore}"`.
+   - A line with several numbers (`GAMES_SUMMARY`: `"{games} · {finished}"`) only places
+     them, and each number has its own string with plural forms (`GAME_COUNT`,
+     `FINISHED_COUNT`). Reorder the fields as your language needs.
    - Lists keep their length: 12 `MONTHS`, 4 `SIZE_UNITS`.
    - Leave a value as `""`, or out, to keep it in English for now. Keys starting with `_` are
      notes and are ignored, e.g. `"_translators": "Your name"`.

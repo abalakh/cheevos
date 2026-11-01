@@ -153,7 +153,8 @@ class _Card:
             ui.text(line, self._x, self._y, Text.TITLE, accent=True)
             self._y += ui.line_height(Text.TITLE)
         meta = strings.DETAIL_META.format(
-            points=fmt.points(achievement.points), retro=fmt.number(achievement.retro_points)
+            points=fmt.points(achievement.points),
+            retro=fmt.count(strings.RETRO_POINTS, achievement.retro_points),
         )
         if achievement.type is not None:
             meta += " · " + strings.TYPE_LABELS[achievement.type.value]
