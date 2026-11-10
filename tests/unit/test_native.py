@@ -32,6 +32,7 @@ def host(monkeypatch):
         leave=lambda: calls.append("leave"),
         show_message=Mock(),
         language=lambda: "English",
+        log_level=pyui_host.log_level,
         set_spruce_setting=lambda *args: calls.append(("setting", *args)),
     )
     monkeypatch.setattr(native, "host", fake)
@@ -41,7 +42,7 @@ def host(monkeypatch):
     return fake
 
 
-def test_run_logs_and_shows_an_error_then_returns(card, host, monkeypatch):
+def test_run_logs_and_shows_an_error_then_returns(card, host, spruce_settings, monkeypatch):
     def broken(*_args, **_kwargs):
         raise RuntimeError("boom")
 
@@ -54,14 +55,27 @@ def test_run_logs_and_shows_an_error_then_returns(card, host, monkeypatch):
     assert "Saves/spruce/cheevos-MiyooMini.log" in host.show_message.call_args.args[0]
 
 
-def test_run_passes_the_game_and_leaves_logging_as_it_was(card, host, monkeypatch):
+@pytest.mark.parametrize(
+    ("spruce_level", "expected_level"),
+    [(logging.DEBUG, logging.DEBUG), (logging.WARNING, logging.WARNING), (None, logging.WARNING)],
+)
+def test_run_passes_the_game_and_leaves_logging_as_it_was(
+    card, host, spruce_settings, monkeypatch, spruce_level, expected_level
+):
+    spruce_settings.config.get_log_level = lambda: spruce_level
     seen = {}
     top = logging.getLogger(native.APP_LOGGER)
     before = (list(top.handlers), top.level, top.propagate)
+    messages = {
+        logging.DEBUG: "debug detail",
+        logging.INFO: "session info",
+        logging.WARNING: "warning",
+    }
 
     def session(env, *, started_at, game_id=None):
         seen.update(paths=env.paths, game_id=game_id, handlers=list(top.handlers))
-        logging.getLogger("cheevos.test").info("inside the session")
+        for level, message in messages.items():
+            logging.getLogger("cheevos.test").log(level, message)
 
     monkeypatch.setattr(native, "session", session)
     native.run(game_id=519)
@@ -70,7 +84,8 @@ def test_run_passes_the_game_and_leaves_logging_as_it_was(card, host, monkeypatc
     assert len(seen["handlers"]) == len(before[0]) + 1
     assert (list(top.handlers), top.level, top.propagate) == before
     log = (card / "Saves" / "spruce" / "cheevos-MiyooMini.log").read_text(encoding="utf-8")
-    assert "inside the session" in log
+    for level, message in messages.items():
+        assert (message in log) == (level >= expected_level)
     host.show_message.assert_not_called()
 
 
@@ -157,6 +172,7 @@ def spruce_settings(monkeypatch):
         return options.get(section, {}).get(name, {}).get("selected")
 
     config = SimpleNamespace(
+        get_log_level=lambda: logging.WARNING,
         get_selected_value=get_selected_value,
         set_menu_option=lambda *args: changed.append(args),
     )
@@ -166,7 +182,7 @@ def spruce_settings(monkeypatch):
     monkeypatch.setitem(
         sys.modules, "utils.cfw_system_config", SimpleNamespace(CfwSystemConfig=config)
     )
-    return SimpleNamespace(options=options, changed=changed)
+    return SimpleNamespace(options=options, changed=changed, config=config)
 
 
 def test_spruce_setting_changes_only_when_it_exists_and_differs(spruce_settings):

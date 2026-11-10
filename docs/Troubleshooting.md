@@ -34,6 +34,10 @@ Cheevos writes a log to `Saves/spruce/cheevos-<device>.log` (e.g. `cheevos-Miyoo
 If it fails to start, the error is added there too. The log never contains your API key, so you
 can attach it to a bug report.
 
+Cheevos uses Spruce's PyUI log level when it opens. To capture debug output, turn on
+**Verbose PyUI logging** under **Settings → Additional Settings → System Settings**, then open
+Cheevos and reproduce the issue.
+
 ## Data and privacy
 - Cheevos talks only to `retroachievements.org` and its image server, normally over HTTPS with
   certificate checks. There's no analytics or tracking. Identifying a ROM from Spruce's game
