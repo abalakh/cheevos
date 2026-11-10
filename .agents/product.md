@@ -235,7 +235,9 @@ Stored in `Saves/cheevos/settings.json`.
 | RAOfflineProxy | — | Read-only status, shown when the proxy is installed |
 | Auto-sync on open | On | On · Off |
 | Actions | — | Sync now · Download every game (every game's achievements; resumes until done; reads "Stop downloading every game" until then) · Re-enter API key · Clear image cache (shows size) |
-| About | — | Version, license (MIT), credits: PyUI (Copyright (c) 2025 Christopher Jacobs; its license requires this user-facing credit), RetroAchievements as the data source |
+
+The installed Cheevos version is shown in Spruce Settings → About this device.
+Cheevos has no About screen; credits remain in `THIRD_PARTY_NOTICES.md`.
 
 The file also remembers `game_list_details` (the games list view), `achievement_grid` (the
 achievement list/grid view), `achievement_sort` (the achievement sort, initially `"order"`
@@ -313,7 +315,7 @@ so the bridge shows "[START] Done [B] Delete [L1] Shift [R1] Caps" in the bottom
   - for a `Plural`, text or `{"one": ..., "few": ..., "many": ..., "other": ...}` (`other`
     required);
   - for a dict of labels (filters, sorts, views), any of its keys;
-  - for a tuple (`MONTHS`, `SIZE_UNITS`, `ABOUT_TEXT`), a list of the same length.
+  - for a tuple (`MONTHS`, `SIZE_UNITS`), a list of the same length.
   Keys starting with `_` are notes for translators; `""` means not translated yet.
 - **Anything missing stays English**, and so does a value that wouldn't format like the English
   one: an unknown or missing field, another format spec than English's, a stray brace. Each is

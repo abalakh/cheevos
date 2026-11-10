@@ -65,7 +65,7 @@
     "AWARDS_SITE": "{count} del lloc",
     "AWARDS_NONE": "Encara no hi ha guardons",
     "SETTINGS": "Configuració",
-    "SETTINGS_SUMMARY": "Insígnies, sincronització, clau de l'API, informació",
+    "SETTINGS_SUMMARY": "Insígnies, sincronització, clau de l'API",
     "NOT_STARTED": "no començat",
     "LAST_ACTIVITY": "{console} · {ago}",
     "GAME_NEVER_PLAYED": "{console} · {status}",
@@ -287,14 +287,6 @@
     "CLEAR_IMAGES": "Buida la memòria cau d'imatges",
     "CLEAR_IMAGES_SIZE": "{size} en ús · les imatges es tornen a descarregar quan calgui",
     "IMAGES_CLEARED": "S'ha buidat la memòria cau d'imatges.",
-    "ABOUT": "Quant a",
-    "ABOUT_HINT": "Versió, llicència i crèdits",
-    "ABOUT_TEXT": [
-        "Cheevos {version} · Centre de RetroAchievements per a SpruceOS",
-        "Llicència MIT · Copyright (c) 2026 Andrii Balakhtar",
-        "Dades, insígnies i icones de jocs: RetroAchievements.org (sense afiliació)",
-        "Pantalles dibuixades amb PyUI · Copyright (c) 2025 Christopher Jacobs, usat sota la seva llicència"
-    ],
     "SETUP": "Configura Cheevos",
     "NO_USERNAME": "Primer inicia la sessió a RetroAchievements: Configuració de spruce > RetroAchievements, o a RetroArch. Després torna a obrir Cheevos.",
     "KEY_NEEDED": "Cheevos necessita la teva clau de l'API web de RetroAchievements.",

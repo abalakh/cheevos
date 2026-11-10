@@ -6,8 +6,7 @@
 Cheevos draws its screens with PyUI, which SpruceOS installs on the device. Cheevos does not
 copy or redistribute PyUI.
 - PyUI — Copyright (c) 2025 Christopher Jacobs. Used under the terms of its license
-  (non-commercial BSD 3-Clause variant), which asks for this credit in a user-facing
-  About/Credits section; the app's About screen shows it.
+  (non-commercial BSD 3-Clause variant).
 
 ### RetroAchievements
 Profile, game and achievement data, badges and game icons come from the

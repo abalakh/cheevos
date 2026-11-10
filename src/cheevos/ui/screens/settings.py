@@ -1,11 +1,10 @@
-"""Settings: badge scope, recent window, spoilers, auto-sync, sync actions, key, cache, about."""
+"""Settings: badge scope, recent window, spoilers, auto-sync, sync actions, key and cache."""
 
 from __future__ import annotations
 
 import dataclasses
 from collections.abc import Callable
 
-from cheevos import __version__
 from cheevos.core.settings import RECENT_DAYS_CHOICES, BadgeScope, DescriptionHiding
 from cheevos.ui import format as fmt
 from cheevos.ui import strings
@@ -71,7 +70,6 @@ def _items(ctx: AppContext) -> list[MenuItem]:
             ctx.icon("chart"),
             key="clear",
         ),
-        MenuItem(strings.ABOUT, strings.ABOUT_HINT, ctx.icon("debug"), key="about"),
     ]
 
 
@@ -207,13 +205,6 @@ def _clear_images(ctx: AppContext) -> None:
     message(strings.CLEAR_IMAGES, [strings.IMAGES_CLEARED])
 
 
-def _about() -> None:
-    """Show version, license and credits."""
-    lines = list(strings.ABOUT_TEXT)
-    lines[0] = lines[0].format(version=__version__)
-    message(strings.ABOUT, lines)
-
-
 def show_settings(ctx: AppContext) -> None:
     """Show settings until B.
 
@@ -231,7 +222,6 @@ def show_settings(ctx: AppContext) -> None:
         "stop": lambda: _stop_download(ctx),
         "key": lambda: change_key(ctx),
         "clear": lambda: _clear_images(ctx),
-        "about": _about,
     }
     selected = 0
     while choice := choose(strings.SETTINGS, _items(ctx), selected=selected, full_status=True):

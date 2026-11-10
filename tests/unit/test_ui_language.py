@@ -135,13 +135,13 @@ def test_labels_and_lists_translate_entry_by_entry():
         {
             "VIEWS": {"grid": "Graella", "carousel": "?", "list": ""},
             "MONTHS": ["gen.", "febr.", "", *(["?"] * 9)],
-            "ABOUT_TEXT": ["just one line"],
+            "SIZE_UNITS": ["just one unit"],
         }
     )
     assert parsed["VIEWS"] == {"list": "List", "grid": "Graella"}
     assert parsed["MONTHS"] == ("gen.", "febr.", "Mar", *(["?"] * 9))
-    assert "ABOUT_TEXT" not in parsed
-    assert found == ["VIEWS: carousel: no such entry", "ABOUT_TEXT: expected a list of 4"]
+    assert "SIZE_UNITS" not in parsed
+    assert found == ["VIEWS: carousel: no such entry", "SIZE_UNITS: expected a list of 4"]
 
 
 def test_untranslated_and_notes_are_skipped():

@@ -32,8 +32,7 @@ WALKTHROUGH = (
     "shot:home,a,shot:profile,b,down,a,shot:games,select,shot:games_details,select,"
     "y,shot:games_options,b,"
     "down,a,shot:game,select,y,a,down,a,shot:game_grid,select,shot:game_list,b,b,down,a,shot:recent,b,"
-    "down,a,shot:awards,a,down,a,shot:settings,down,down,down,down,down,down,down,down,a,"
-    "shot:about"
+    "down,a,shot:awards,a,down,a,shot:settings"
 )
 
 

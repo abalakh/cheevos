@@ -13,7 +13,8 @@
 | **Download every game** | Downloads every game's achievements, for offline use: downloads are spaced about 3 seconds apart. It carries on in later syncs until it's done; meanwhile this row reads **Stop downloading every game**. |
 | **Web API key** | Shows the end of the current key; press A to enter a new one. |
 | **Clear image cache** | Deletes downloaded badges and icons (shows how much space they use). They download again when needed. |
-| **About** | Version, license and credits. |
+
+Find the installed Cheevos version in Spruce **Settings → About this device**.
 
 Both **On-device and recent games** and **All games** also download the badges shown in
 Recent unlocks, even for games whose full achievement lists aren't downloaded.

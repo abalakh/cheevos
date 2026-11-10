@@ -93,7 +93,7 @@ AWARDS_EVENTS = Plural(one="{count} event", other="{count} events")
 AWARDS_SITE = Plural(other="{count} site")
 AWARDS_NONE = "No awards yet"
 SETTINGS = "Settings"
-SETTINGS_SUMMARY = "Badges, sync, API key, about"
+SETTINGS_SUMMARY = "Badges, sync, API key"
 
 # --- games ------------------------------------------------------------------------------------
 NOT_STARTED = "not started"
@@ -305,14 +305,6 @@ API_KEY_SET = "Set (ends with {tail})"
 CLEAR_IMAGES = "Clear image cache"
 CLEAR_IMAGES_SIZE = "{size} used · images download again when needed"
 IMAGES_CLEARED = "Image cache cleared."
-ABOUT = "About"
-ABOUT_HINT = "Version, license and credits"
-ABOUT_TEXT = (
-    "Cheevos {version} · RetroAchievements hub for SpruceOS",
-    "MIT License · Copyright (c) 2026 Andrii Balakhtar",
-    "Data, badges and game icons: RetroAchievements.org (not affiliated)",
-    "Screens drawn with PyUI · Copyright (c) 2025 Christopher Jacobs, used under its license",
-)
 
 # --- setup ------------------------------------------------------------------------------------
 SETUP = "Set up Cheevos"

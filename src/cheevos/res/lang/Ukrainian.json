@@ -72,7 +72,7 @@
     },
     "AWARDS_NONE": "Ще немає нагород",
     "SETTINGS": "Налаштування",
-    "SETTINGS_SUMMARY": "Значки, синхронізація, API-ключ, про програму",
+    "SETTINGS_SUMMARY": "Значки, синхронізація, API-ключ",
     "NOT_STARTED": "не розпочато",
     "LAST_ACTIVITY": "{console} · {ago}",
     "GAME_NEVER_PLAYED": "{console} · {status}",
@@ -321,14 +321,6 @@
     "CLEAR_IMAGES": "Очистити кеш зображень",
     "CLEAR_IMAGES_SIZE": "Займає {size} · за потреби завантажаться знову",
     "IMAGES_CLEARED": "Кеш зображень очищено.",
-    "ABOUT": "Про програму",
-    "ABOUT_HINT": "Версія, ліцензія та подяки",
-    "ABOUT_TEXT": [
-        "Ачівки {version} · хаб RetroAchievements для SpruceOS",
-        "Ліцензія MIT · Copyright (c) 2026 Andrii Balakhtar",
-        "Дані, значки й іконки ігор: RetroAchievements.org (не афілійовано)",
-        "Екрани намальовано за допомогою PyUI · Copyright (c) 2025 Christopher Jacobs, використано згідно з його ліцензією"
-    ],
     "SETUP": "Налаштувати Ачівки",
     "NO_USERNAME": "Спершу увійдіть у RetroAchievements: Налаштування Spruce > RetroAchievements або в RetroArch. Потім знову відкрийте Ачівки.",
     "KEY_NEEDED": "Ачівкам потрібен ваш ключ Web API від RetroAchievements.",
