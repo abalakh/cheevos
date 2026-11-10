@@ -81,6 +81,7 @@ def finished(
         (running(Phase.RECENT), "Syncing recent unlocks"),
         (running(Phase.RECENT, done=80), "Recent unlocks · 80 found"),
         (running(Phase.MEDIA, done=4, total=40), "Downloading images 4/40"),
+        (running(Phase.MEDIA, done=4), "Downloading images · 4"),
     ],
 )
 def test_progress_text(status, expected):

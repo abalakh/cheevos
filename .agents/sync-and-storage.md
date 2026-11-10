@@ -119,9 +119,8 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
    fingerprints match, for up to 30 days. Ordinary play activity alone does not refresh it.
 6. **Plan detail fetches.** A game's details take one request, spaced 3 s apart at the steady
    pace, so a sync doesn't fetch every game: 2,937 games would take about 2.5 hours. It keeps a
-   **working set**: games on this device (`local_games`) and games played or unlocked within the "Recent
-   games" window (30 days by default). Other games are fetched when opened (the game worker,
-   below). Planned:
+   **working set**: games on this device (`local_games`) and games played or unlocked in the
+   last 30 days. Other games are fetched when opened (the game worker, below). Planned:
    - never fetched, for a game in the working set;
    - the fingerprint changed, for any cached game;
    - the details are older than 30 days, for any cached game. At most 20 of these per sync,
@@ -134,14 +133,23 @@ It runs on a background worker thread. The UI reads committed DB state and a thr
    - The test account (2,937 games) has 60 games in a 30-day working set: about 3 minutes
      for its details at the current pace, plus media downloads spaced 0.25 s apart.
 8. **Award images**: event and site badges (the shown tier's badge; the site's art from its
-   static host), whatever the badge setting: there are few of them, and the Awards screen
-   should work offline. Mastered games' icons are the library's icons, already downloaded.
-9. **Badges** (the "Badge downloads" setting):
-   - On-device + recent: games in `local_games` plus games played or unlocked within the recent
-     window.
-   - All: every game whose details are cached.
-   - Both scopes also include colour badges for the recent feed, independently of game sets.
-   - None: nothing is downloaded during sync.
+   static host): there are few of them, and the Awards screen should work offline. Mastered
+   games' icons are the library's icons, already downloaded.
+9. **Badges**:
+   - Normal syncs download badges for the working set.
+   - While "Download every game" is pending, syncs download badges for the entire library.
+     The pending marker stays until both the details and media phases finish. To bound RAM,
+     the engine plans those images 200 at a time and reports how many it has processed so far.
+     Measured on the Mini+ (2026-11-10; a synthetic 2,940-game library with 105,840 images; CPU
+     at the screensaver's 400 MHz, where a long download spends most of its time):
+     - Chunks of 100 to 1,000 images all add 2 MB of RSS and 32 s of CPU per sync, spread
+       over the phase.
+     - One plan holding every image grew past +10 MB and was stopped unfinished at 12 MB
+       available: a big account would run out of memory.
+     - The chunk size sets how long each chunk's planning runs without a pause, about 0.3 ms
+       per image: 64 ms for 200, 160 ms for 500. Smaller chunks add no CPU.
+   - Both also include colour badges for the recent feed, independently of game sets.
+   - The development CLI can override the badge scope of a normal sync with `--scope`.
    - Only the variant matching the current state is fetched: colour if unlocked, `_lock` if
      locked. This halves the file count. A newly unlocked achievement gets its colour badge on the
      next sync. In every mode, missing images are fetched lazily while browsing online

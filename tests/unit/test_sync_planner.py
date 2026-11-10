@@ -3,7 +3,6 @@ from cheevos.core.sync.planner import (
     DAY,
     DetailPlan,
     PlanPolicy,
-    badge_game_ids,
     merge_library,
     plan_detail_fetches,
     working_set,
@@ -95,18 +94,6 @@ def test_games_without_achievements_are_skipped():
     assert len(plan_detail_fetches([game(1, total=0)], {}, now=NOW)) == 0
 
 
-def test_badge_scope_selection():
-    games = [
-        game(1, last_unlock=NOW - DAY),  # recent
-        game(2, last_played=NOW - 60 * DAY),  # old, on device
-        game(3, last_unlock=NOW - 60 * DAY),  # old
-    ]
-    since = NOW - 30 * DAY
-    assert badge_game_ids(games, on_device={2}, include_all=False, recent_since=since) == [1, 2]
-    assert badge_game_ids(games, on_device=set(), include_all=True, recent_since=None) == [1, 2, 3]
-    assert badge_game_ids(games, on_device=set(), include_all=False, recent_since=None) == []
-
-
 def test_refetch_before_continues_an_interrupted_full_resync():
     games = [game(1, earned=1, last_unlock=10), game(2, earned=1, last_unlock=5)]
     states = {1: (games[0].fingerprint, NOW - 10), 2: (games[1].fingerprint, NOW + 5)}
@@ -128,10 +115,9 @@ def test_never_fetched_games_outside_the_working_set_wait():
 
 def test_working_set_is_on_device_or_recently_active():
     games = [
-        game(1, last_unlock=NOW - DAY),  # recent unlock
+        game(1, last_unlock=NOW - 30 * DAY),  # unlock at the cutoff
         game(2, last_played=NOW - 2 * DAY),  # recently played, no unlock
         game(3, last_unlock=NOW - 60 * DAY),  # old, on device
-        game(4, last_unlock=NOW - 60 * DAY),  # old
+        game(4, last_unlock=NOW - 30 * DAY - 1),  # just outside the window
     ]
-    since = NOW - 30 * DAY
-    assert working_set(games, on_device={3}, recent_since=since) == {1, 2, 3}
+    assert working_set(games, on_device={3}, now=NOW) == {1, 2, 3}

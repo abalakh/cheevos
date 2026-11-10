@@ -5,7 +5,6 @@ import pytest
 from cheevos.core.files import write_text_atomic
 from cheevos.core.settings import (
     DEFAULTS,
-    BadgeScope,
     DescriptionHiding,
     Settings,
     load_settings,
@@ -18,17 +17,14 @@ def test_missing_file_gives_defaults(tmp_path):
     assert loaded == DEFAULTS
     assert loaded.achievement_grid is True
     assert loaded.awards_view == "carousel"
-    assert Settings(BadgeScope.ON_DEVICE_AND_RECENT, 30, DescriptionHiding.OFF, True) == DEFAULTS
 
 
 @pytest.mark.parametrize("sort", ["order", "unlocked", "locked", "points", "rarity"])
 def test_round_trip(tmp_path, sort):
     path = tmp_path / "cheevos" / "settings.json"
     settings = Settings(
-        BadgeScope.ALL,
-        90,
-        DescriptionHiding.STORY,
-        False,
+        hide_descriptions=DescriptionHiding.STORY,
+        auto_sync=False,
         game_list_details=True,
         achievement_grid=True,
         achievement_sort=sort,
@@ -43,8 +39,6 @@ def test_saved_json_has_stable_key_order(tmp_path):
     path = tmp_path / "settings.json"
     save_settings(path, DEFAULTS)
     assert list(json.loads(path.read_text())) == [
-        "badge_scope",
-        "recent_days",
         "hide_descriptions",
         "auto_sync",
         "game_list_details",
@@ -67,8 +61,6 @@ def test_each_invalid_key_falls_back_alone(tmp_path):
     path.write_text(
         json.dumps(
             {
-                "badge_scope": "everything",
-                "recent_days": 14,
                 "hide_descriptions": "yes",
                 "auto_sync": False,
                 "game_list_details": "details",
@@ -79,12 +71,7 @@ def test_each_invalid_key_falls_back_alone(tmp_path):
             }
         )
     )
-    assert load_settings(path) == Settings(
-        badge_scope=DEFAULTS.badge_scope,
-        recent_days=DEFAULTS.recent_days,
-        hide_descriptions=DEFAULTS.hide_descriptions,
-        auto_sync=False,
-    )
+    assert load_settings(path) == Settings(auto_sync=False)
 
 
 def test_older_file_defaults_the_new_view_without_resetting_existing_choices(tmp_path):
@@ -129,12 +116,36 @@ def test_unknown_fields_are_ignored_and_dropped_on_save(tmp_path):
     assert "removed_setting" not in json.loads(path.read_text())
 
 
-def test_bool_is_not_a_valid_recent_days(tmp_path):
+@pytest.mark.parametrize(
+    ("recent_days", "badge_scope"),
+    [(7, "none"), (30, "on-device-and-recent"), (90, "all"), (True, None), ("90", []), ({}, 3)],
+)
+def test_retired_settings_are_ignored_and_dropped_on_save(tmp_path, recent_days, badge_scope):
     path = tmp_path / "settings.json"
-    path.write_text(json.dumps({"recent_days": True, "badge_scope": "none"}))
-    loaded = load_settings(path)
-    assert loaded.recent_days == 30
-    assert loaded.badge_scope is BadgeScope.NONE
+    stored = {
+        "recent_days": recent_days,
+        "badge_scope": badge_scope,
+        "hide_descriptions": "story",
+        "auto_sync": False,
+        "game_list_details": True,
+        "achievement_grid": False,
+        "achievement_sort": "points",
+        "awards_view": "grid",
+    }
+    path.write_text(json.dumps(stored))
+    settings = load_settings(path)
+    assert settings == Settings(
+        hide_descriptions=DescriptionHiding.STORY,
+        auto_sync=False,
+        game_list_details=True,
+        achievement_grid=False,
+        achievement_sort="points",
+        awards_view="grid",
+    )
+    save_settings(path, settings)
+    del stored["recent_days"], stored["badge_scope"]
+    assert json.loads(path.read_text()) == stored
+    assert load_settings(path) == settings
 
 
 def test_atomic_write_replaces_and_sets_mode(tmp_path):

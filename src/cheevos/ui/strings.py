@@ -52,6 +52,7 @@ ENTER_KEY = "Enter key"  # Start after RA rejected the key; A on the setup scree
 SYNC_RUNNING_ITEM = "Games {done}/{total}"
 SYNC_RUNNING_RECENT = "Recent unlocks · {done} found"
 SYNC_RUNNING_IMAGES = "Downloading images {done}/{total}"
+SYNC_RUNNING_IMAGES_COUNT = "Downloading images · {done}"
 SYNC_PHASES = {
     "preflight": "Checking connection",
     "profile": "Syncing profile",
@@ -274,14 +275,6 @@ PROXY_OFFLINE = "offline"
 PROXY_UNKNOWN = "status unknown"
 
 # --- settings ---------------------------------------------------------------------------------
-BADGE_DOWNLOADS = "Badge downloads"
-BADGE_SCOPES = {
-    "on-device-and-recent": "On-device and recent games",
-    "all": "All games",
-    "none": "Only while browsing",
-}
-RECENT_WINDOW = "Recent games"
-RECENT_DAYS = Plural(one="Played in the last {count} day", other="Played in the last {count} days")
 HIDE_LOCKED = "Hide locked descriptions"
 HIDE_LOCKED_MODES = {"off": "Off", "story": "Story only", "all": "All"}
 HIDE_LOCKED_HINTS = {
@@ -295,7 +288,7 @@ OFF = "Off"
 SYNC_NOW = "Sync now"
 SYNC_NOW_HINT = "Fetch what changed since the last sync"
 DOWNLOAD_ALL = "Download every game"
-DOWNLOAD_ALL_HINT = "For offline use · about a second per game"
+DOWNLOAD_ALL_HINT = "Achievements and badges for offline use"
 DOWNLOAD_ALL_STOP = "Stop downloading every game"
 DOWNLOAD_ALL_STOP_HINT = "Keep what's downloaded so far"
 DOWNLOAD_ALL_STOPPED = "Stopped. What's downloaded so far stays."

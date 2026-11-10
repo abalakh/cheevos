@@ -9,6 +9,7 @@
     "SYNC_RUNNING_ITEM": "Ігри {done}/{total}",
     "SYNC_RUNNING_RECENT": "Нещодавні досягнення · знайдено {done}",
     "SYNC_RUNNING_IMAGES": "Завантаження зображень {done}/{total}",
+    "SYNC_RUNNING_IMAGES_COUNT": "Завантаження зображень · {done}",
     "SYNC_PHASES": {
         "preflight": "Перевірка з’єднання",
         "profile": "Синхронізація профілю",
@@ -281,19 +282,6 @@
     "PROXY_ONLINE": "онлайн",
     "PROXY_OFFLINE": "офлайн",
     "PROXY_UNKNOWN": "стан невідомий",
-    "BADGE_DOWNLOADS": "Завантаження значків",
-    "BADGE_SCOPES": {
-        "on-device-and-recent": "На пристрої й нещодавні",
-        "all": "Усі ігри",
-        "none": "Лише під час перегляду"
-    },
-    "RECENT_WINDOW": "Нещодавні ігри",
-    "RECENT_DAYS": {
-        "one": "Зіграні за останній {count} день",
-        "few": "Зіграні за останні {count} дні",
-        "many": "Зіграні за останні {count} днів",
-        "other": "Зіграні за останні {count} днів"
-    },
     "HIDE_LOCKED": "Приховати опис заблокованих",
     "HIDE_LOCKED_MODES": {
         "off": "Вимкнено",
@@ -311,7 +299,7 @@
     "SYNC_NOW": "Синхронізувати зараз",
     "SYNC_NOW_HINT": "Отримати зміни з останньої синхронізації",
     "DOWNLOAD_ALL": "Завантажити всі ігри",
-    "DOWNLOAD_ALL_HINT": "Для роботи офлайн · близько секунди на гру",
+    "DOWNLOAD_ALL_HINT": "Досягнення й значки для перегляду офлайн",
     "DOWNLOAD_ALL_STOP": "Зупинити завантаження всіх ігор",
     "DOWNLOAD_ALL_STOP_HINT": "Уже завантажене залишиться",
     "DOWNLOAD_ALL_STOPPED": "Зупинено. Уже завантажене залишається.",

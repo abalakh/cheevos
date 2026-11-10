@@ -17,8 +17,8 @@ from pathlib import Path
 from cheevos.app import AppEnvironment
 from cheevos.core.ra_client.pacer import Pacer
 from cheevos.core.ra_client.transport import FixtureTransport
-from cheevos.core.settings import BadgeScope
-from cheevos.core.sync.engine import SyncEngine, SyncOptions
+from cheevos.core.sync.engine import SyncEngine
+from cheevos.core.sync.options import SyncOptions
 from cheevos.core.sync.progress import ProgressTracker
 from cheevos.core.sync.session import Credentials, open_sync_deps
 from cheevos.platform.desktop.simulate import prepare_card, simulation
@@ -131,7 +131,7 @@ def fixture_environment(sd_root: Path) -> AppEnvironment:
         )
         # Fixture mode shows everything (every game's details and badges, as if downloaded),
         # unless the drill is about what a first sync leaves out.
-        options = SyncOptions(full=drill.download_all, badge_scope=BadgeScope.ALL)
+        options = SyncOptions(full=drill.download_all)
         status = engine.run(options)
         logger.info("Fixture pre-sync: %s", status.phase.value)
     finally:

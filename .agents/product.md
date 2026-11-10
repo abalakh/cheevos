@@ -229,12 +229,14 @@ Stored in `Saves/cheevos/settings.json`.
 
 | Setting | Default | Options |
 |---|---|---|
-| Badge downloads | On-device + recent | On-device + recent · All games (whose achievements are downloaded) · None (download while browsing online) |
-| "Recent" window | 30 days | 7 · 30 · 90 days. Also decides which games' achievements every sync keeps ([sync-and-storage.md](sync-and-storage.md)). |
 | Hide locked descriptions | Off | Off · Story only (Progression and Win condition tags) · All |
 | RAOfflineProxy | — | Read-only status, shown when the proxy is installed |
 | Auto-sync on open | On | On · Off |
-| Actions | — | Sync now · Download every game (every game's achievements; resumes until done; reads "Stop downloading every game" until then) · Re-enter API key · Clear image cache (shows size) |
+| Actions | — | Sync now · Download every game (every game's details and badges; resumes until done; reads "Stop downloading every game" until then) · Re-enter API key · Clear image cache (shows size) |
+
+Normal syncs use on-device games and a fixed 30-day activity window for new achievement
+sets and their badges ([sync-and-storage.md](sync-and-storage.md)). Older `recent_days`
+and `badge_scope` values are ignored and omitted when settings are next saved.
 
 The installed Cheevos version is shown in Spruce Settings → About this device.
 Cheevos has no About screen; credits remain in `THIRD_PARTY_NOTICES.md`.

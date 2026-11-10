@@ -8,12 +8,11 @@ updates it:
 3. Your awards and latest 100 unlocks. Recent unlocks are saved separately, so they don't
    require downloading entire achievement lists for old games. For event awards, the event's
    tiers too (what each tier needs, and its badge), once per event and again after 30 days.
-4. The achievements of the games on your SD card and the games you played recently (see
-   **Recent games** in [Settings](Settings.md)), plus any game that changed since you last
-   downloaded it. Games not refreshed for 30 days are checked a few at a time, so changes
-   RetroAchievements makes to old sets also arrive.
-5. Badges and game icons (see **Badge downloads** in [Settings](Settings.md)), and the
-   badges of your event and site awards.
+4. Achievements for games on your SD card and games with play or unlock activity in the last
+   30 days. Cached games that changed are refreshed too. Games last refreshed 30 or more days
+   ago are checked a few at a time to pick up edits to old achievement sets.
+5. Badges for on-device games, games active in the last 30 days, Recent unlocks, and event and
+   site awards. Sync also downloads game icons for your entire library.
 
 **The first sync** spaces game downloads about 3 seconds apart: seconds for small libraries,
 and a few minutes for one with thousands of games, because only the games you play are downloaded.
@@ -25,12 +24,13 @@ carries on where it stopped.
 The bottom bar shows the current stage. During game downloads it shows, for example,
 **Games 3/12**, with a fixed total for that stage. While finding recent unlocks, it shows how
 many it has found; the number of history requests needed isn't known ahead of time.
+During a full download, the image stage shows how many images it has processed so far.
 
 **Other games** are downloaded when you open them: "Loading achievements…" for a second or two,
-then they stay on the card. To have every game's achievements on the card, for example before a
-trip without Wi-Fi, use **Settings → Download every game**. It spaces downloads about 3 seconds
-apart (about 2.5 hours for 3,000 games, plus images), carries on in later syncs until it's done,
-and can be stopped from the same place.
+then they stay on the card. To keep your entire library's achievements and badges on the card
+for a trip without Wi-Fi, use **Settings → Download every game**. It spaces game requests about
+3 seconds apart (about 2.5 hours for 3,000 games, plus images) and resumes in later syncs.
+You can stop it from the same menu.
 
 **When it runs:** when you open Cheevos (unless you turn that off in Settings), and whenever you
 press **Start**. Press Start again to cancel.
@@ -74,6 +74,6 @@ waiting and how many games it can run offline. Cheevos only reads the proxy's da
 sends, changes or deletes its queue: the proxy does that itself.
 
 ## Data usage
-A sync with no changes is a handful of small requests. The first sync downloads the achievement
-lists of the games you play, plus badges and icons as set in **Badge downloads**. After that,
-only games that changed are downloaded again.
+A sync with no changes is a handful of small requests. The first sync downloads the achievements
+and badges of the games on your SD card and the games you played in the last 30 days, plus every
+game's icon. After that, only games that changed are downloaded again.

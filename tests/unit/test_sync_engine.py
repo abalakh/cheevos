@@ -1,89 +1,34 @@
-import json
 import threading
 import time
 from email.utils import formatdate
-from pathlib import Path
 
 import pytest
+from sync_harness import FFTA, FIXTURES, NOW, Harness, build_media_dir, recorded_game_ids
 
 from cheevos.core.clock import ServerClock
 from cheevos.core.errors import AuthError, CheevosError, NetworkError
 from cheevos.core.ra_client.client import RaClient
 from cheevos.core.ra_client.transport import FixtureTransport, Response
-from cheevos.core.settings import BadgeScope
-from cheevos.core.storage.data_cache import DataCache
-from cheevos.core.storage.media_cache import MediaCache, avatar_key, badge_key, icon_key
+from cheevos.core.storage.media_cache import avatar_key, badge_key, icon_key
 from cheevos.core.storage.recent_feed import RecentFeed, RecentFeedCache
-from cheevos.core.sync.engine import (
+from cheevos.core.sync.engine import SyncDeps, SyncEngine
+from cheevos.core.sync.options import (
     FULL_SINCE_KEY,
     LAST_SYNC_KEY,
     RATE_LIMITED_UNTIL_KEY,
-    SyncDeps,
-    SyncEngine,
     SyncOptions,
 )
-from cheevos.core.sync.progress import Failure, Phase, ProgressTracker
+from cheevos.core.sync.progress import Failure, Phase
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "ra"
-NOW = 1_791_158_400  # 2026-10-05 00:00 UTC
-FFTA = 519
 # Fire Emblem (played yesterday) and FFTA (on device); feed coverage fetches no full sets.
 FIRST_SYNC_GAMES = {554, FFTA}
 UNTOUCHED_OLD_GAMES = {3830, 788, 355, 4239, 1446, 1454, 4958, 1836, 2, 1487}
-
-
-def recorded_game_ids():
-    return sorted(int(p.stem.split("_")[1]) for p in FIXTURES.glob("game_*.json"))
-
-
-def build_media_dir(root: Path) -> Path:
-    """Mirror the media host for every image the fixtures reference."""
-    summary = json.loads((FIXTURES / "user_summary.json").read_text())
-    paths = {summary["UserPic"]}
-    for game_id in recorded_game_ids():
-        game = json.loads((FIXTURES / f"game_{game_id}.json").read_text())
-        paths.add(game["ImageIcon"])
-        for achievement in game["Achievements"].values():
-            paths.add(f"/Badge/{achievement['BadgeName']}.png")
-            paths.add(f"/Badge/{achievement['BadgeName']}_lock.png")
-    for path in paths:
-        target = root / path.lstrip("/")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(b"PNG:" + path.encode())
-    return root
 
 
 @pytest.fixture(scope="module")
 def media_dir(tmp_path_factory):
     # Transports only read this source; each test still owns its caches and request history.
     return build_media_dir(tmp_path_factory.mktemp("sync-media-host"))
-
-
-class Harness:
-    def __init__(
-        self, tmp_path: Path, media_dir: Path, transport=None, on_device=frozenset({FFTA})
-    ):
-        self.transport = transport or FixtureTransport(FIXTURES, media_dir=media_dir)
-        self.client = RaClient("Balah", "k" * 32, self.transport, user_agent="test", min_interval=0)
-        self.data = DataCache.open(tmp_path / "data.db", "Balah")
-        self.media = MediaCache.open(tmp_path / "media.db", tmp_path / "scratch")
-        self.tracker = ProgressTracker()
-        self.cancel = threading.Event()
-        self.online = True
-        self.on_device = set(on_device)
-
-    def engine(self, now=NOW):
-        deps = SyncDeps(self.client, self.data, self.media, on_device=lambda: self.on_device)
-        return SyncEngine(
-            deps,
-            self.tracker,
-            self.cancel,
-            clock=lambda: now,
-            online=lambda: self.online,
-        )
-
-    def calls(self):
-        return [method for method, _ in self.transport.calls]
 
 
 @pytest.fixture
@@ -136,12 +81,6 @@ def test_changed_game_is_the_only_one_refetched(harness):
     status = harness.engine().run(SyncOptions())
     assert status.details_fetched == 1
     assert harness.calls().count("API_GetGameInfoAndUserProgress") == 1
-
-
-def test_full_resync_refetches_everything(harness):
-    harness.engine().run(SyncOptions())
-    status = harness.engine().run(SyncOptions(full=True))
-    assert status.details_fetched == len(recorded_game_ids())
 
 
 def test_cancel_mid_details_then_resume_fetches_only_the_rest(harness):
@@ -205,54 +144,6 @@ def test_rejected_key_fails_with_auth(tmp_path, media_dir):
     harness = Harness(tmp_path, media_dir, transport=RejectingTransport())
     status = harness.engine().run(SyncOptions())
     assert status.failure is Failure.AUTH
-
-
-class FlakyMediaTransport(FixtureTransport):
-    def get(self, host, path, headers):
-        if path.startswith("/Badge/"):
-            return Response(status=404, body=b"")
-        return super().get(host, path, headers)
-
-
-def test_missing_badges_are_skipped_not_fatal(tmp_path, media_dir):
-    transport = FlakyMediaTransport(FIXTURES, media_dir=media_dir)
-    harness = Harness(tmp_path, media_dir, transport=transport)
-    status = harness.engine().run(SyncOptions())
-    assert status.phase is Phase.DONE
-    assert harness.media.has(avatar_key("Balah"))
-
-
-@pytest.mark.parametrize(
-    ("scope", "expect_badges"),
-    [(BadgeScope.NONE, False), (BadgeScope.ALL, True)],
-)
-def test_badge_scope(tmp_path, media_dir, scope, expect_badges):
-    harness = Harness(tmp_path, media_dir, on_device=frozenset())
-    harness.engine().run(SyncOptions(badge_scope=scope))
-    fire_emblem = harness.data.game_detail(554)
-    assert fire_emblem is not None
-    first = fire_emblem.achievements[0]
-    key = badge_key(first.badge_name, locked=not first.unlocked)
-    assert harness.media.has(key) is expect_badges
-
-
-def has_any_badge(harness, game_id):
-    detail = harness.data.game_detail(game_id)
-    assert detail is not None
-    return any(
-        harness.media.has(badge_key(a.badge_name, locked=not a.unlocked))
-        for a in detail.achievements
-    )
-
-
-def test_recent_scope_takes_recently_played_games_only(tmp_path, media_dir):
-    harness = Harness(tmp_path, media_dir, on_device=frozenset())
-    harness.engine().run(SyncOptions(recent_days=30))
-    assert has_any_badge(harness, 554)  # Fire Emblem, played the day before NOW
-    # Feed badges are kept for offline browsing, without fetching either full set.
-    assert harness.data.game_detail(FFTA) is None
-    assert harness.data.game_detail(355) is None
-    assert harness.media.has(badge_key("198102", locked=False))
 
 
 def test_auth_error_type_is_cheevos_error():
@@ -378,7 +269,7 @@ def test_recent_feed_needs_no_additional_game_sets_and_keeps_fixed_totals(harnes
         return original(game_id)
 
     harness.client.game_detail = detail
-    status = harness.engine().run(SyncOptions(recent_days=7))
+    status = harness.engine().run(SyncOptions())
     assert status.details_fetched == 1  # Fire Emblem is the only game in the working set.
     assert harness.data.game_detail(FFTA) is None
     assert harness.data.game_detail(3830) is None
@@ -390,7 +281,7 @@ def test_recent_feed_needs_no_additional_game_sets_and_keeps_fixed_totals(harnes
 def test_recent_query_bounds_come_from_ra_even_without_a_time_sample(harness, device_time):
     engine = harness.engine(now=device_time)
     engine._sync_details = lambda _games, _options: None
-    engine._sync_media = lambda _games, _options: None
+    engine._sync_media = lambda _games, _scope: None
     assert engine.run(SyncOptions()).phase is Phase.DONE
     queries = [params for method, params in harness.transport.calls if "EarnedBetween" in method]
     assert len(queries) == 1  # small account: one complete history window

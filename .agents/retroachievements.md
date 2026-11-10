@@ -19,7 +19,7 @@ look and counting rules come from the website's own source (RAWeb). The client l
   | `API_GetUserAwards` | The Awards screen, the profile's beaten counts |
   | v2 `/v2/events?filter[id]=&include=awards` | Event titles, badges and award tiers (label, points, badge); 50 events a request |
   | v2 `/v2/event-achievements?filter[eventId]=&fields[...]=achievementPoints,event` | What an event is worth (its achievements' points), 100 rows a page, for earned tiers only |
-  | `API_GetUserRecentlyPlayedGames` (`c=50`) | The "recent" set for the badge scope |
+  | `API_GetUserRecentlyPlayedGames` (`c=50`) | Last played dates and games without unlocks for the working set |
   | `API_GetAchievementsEarnedBetween` (`f=&t=`) | Latest 100 unlocks during sync; points in the last 7/30 days and the first hardcore unlock on demand (profile "See more" and 30-day chart); capped at 500 rows |
 
 - **v2 API**: `https://api.retroachievements.org/v2/...`, JSON:API, the same Web API key in an
