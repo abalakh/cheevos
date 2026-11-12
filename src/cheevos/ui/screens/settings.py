@@ -9,8 +9,9 @@ from cheevos.core.settings import DescriptionHiding
 from cheevos.ui import format as fmt
 from cheevos.ui import strings
 from cheevos.ui.context import AppContext
+from cheevos.ui.pyui.primitives import Button
 from cheevos.ui.pyui.views import MenuItem, choose
-from cheevos.ui.screens.common import message, pick
+from cheevos.ui.screens.common import message, pick, prompt
 from cheevos.ui.screens.setup import change_key
 
 
@@ -161,13 +162,16 @@ def _stop_download(ctx: AppContext) -> None:
 
 
 def _clear_images(ctx: AppContext) -> None:
-    """Empty the image cache (images download again when needed).
+    """Ask for confirmation before emptying the image cache.
 
     Args:
         ctx: App context.
     """
-    ctx.media_cache.clear()
-    message(strings.CLEAR_IMAGES, [strings.IMAGES_CLEARED])
+    paragraphs = [strings.CLEAR_IMAGES_ASK, strings.CLEAR_IMAGES_EFFECT]
+    hints = [(Button.A, strings.HINT_DELETE), (Button.B, strings.CANCEL)]
+    if prompt(strings.IMAGE_CACHE, paragraphs, hints) is Button.A:
+        ctx.media_cache.clear()
+        message(strings.IMAGE_CACHE, [strings.IMAGES_CLEARED])
 
 
 def show_settings(ctx: AppContext) -> None:

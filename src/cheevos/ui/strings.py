@@ -297,6 +297,10 @@ API_KEY = "Web API key"
 API_KEY_SET = "Set (ends with {tail})"
 CLEAR_IMAGES = "Clear image cache"
 CLEAR_IMAGES_SIZE = "{size} used · images download again when needed"
+IMAGE_CACHE = "Image cache"
+CANCEL = "Cancel"
+CLEAR_IMAGES_ASK = "Delete downloaded badges, icons, and avatars?"
+CLEAR_IMAGES_EFFECT = "Achievement progress stays saved. Images redownload as needed."
 IMAGES_CLEARED = "Image cache cleared."
 
 # --- setup ------------------------------------------------------------------------------------

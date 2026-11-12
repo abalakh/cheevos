@@ -8,6 +8,7 @@ import os
 import struct
 import subprocess
 import sys
+from contextlib import closing
 from pathlib import Path
 
 import pytest
@@ -16,7 +17,10 @@ from sdl2 import sdlimage
 
 from cheevos.core.settings import Settings, load_settings
 from cheevos.core.storage.data_cache import DataCache
+from cheevos.core.storage.media_cache import MediaCache
+from cheevos.platform.desktop.environments import FIXTURE_USER
 from cheevos.platform.desktop.no_set_drill import GAME_ID
+from cheevos.platform.paths import Paths
 from cheevos.ui import language
 from cheevos.ui.pyui.generated import surface_rgba
 
@@ -122,6 +126,25 @@ def test_full_walkthrough(tmp_path, options_button):
     run_app(tmp_path, script)
     names = [token[5:] for token in WALKTHROUGH.split(",") if token.startswith("shot:")]
     assert_shots(tmp_path, names)
+
+
+@pytest.mark.parametrize(("steps", "retained"), [("wait:3", True), ("b", True), ("a", False)])
+def test_image_cache_is_cleared_only_when_confirmed(tmp_path, steps, retained):
+    paths = Paths(sdcard=tmp_path / "sdcard", scratch=tmp_path / "scratch")
+    image_key = "icon/test-cache-confirmation"
+    with closing(MediaCache.open(paths.media_db, paths.media_scratch)) as media:
+        media.put(image_key, b"cached image")
+
+    # Wrap up from the first Home row to Settings, then up to Clear image cache.
+    run_app(tmp_path, f"up,a,up,a,shot:confirmation,{steps},shot:after")
+    assert_shots(tmp_path, ["confirmation", "after"])
+
+    with closing(MediaCache.open(paths.media_db, paths.media_scratch)) as media:
+        assert media.has(image_key) is retained
+    with closing(DataCache.open(paths.data_db, FIXTURE_USER)) as data:
+        game = data.game(519)
+        assert game is not None
+        assert game.earned_hardcore == 2
 
 
 def test_walkthrough_in_another_language(tmp_path):

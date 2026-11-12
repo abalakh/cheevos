@@ -10,7 +10,9 @@
 | **Sync now** | Same as pressing Start. |
 | **Download every game** | Downloads achievements and badges for your entire library for offline use. It resumes in later syncs until finished. While it is pending, this row reads **Stop downloading every game**. |
 | **Web API key** | Shows the end of the current key; press A to enter a new one. |
-| **Clear image cache** | Deletes downloaded badges and icons (shows how much space they use). They download again when needed. |
+| **Clear image cache** | Shows how much space downloaded images use. Press A to open the confirmation screen. Press A again to delete the images, or B to cancel. Achievement progress stays saved, and images download again as needed when you’re online. |
+
+![Clear image cache confirmation](images/clear-image-cache.png)
 
 Find the installed Cheevos version in Spruce **Settings → About this device**.
 

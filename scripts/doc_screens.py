@@ -43,7 +43,7 @@ RUNS: list[tuple[str, str | None, str]] = [
                 # Carousel first; the grid and list then select AotW 2026 (third), a tiered event
                 "down,a,shot:awards,right,right",
                 "select,shot:awards-grid,select,shot:awards-list,select,b",
-                "down,a,shot:settings,b",
+                "down,a,shot:settings,up,a,shot:clear-image-cache,b,b",
                 "up,up,up,up,start,shot:syncing",
             ]
         ),
